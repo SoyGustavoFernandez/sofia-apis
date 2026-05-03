@@ -35,8 +35,10 @@ public class GetSucursalesWithPaginationQueryHandler(IApplicationDbContext conte
                 Nombre = s.Nombre,
                 DireccionFisica = s.Direccion_Fisica,
                 NumeroLicencia = s.Numero_Licencia,
-                GerenteId = s.Gerente_ID,
-                GerenteNombre = s.Gerente != null ? s.Gerente.Nombre_Completo : null
+                GerenteId = s.Gerente != null ? s.Gerente_ID : null,
+                GerenteNombre = s.Gerente != null
+                    ? s.Gerente.Nombres + " " + s.Gerente.Apellido_Paterno + " " + s.Gerente.Apellido_Materno
+                    : null
             })
             .PaginatedListAsync(request.PageNumber, request.PageSize);
 

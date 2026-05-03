@@ -16,15 +16,22 @@ public class EmpleadoConfiguration : IEntityTypeConfiguration<Empleado>
             .HasColumnName("Empleado_ID")
             .ValueGeneratedOnAdd(); // DB generates NEWID()
 
-        _ = builder.Property(x => x.Nombre_Completo)
-            .HasColumnName("Nombre_Completo")
-            .HasMaxLength(150)
+        _ = builder.Property(x => x.Nombres)
+            .HasColumnName("Nombres")
+            .HasMaxLength(75)
             .IsRequired();
 
-        _ = builder.Property(x => x.Rol_Sistema)
-            .HasColumnName("Rol_Sistema")
-            .HasMaxLength(50)
+        _ = builder.Property(x => x.Apellido_Paterno)
+            .HasColumnName("Apellido_Paterno")
+            .HasMaxLength(75)
             .IsRequired();
+
+        _ = builder.Property(x => x.Apellido_Materno)
+            .HasColumnName("Apellido_Materno")
+            .HasMaxLength(75)
+            .IsRequired();
+
+        _ = builder.Ignore(x => x.Nombre_Completo);
 
         _ = builder.Property(x => x.Licencia_Prof)
             .HasColumnName("Licencia_Prof")

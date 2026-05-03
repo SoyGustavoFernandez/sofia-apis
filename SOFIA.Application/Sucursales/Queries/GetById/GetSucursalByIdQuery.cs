@@ -27,8 +27,10 @@ public class GetSucursalByIdQueryHandler(IApplicationDbContext context) : IReque
             Nombre = entity.Nombre,
             DireccionFisica = entity.Direccion_Fisica,
             NumeroLicencia = entity.Numero_Licencia,
-            GerenteId = entity.Gerente_ID,
-            GerenteNombre = entity.Gerente?.Nombre_Completo
+            GerenteId = entity.Gerente != null ? entity.Gerente_ID : null,
+            GerenteNombre = entity.Gerente != null
+                ? $"{entity.Gerente.Nombres} {entity.Gerente.Apellido_Paterno} {entity.Gerente.Apellido_Materno}".Trim()
+                : null
         };
 
         return Result.Success(dto);

@@ -3,7 +3,7 @@ namespace SOFIA.Domain.Common;
 
 public class Result
 {
-    protected Result(bool isSuccess, Error error)
+    protected Result(bool isSuccess, Error error, int statusCode)
     {
         if (isSuccess && error != Error.None)
         {
@@ -17,25 +17,27 @@ public class Result
 
         IsSuccess = isSuccess;
         Error = error;
+        StatusCode = statusCode;
     }
 
     public bool IsSuccess { get; }
     public bool IsFailure => !IsSuccess;
     public Error Error { get; }
+    public int StatusCode { get; }
 
-    public static Result Success() => new(true, Error.None);
-    public static Result<TValue> Success<TValue>(TValue value) => new(value, true, Error.None);
+    public static Result Success(int statusCode = 200) => new(true, Error.None, statusCode);
+    public static Result<TValue> Success<TValue>(TValue value, int statusCode = 200) => new(value, true, Error.None, statusCode);
 
-    public static Result Failure(Error error) => new(false, error);
-    public static Result<TValue> Failure<TValue>(Error error) => new(default!, false, error);
+    public static Result Failure(Error error, int statusCode = 400) => new(false, error, statusCode);
+    public static Result<TValue> Failure<TValue>(Error error, int statusCode = 400) => new(default!, false, error, statusCode);
 }
 
 public class Result<TValue> : Result
 {
     private readonly TValue? _value;
 
-    protected internal Result(TValue? value, bool isSuccess, Error error)
-        : base(isSuccess, error) =>
+    protected internal Result(TValue? value, bool isSuccess, Error error, int statusCode)
+        : base(isSuccess, error, statusCode) =>
         _value = value;
 
     [System.Diagnostics.CodeAnalysis.MaybeNull]

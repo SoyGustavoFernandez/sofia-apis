@@ -11,6 +11,7 @@ public interface IApplicationDbContext
     DbSet<Laboratorio> Laboratorios { get; }
     DbSet<IngredienteActivo> IngredientesActivos { get; }
     DbSet<Medicamento> Medicamentos { get; }
+    DbSet<JerarquiaUoM> JerarquiasUoM { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

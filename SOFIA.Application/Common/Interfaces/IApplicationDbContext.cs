@@ -9,6 +9,7 @@ public interface IApplicationDbContext
     DbSet<Empleado> Empleados { get; }
     DbSet<UnidadMedida> UnidadesMedida { get; }
     DbSet<Laboratorio> Laboratorios { get; }
+    DbSet<IngredienteActivo> IngredientesActivos { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

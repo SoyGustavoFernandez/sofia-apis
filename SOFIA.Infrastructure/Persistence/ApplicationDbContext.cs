@@ -12,6 +12,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Empleado> Empleados => Set<Empleado>();
     public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();
     public DbSet<Laboratorio> Laboratorios => Set<Laboratorio>();
+    public DbSet<IngredienteActivo> IngredientesActivos => Set<IngredienteActivo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

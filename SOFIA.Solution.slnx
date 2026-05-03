@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="SOFIA.API/SOFIA.API.csproj" />
+  <Project Path="SOFIA.Application/SOFIA.Application.csproj" />
+  <Project Path="SOFIA.ArchitectureTests/SOFIA.ArchitectureTests.csproj" />
+  <Project Path="SOFIA.Domain/SOFIA.Domain.csproj" />
+  <Project Path="SOFIA.Infrastructure/SOFIA.Infrastructure.csproj" />
+  <Project Path="SOFIA.SharedKernel/SOFIA.SharedKernel.csproj" />
+</Solution>

@@ -1,0 +1,6 @@
+@SOFIA.API_HostAddress = http://localhost:5072
+
+GET {{SOFIA.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

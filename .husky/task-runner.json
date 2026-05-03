@@ -1,0 +1,52 @@
+{
+   "$schema": "https://alirezanet.github.io/Husky.Net/schema.json",
+   "tasks": [
+      {
+         "name": "dotnet-format",
+         "group": "pre-commit",
+         "command": "dotnet",
+         "args": [
+            "format",
+            "--include",
+            "${staged}"
+         ],
+         "include": [
+            "**/*.cs",
+            "**/*.csproj"
+         ]
+      },
+      {
+         "name": "re-stage",
+         "group": "pre-commit",
+         "command": "git",
+         "args": [
+            "add",
+            "${staged}"
+         ]
+      },
+      {
+         "name": "architecture-tests",
+         "group": "pre-commit",
+         "command": "dotnet",
+         "args": [
+            "test",
+            "SOFIA.ArchitectureTests/SOFIA.ArchitectureTests.csproj",
+            "--configuration",
+            "Release",
+            "--no-restore"
+         ]
+      },
+      {
+         "name": "commit-message-validator",
+         "group": "commit-msg",
+         "command": "dotnet",
+         "args": [
+            "husky",
+            "exec",
+            ".husky/scripts/validate-commit-msg.csx",
+            "--args",
+            "${args}"
+         ]
+      }
+   ]
+}

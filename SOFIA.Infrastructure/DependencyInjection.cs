@@ -1,14 +1,20 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using SOFIA.Application.Common.Interfaces;
+using SOFIA.Infrastructure.Persistence;
+
 namespace SOFIA.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services) =>
-        // Configuración de EF Core
-        // services.AddDbContext<ApplicationDbContext>(options =>
-        //    options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
-        //        b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    {
+        _ = services.AddDbContext<ApplicationDbContext>(options =>
+            _ = options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
+                b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
-        // Registro de repositorios y servicios externos
+        _ = services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
-        services;
+        return services;
+    }
 }

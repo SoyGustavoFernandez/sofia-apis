@@ -1,0 +1,8 @@
+namespace SOFIA.Application.Common.Interfaces;
+
+public interface ICurrentUser
+{
+    string? Id { get; }
+    string? Name { get; }
+    bool IsAuthenticated { get; }
+}

@@ -1,5 +1,6 @@
-
 using System.Reflection;
+using FluentValidation;
+using SOFIA.Application.Common.Behaviors;
 
 namespace SOFIA.Application;
 
@@ -10,9 +11,10 @@ public static class DependencyInjection
         _ = services.AddMediatR(cfg =>
         {
             _ = cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+            _ = cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
         });
 
-        // Registro de otros servicios de aplicación (Mappers, Validators, etc.)
+        _ = services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
         return services;
     }

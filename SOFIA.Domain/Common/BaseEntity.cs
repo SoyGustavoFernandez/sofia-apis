@@ -2,7 +2,7 @@ namespace SOFIA.Domain.Common;
 
 public abstract class BaseEntity<TId> : IAuditableEntity
 {
-    public TId Id { get; protected set; } = default!;
+    public TId Id { get; init; } = default!;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public string? CreatedBy { get; set; }
     public DateTimeOffset? LastModifiedAt { get; set; }
@@ -11,8 +11,6 @@ public abstract class BaseEntity<TId> : IAuditableEntity
     public DateTimeOffset? DeletedAt { get; set; }
     public string? DeletedBy { get; set; }
 
-    // Concurrencia optimista (RowVersion)
-    public byte[] RowVersion { get; set; } = [];
 }
 
 public abstract class BaseEntity : BaseEntity<Guid>

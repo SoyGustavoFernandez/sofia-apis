@@ -2,6 +2,14 @@
    "$schema": "https://alirezanet.github.io/Husky.Net/schema.json",
    "tasks": [
       {
+         "name": "detect-secrets",
+         "group": "pre-commit",
+         "command": "bash",
+         "args": [
+            ".husky/scripts/detect-secrets.sh"
+         ]
+      },
+      {
          "name": "dotnet-format",
          "group": "pre-commit",
          "command": "dotnet",

@@ -1,4 +1,6 @@
 #pragma warning disable IDE0032
+using System.Diagnostics.CodeAnalysis;
+
 namespace SOFIA.Domain.Common;
 
 public class Result
@@ -40,9 +42,16 @@ public class Result<TValue> : Result
         : base(isSuccess, error, statusCode) =>
         _value = value;
 
-    [System.Diagnostics.CodeAnalysis.MaybeNull]
-    public TValue Value => IsSuccess
-        ? _value!
+    /// <summary>
+    /// Indicates whether this result represents a successful operation.
+    /// When <see langword="true"/>, <see cref="Value"/> is guaranteed to be non-null.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(Value))]
+    public new bool IsSuccess => base.IsSuccess;
+
+    /// <summary>Gets the value. Only accessible when <see cref="IsSuccess"/> is <see langword="true"/>.</summary>
+    public TValue? Value => IsSuccess
+        ? _value
         : throw new InvalidOperationException("The value of a failure result can not be accessed.");
 
     public static implicit operator Result<TValue>(TValue value) => Success(value);

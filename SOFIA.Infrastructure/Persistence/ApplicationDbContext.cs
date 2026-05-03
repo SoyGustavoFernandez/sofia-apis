@@ -11,6 +11,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Sucursal> Sucursales => Set<Sucursal>();
     public DbSet<Empleado> Empleados => Set<Empleado>();
     public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();
+    public DbSet<Laboratorio> Laboratorios => Set<Laboratorio>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

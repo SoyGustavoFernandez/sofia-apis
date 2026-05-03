@@ -1,6 +1,6 @@
 @SOFIA.API_HostAddress = http://localhost:5072
 
-GET {{SOFIA.API_HostAddress}}/weatherforecast/
+GET {{SOFIA.API_HostAddress}}/health
 Accept: application/json
 
 ###

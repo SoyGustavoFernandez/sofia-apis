@@ -1,10 +1,10 @@
-using SOFIA.API.Middleware;
+using SOFIA.API.Services;
+using SOFIA.Application.Common.Interfaces;
+using SOFIA.API.Infrastructure;
 using SOFIA.Application;
 using SOFIA.Infrastructure;
 using SOFIA.Domain;
 using SOFIA.SharedKernel;
-using SOFIA.API.Services;
-using SOFIA.Application.Common.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +13,10 @@ _ = builder.Services.AddControllers();
 _ = builder.Services.AddOpenApi();
 _ = builder.Services.AddEndpointsApiExplorer();
 _ = builder.Services.AddSwaggerGen();
+
+// Error Handling Moderno
+_ = builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+_ = builder.Services.AddProblemDetails();
 
 // Clean Architecture Layers Registration
 _ = builder.Services.AddScoped<ICurrentUser, CurrentUser>();
@@ -36,7 +40,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-_ = app.UseMiddleware<ExceptionMiddleware>();
+_ = app.UseExceptionHandler();
 _ = app.UseHttpsRedirection();
 
 _ = app.MapControllers();

@@ -10,6 +10,7 @@ public interface IApplicationDbContext
     DbSet<UnidadMedida> UnidadesMedida { get; }
     DbSet<Laboratorio> Laboratorios { get; }
     DbSet<IngredienteActivo> IngredientesActivos { get; }
+    DbSet<Medicamento> Medicamentos { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

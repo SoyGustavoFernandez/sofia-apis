@@ -1,0 +1,49 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
+using SOFIA.Domain.Common;
+
+namespace SOFIA.Application.Medicamentos.Queries.GetMedicamentos;
+
+public record GetMedicamentosQuery : IRequest<Result<PaginatedList<MedicamentoDto>>>
+{
+    public string? SearchTerm { get; init; }
+    public int PageNumber { get; init; } = 1;
+    public int PageSize { get; init; } = 10;
+}
+
+public class GetMedicamentosQueryHandler(IApplicationDbContext context) : IRequestHandler<GetMedicamentosQuery, Result<PaginatedList<MedicamentoDto>>>
+{
+    public async Task<Result<PaginatedList<MedicamentoDto>>> Handle(GetMedicamentosQuery request, CancellationToken cancellationToken)
+    {
+        var query = context.Medicamentos
+            .AsNoTracking()
+            .Include(x => x.Laboratorio)
+            .Include(x => x.UnidadBase)
+            .Where(x => !x.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var searchTerm = request.SearchTerm.ToLower();
+            query = query.Where(x => x.CodigoNacional.ToLower().Contains(searchTerm) ||
+                                     x.NombreComercial.ToLower().Contains(searchTerm) ||
+                                     (x.Laboratorio != null && x.Laboratorio.NombreCompania.ToLower().Contains(searchTerm)));
+        }
+
+        var paginatedList = await PaginatedList<MedicamentoDto>.CreateAsync(
+            query.Select(x => new MedicamentoDto(
+                x.Id,
+                x.CodigoNacional,
+                x.NombreComercial,
+                x.LaboratorioId,
+                x.Laboratorio != null ? x.Laboratorio.NombreCompania : "Unknown",
+                x.UnidadBaseId,
+                x.UnidadBase != null ? x.UnidadBase.Descripcion : "Unknown",
+                x.CondicionVenta)),
+            request.PageNumber,
+            request.PageSize);
+
+        return Result.Success(paginatedList);
+    }
+}

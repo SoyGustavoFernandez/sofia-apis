@@ -13,6 +13,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();
     public DbSet<Laboratorio> Laboratorios => Set<Laboratorio>();
     public DbSet<IngredienteActivo> IngredientesActivos => Set<IngredienteActivo>();
+    public DbSet<Medicamento> Medicamentos => Set<Medicamento>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

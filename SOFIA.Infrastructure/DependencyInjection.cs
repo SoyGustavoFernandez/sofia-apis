@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -75,6 +76,10 @@ public static class DependencyInjection
                     }
                 };
             });
+
+        _ = services.AddMemoryCache();
+        _ = services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+        _ = services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
         _ = services.AddAuthorization();
 

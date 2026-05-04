@@ -5,6 +5,7 @@ using SOFIA.Application.Security.Commands.Login;
 using SOFIA.Application.Security.Commands.Logout;
 using SOFIA.Application.Security.Commands.Register;
 using SOFIA.Application.Security.Commands.ResetPassword;
+using SOFIA.Application.Security.Queries.GetProfile;
 using System.Security.Claims;
 
 namespace SOFIA.API.Controllers;
@@ -19,6 +20,22 @@ public class AuthController(ISender sender) : ControllerBase
         var result = await sender.Send(command);
         return result.IsSuccess
             ? Ok(new { Token = result.Value })
+            : Problem(result.Error.Message, statusCode: result.StatusCode);
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> GetProfile()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var cuentaId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await sender.Send(new GetProfileQuery(cuentaId));
+        return result.IsSuccess
+            ? Ok(result.Value)
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 

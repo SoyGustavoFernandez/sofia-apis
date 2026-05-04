@@ -91,4 +91,23 @@ public sealed class Cuenta : BaseEntity
 
         return Result.Success();
     }
+
+    public void AddRol(Rol rol)
+    {
+        if (!Roles.Any(r => r.Id == rol.Id))
+        {
+            Roles.Add(rol);
+            SecurityStamp = Guid.NewGuid();
+        }
+    }
+
+    public void RemoveRol(Guid rolId)
+    {
+        var rol = Roles.FirstOrDefault(r => r.Id == rolId);
+        if (rol != null)
+        {
+            _ = Roles.Remove(rol);
+            SecurityStamp = Guid.NewGuid();
+        }
+    }
 }

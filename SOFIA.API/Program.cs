@@ -5,6 +5,9 @@ using SOFIA.Application;
 using SOFIA.Infrastructure;
 using SOFIA.Domain;
 using SOFIA.SharedKernel;
+using Microsoft.OpenApi;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +15,26 @@ var builder = WebApplication.CreateBuilder(args);
 _ = builder.Services.AddControllers();
 _ = builder.Services.AddOpenApi();
 _ = builder.Services.AddEndpointsApiExplorer();
-_ = builder.Services.AddSwaggerGen();
+_ = builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "SOFIA API", Version = "v1" });
+
+    // Configuración para usar JWT en Swagger
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Ingresa ÚNICAMENTE el token JWT (el 'candado' ya añade el prefijo Bearer)"
+    });
+
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
+});
 
 // Error Handling Moderno
 _ = builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -32,8 +33,8 @@ public static class DependencyInjection
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
+                    ValidateIssuer = !string.IsNullOrEmpty(jwtOptions.Issuer),
+                    ValidateAudience = !string.IsNullOrEmpty(jwtOptions.Audience),
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = jwtOptions.Issuer,
@@ -46,24 +47,30 @@ public static class DependencyInjection
                     OnTokenValidated = async context =>
                     {
                         var dbContext = context.HttpContext.RequestServices.GetRequiredService<IApplicationDbContext>();
-                        var userIdClaim = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                        var userIdClaim = context.Principal?.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                                         ?? context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+
                         var securityStampClaim = context.Principal?.FindFirstValue("securityStamp");
 
-                        if (string.IsNullOrEmpty(userIdClaim) || string.IsNullOrEmpty(securityStampClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                        if (string.IsNullOrEmpty(userIdClaim) ||
+                            string.IsNullOrEmpty(securityStampClaim) ||
+                            !Guid.TryParse(userIdClaim, out var userId) ||
+                            !Guid.TryParse(securityStampClaim, out var securityStamp))
                         {
-                            context.Fail("Unauthorized");
+                            context.Fail("Unauthorized: Missing or invalid security claims.");
                             return;
                         }
 
                         var securityStampValid = await dbContext.Cuentas
                             .AnyAsync(c => c.Id == userId &&
-                                           c.SecurityStamp.ToString() == securityStampClaim &&
+                                           c.SecurityStamp == securityStamp &&
                                            c.CuentaActiva &&
                                            !c.IsDeleted);
 
                         if (!securityStampValid)
                         {
-                            context.Fail("Unauthorized");
+                            context.Fail("Unauthorized: Security stamp is invalid or account is inactive.");
                         }
                     }
                 };

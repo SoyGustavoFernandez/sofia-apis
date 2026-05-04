@@ -1,0 +1,37 @@
+using SOFIA.Domain.Common;
+
+namespace SOFIA.Domain.Entities;
+
+public sealed class Rol : BaseEntity
+{
+    private Rol() { } // Required for EF Core
+
+    public string NombreRol { get; private set; } = string.Empty;
+    public string? Descripcion { get; private set; }
+    public int NivelJerarquia { get; private set; }
+
+    // Navigation Properties
+    public ICollection<Cuenta> Cuentas { get; private set; } = [];
+    public ICollection<PermisoRol> Permisos { get; private set; } = [];
+
+    public static Result<Rol> Create(
+        string nombreRol,
+        string? descripcion,
+        int nivelJerarquia = 0) =>
+        string.IsNullOrWhiteSpace(nombreRol)
+            ? Result.Failure<Rol>(Error.Validation("Rol.Nombre", "Nombre de Rol is required."))
+            : nombreRol.Length > 50
+            ? Result.Failure<Rol>(Error.Validation("Rol.Nombre", "Nombre de Rol must not exceed 50 characters."))
+            : Result.Success(new Rol
+            {
+                NombreRol = nombreRol,
+                Descripcion = descripcion,
+                NivelJerarquia = nivelJerarquia
+            });
+
+    public void Update(string? descripcion, int nivelJerarquia)
+    {
+        Descripcion = descripcion;
+        NivelJerarquia = nivelJerarquia;
+    }
+}

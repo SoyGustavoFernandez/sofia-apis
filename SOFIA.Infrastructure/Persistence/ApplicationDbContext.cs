@@ -16,6 +16,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Medicamento> Medicamentos => Set<Medicamento>();
     public DbSet<JerarquiaUoM> JerarquiasUoM => Set<JerarquiaUoM>();
     public DbSet<FormulacionClinica> FormulacionesClinicas => Set<FormulacionClinica>();
+    public DbSet<Cuenta> Cuentas => Set<Cuenta>();
+    public DbSet<Rol> Roles => Set<Rol>();
+    public DbSet<PermisoRol> PermisosRol => Set<PermisoRol>();
+    public DbSet<CuentaRol> CuentasRoles => Set<CuentaRol>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -13,6 +13,10 @@ public interface IApplicationDbContext
     DbSet<Medicamento> Medicamentos { get; }
     DbSet<JerarquiaUoM> JerarquiasUoM { get; }
     DbSet<FormulacionClinica> FormulacionesClinicas { get; }
+    DbSet<Cuenta> Cuentas { get; }
+    DbSet<Rol> Roles { get; }
+    DbSet<PermisoRol> PermisosRol { get; }
+    DbSet<CuentaRol> CuentasRoles { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

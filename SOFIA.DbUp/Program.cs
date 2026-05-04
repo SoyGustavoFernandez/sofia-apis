@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 var configuration = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: true)
+    .AddUserSecrets<Program>()
     .AddEnvironmentVariables()
     .Build();
 

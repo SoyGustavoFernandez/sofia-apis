@@ -43,6 +43,9 @@ if (app.Environment.IsDevelopment())
 _ = app.UseExceptionHandler();
 _ = app.UseHttpsRedirection();
 
+_ = app.UseAuthentication();
+_ = app.UseAuthorization();
+
 _ = app.MapControllers();
 
 // Health Check Endpoint

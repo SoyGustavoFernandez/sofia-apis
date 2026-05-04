@@ -787,6 +787,8 @@ CREATE TABLE Seguridad_Cuentas (
     Empleado_ID UNIQUEIDENTIFIER NOT NULL UNIQUE,
     Nombre_Usuario VARCHAR(50) NOT NULL UNIQUE,
     Password_Hash NVARCHAR(MAX) NOT NULL,
+    Recovery_Token VARCHAR(100) NULL,
+    Recovery_Token_Expiry DATETIMEOFFSET NULL,
     Security_Stamp UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
     Requiere_Cambio_Clave BIT NOT NULL DEFAULT 1,
     Intentos_Fallidos INT NOT NULL DEFAULT 0,
@@ -809,7 +811,11 @@ CREATE TABLE Seguridad_Roles (
     Nivel_Jerarquia INT NOT NULL DEFAULT 0,
     CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
     CreatedBy VARCHAR(100) NULL,
-    IsDeleted BIT NOT NULL DEFAULT 0
+    LastModifiedAt DATETIMEOFFSET NULL,
+    LastModifiedBy VARCHAR(100) NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0,
+    DeletedAt DATETIMEOFFSET NULL,
+    DeletedBy VARCHAR(100) NULL
 );
 
 CREATE TABLE Seguridad_Cuentas_Roles (
@@ -829,6 +835,11 @@ CREATE TABLE Seguridad_Permisos_Rol (
     Accion VARCHAR(50) NOT NULL,
     CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
     CreatedBy VARCHAR(100) NULL,
+    LastModifiedAt DATETIMEOFFSET NULL,
+    LastModifiedBy VARCHAR(100) NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0,
+    DeletedAt DATETIMEOFFSET NULL,
+    DeletedBy VARCHAR(100) NULL,
     CONSTRAINT FK_Permisos_Rol FOREIGN KEY (Rol_ID) REFERENCES Seguridad_Roles(Rol_ID),
     CONSTRAINT UQ_Rol_Modulo_Accion UNIQUE (Rol_ID, Modulo_Sistema, Accion)
 );

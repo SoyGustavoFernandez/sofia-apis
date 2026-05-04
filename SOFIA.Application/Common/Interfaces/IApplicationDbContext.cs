@@ -12,6 +12,7 @@ public interface IApplicationDbContext
     DbSet<IngredienteActivo> IngredientesActivos { get; }
     DbSet<Medicamento> Medicamentos { get; }
     DbSet<JerarquiaUoM> JerarquiasUoM { get; }
+    DbSet<FormulacionClinica> FormulacionesClinicas { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

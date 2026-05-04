@@ -15,6 +15,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<IngredienteActivo> IngredientesActivos => Set<IngredienteActivo>();
     public DbSet<Medicamento> Medicamentos => Set<Medicamento>();
     public DbSet<JerarquiaUoM> JerarquiasUoM => Set<JerarquiaUoM>();
+    public DbSet<FormulacionClinica> FormulacionesClinicas => Set<FormulacionClinica>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

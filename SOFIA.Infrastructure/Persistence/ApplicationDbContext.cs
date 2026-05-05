@@ -36,16 +36,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.CreatedBy = currentUser.Id;
+                    entry.Entity.CreatedBy = currentUser.Name ?? "SYSTEM";
                     entry.Entity.CreatedAt = DateTimeOffset.UtcNow;
                     break;
                 case EntityState.Modified:
-                    entry.Entity.LastModifiedBy = currentUser.Id;
+                    entry.Entity.LastModifiedBy = currentUser.Name ?? "SYSTEM";
                     entry.Entity.LastModifiedAt = DateTimeOffset.UtcNow;
                     break;
                 case EntityState.Deleted:
                     entry.State = EntityState.Modified;
-                    entry.Entity.DeletedBy = currentUser.Id;
+                    entry.Entity.DeletedBy = currentUser.Name ?? "SYSTEM";
                     entry.Entity.DeletedAt = DateTimeOffset.UtcNow;
                     entry.Entity.IsDeleted = true;
                     break;

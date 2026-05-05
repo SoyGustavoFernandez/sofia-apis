@@ -40,6 +40,9 @@ _ = builder.Services.AddSwaggerGen(options =>
 _ = builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 _ = builder.Services.AddProblemDetails();
 
+// Infrastructure Services
+_ = builder.Services.AddHttpContextAccessor();
+
 // Clean Architecture Layers Registration
 _ = builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 _ = builder.Services.AddSharedKernel();

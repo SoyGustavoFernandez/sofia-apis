@@ -1,4 +1,3 @@
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using SOFIA.Application.Security.Commands.ForgotPassword;
 using SOFIA.Application.Security.Commands.Login;

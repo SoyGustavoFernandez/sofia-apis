@@ -1,4 +1,3 @@
-using MediatR;
 using SOFIA.Application.UnidadesMedida.Commands.CreateUnidadMedida;
 using SOFIA.Application.UnidadesMedida.Commands.DeleteUnidadMedida;
 using SOFIA.Application.UnidadesMedida.Commands.UpdateUnidadMedida;
@@ -11,6 +10,7 @@ namespace SOFIA.API.Controllers;
 [Route("api/[controller]")]
 public class UnidadesMedidaController(ISender sender) : ControllerBase
 {
+    [HasPermission("UnidadesMedida", "Leer")]
     [HttpGet]
     public async Task<IActionResult> GetPaginated([FromQuery] GetUnidadesMedidaQuery query)
     {
@@ -18,6 +18,7 @@ public class UnidadesMedidaController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("UnidadesMedida", "Leer")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -25,6 +26,7 @@ public class UnidadesMedidaController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("UnidadesMedida", "Crear")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateUnidadMedidaCommand command)
     {
@@ -34,6 +36,7 @@ public class UnidadesMedidaController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("UnidadesMedida", "Actualizar")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUnidadMedidaCommand command)
     {
@@ -46,6 +49,7 @@ public class UnidadesMedidaController(ISender sender) : ControllerBase
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("UnidadesMedida", "Eliminar")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

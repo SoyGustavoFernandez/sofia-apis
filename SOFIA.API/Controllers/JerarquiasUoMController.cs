@@ -1,4 +1,3 @@
-using MediatR;
 using SOFIA.Application.JerarquiasUoM.Commands.CreateJerarquiaUoM;
 using SOFIA.Application.JerarquiasUoM.Commands.DeleteJerarquiaUoM;
 using SOFIA.Application.JerarquiasUoM.Commands.UpdateJerarquiaUoM;
@@ -11,6 +10,7 @@ namespace SOFIA.API.Controllers;
 [Route("api/[controller]")]
 public class JerarquiasUoMController(ISender sender) : ControllerBase
 {
+    [HasPermission("JerarquiasUoM", "Leer")]
     [HttpGet]
     public async Task<IActionResult> GetPaginated([FromQuery] GetJerarquiasUoMQuery query)
     {
@@ -18,6 +18,7 @@ public class JerarquiasUoMController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("JerarquiasUoM", "Leer")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -25,6 +26,7 @@ public class JerarquiasUoMController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("JerarquiasUoM", "Crear")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateJerarquiaUoMCommand command)
     {
@@ -34,6 +36,7 @@ public class JerarquiasUoMController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("JerarquiasUoM", "Actualizar")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateJerarquiaUoMCommand command)
     {
@@ -46,6 +49,7 @@ public class JerarquiasUoMController(ISender sender) : ControllerBase
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("JerarquiasUoM", "Eliminar")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

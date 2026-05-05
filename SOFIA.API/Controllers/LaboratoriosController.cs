@@ -1,4 +1,3 @@
-using MediatR;
 using SOFIA.Application.Laboratorios.Commands.CreateLaboratorio;
 using SOFIA.Application.Laboratorios.Commands.DeleteLaboratorio;
 using SOFIA.Application.Laboratorios.Commands.UpdateLaboratorio;
@@ -11,6 +10,7 @@ namespace SOFIA.API.Controllers;
 [Route("api/[controller]")]
 public class LaboratoriosController(ISender sender) : ControllerBase
 {
+    [HasPermission("Laboratorios", "Leer")]
     [HttpGet]
     public async Task<IActionResult> GetPaginated([FromQuery] GetLaboratoriosQuery query)
     {
@@ -18,6 +18,7 @@ public class LaboratoriosController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Laboratorios", "Leer")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -25,6 +26,7 @@ public class LaboratoriosController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Laboratorios", "Crear")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateLaboratorioCommand command)
     {
@@ -34,6 +36,7 @@ public class LaboratoriosController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Laboratorios", "Actualizar")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateLaboratorioCommand command)
     {
@@ -46,6 +49,7 @@ public class LaboratoriosController(ISender sender) : ControllerBase
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Laboratorios", "Eliminar")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

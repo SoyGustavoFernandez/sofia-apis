@@ -1,4 +1,3 @@
-using MediatR;
 using SOFIA.Application.FormulacionesClinicas.Commands.Create;
 using SOFIA.Application.FormulacionesClinicas.Commands.Delete;
 using SOFIA.Application.FormulacionesClinicas.Commands.Update;
@@ -12,12 +11,14 @@ namespace SOFIA.API.Controllers;
 [Route("api/[controller]")]
 public class FormulacionesClinicasController(ISender sender) : ControllerBase
 {
+    [HasPermission("FormulacionesClinicas", "Leer")]
     [HttpGet]
     public async Task<IActionResult> GetPaginated([FromQuery] GetFormulacionesClinicasWithPaginationQuery query)
     {
         var result = await sender.Send(query);
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
+    [HasPermission("FormulacionesClinicas", "Leer")]
     [HttpGet("medicamento/{productoId:guid}")]
     public async Task<IActionResult> GetByMedicamento(Guid productoId)
     {
@@ -25,6 +26,7 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("FormulacionesClinicas", "Leer")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -32,6 +34,7 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("FormulacionesClinicas", "Crear")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateFormulacionClinicaCommand command)
     {
@@ -41,6 +44,7 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("FormulacionesClinicas", "Actualizar")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFormulacionClinicaCommand command)
     {
@@ -53,6 +57,7 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("FormulacionesClinicas", "Eliminar")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

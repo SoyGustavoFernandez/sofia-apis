@@ -1,4 +1,3 @@
-using MediatR;
 using SOFIA.Application.Medicamentos.Commands.CreateMedicamento;
 using SOFIA.Application.Medicamentos.Commands.DeleteMedicamento;
 using SOFIA.Application.Medicamentos.Commands.UpdateMedicamento;
@@ -12,9 +11,11 @@ namespace SOFIA.API.Controllers;
 [Route("api/[controller]")]
 public class MedicamentosController(ISender sender) : ControllerBase
 {
+    [HasPermission("Medicamentos", "Leer")]
     [HttpGet("condiciones-venta")]
     public IActionResult GetCondicionesVenta() => Ok(Medicamento.CondicionesValidas);
 
+    [HasPermission("Medicamentos", "Leer")]
     [HttpGet]
     public async Task<IActionResult> GetPaginated([FromQuery] GetMedicamentosQuery query)
     {
@@ -22,6 +23,7 @@ public class MedicamentosController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Medicamentos", "Leer")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -29,6 +31,7 @@ public class MedicamentosController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Medicamentos", "Crear")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateMedicamentoCommand command)
     {
@@ -38,6 +41,7 @@ public class MedicamentosController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Medicamentos", "Actualizar")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMedicamentoCommand command)
     {
@@ -50,6 +54,7 @@ public class MedicamentosController(ISender sender) : ControllerBase
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Medicamentos", "Eliminar")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

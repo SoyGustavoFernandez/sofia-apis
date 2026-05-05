@@ -1,4 +1,3 @@
-using MediatR;
 using SOFIA.Application.Empleados.Commands.CreateEmpleado;
 using SOFIA.Application.Empleados.Commands.DeleteEmpleado;
 using SOFIA.Application.Empleados.Commands.UpdateEmpleado;
@@ -11,6 +10,7 @@ namespace SOFIA.API.Controllers;
 [Route("api/[controller]")]
 public class EmpleadosController(ISender sender) : ControllerBase
 {
+    [HasPermission("Empleados", "Leer")]
     [HttpGet]
     public async Task<IActionResult> GetPaginated([FromQuery] GetEmpleadosWithPaginationQuery query)
     {
@@ -18,6 +18,7 @@ public class EmpleadosController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Empleados", "Leer")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -25,6 +26,7 @@ public class EmpleadosController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Empleados", "Crear")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEmpleadoCommand command)
     {
@@ -34,6 +36,7 @@ public class EmpleadosController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Empleados", "Actualizar")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmpleadoCommand command)
     {
@@ -46,6 +49,7 @@ public class EmpleadosController(ISender sender) : ControllerBase
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Empleados", "Eliminar")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

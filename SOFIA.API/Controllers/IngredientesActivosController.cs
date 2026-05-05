@@ -1,4 +1,3 @@
-using MediatR;
 using SOFIA.Application.IngredientesActivos.Commands.CreateIngredienteActivo;
 using SOFIA.Application.IngredientesActivos.Commands.DeleteIngredienteActivo;
 using SOFIA.Application.IngredientesActivos.Commands.UpdateIngredienteActivo;
@@ -11,6 +10,7 @@ namespace SOFIA.API.Controllers;
 [Route("api/[controller]")]
 public class IngredientesActivosController(ISender sender) : ControllerBase
 {
+    [HasPermission("IngredientesActivos", "Leer")]
     [HttpGet]
     public async Task<IActionResult> GetPaginated([FromQuery] GetIngredientesActivosQuery query)
     {
@@ -18,6 +18,7 @@ public class IngredientesActivosController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("IngredientesActivos", "Leer")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -25,6 +26,7 @@ public class IngredientesActivosController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("IngredientesActivos", "Crear")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateIngredienteActivoCommand command)
     {
@@ -34,6 +36,7 @@ public class IngredientesActivosController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("IngredientesActivos", "Actualizar")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateIngredienteActivoCommand command)
     {
@@ -46,6 +49,7 @@ public class IngredientesActivosController(ISender sender) : ControllerBase
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("IngredientesActivos", "Eliminar")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

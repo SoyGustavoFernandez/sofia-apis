@@ -1,4 +1,3 @@
-using MediatR;
 using SOFIA.Application.Sucursales.Commands.CreateSucursal;
 using SOFIA.Application.Sucursales.Commands.DeleteSucursal;
 using SOFIA.Application.Sucursales.Commands.UpdateSucursal;
@@ -11,6 +10,7 @@ namespace SOFIA.API.Controllers;
 [Route("api/[controller]")]
 public class SucursalesController(ISender sender) : ControllerBase
 {
+    [HasPermission("Sucursales", "Leer")]
     [HttpGet]
     public async Task<IActionResult> GetPaginated([FromQuery] GetSucursalesWithPaginationQuery query)
     {
@@ -18,6 +18,7 @@ public class SucursalesController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Sucursales", "Leer")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -25,6 +26,7 @@ public class SucursalesController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Sucursales", "Crear")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateSucursalCommand command)
     {
@@ -34,6 +36,7 @@ public class SucursalesController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Sucursales", "Actualizar")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSucursalCommand command)
     {
@@ -46,6 +49,7 @@ public class SucursalesController(ISender sender) : ControllerBase
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Sucursales", "Eliminar")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

@@ -1,4 +1,3 @@
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using SOFIA.Application.Security.Commands.Roles.AssignPermission;
 using SOFIA.Application.Security.Commands.Roles.AssignRol;
@@ -18,6 +17,7 @@ namespace SOFIA.API.Controllers;
 [Authorize]
 public class RolesController(ISender sender) : ControllerBase
 {
+    [HasPermission("Seguridad", "Leer")]
     [HttpGet]
     public async Task<IActionResult> GetRoles()
     {
@@ -27,6 +27,7 @@ public class RolesController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Seguridad", "Leer")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetRolById(Guid id)
     {
@@ -36,6 +37,7 @@ public class RolesController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Seguridad", "Crear")]
     [HttpPost]
     public async Task<IActionResult> CreateRol([FromBody] CreateRolCommand command)
     {
@@ -45,6 +47,7 @@ public class RolesController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Seguridad", "Actualizar")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateRol(Guid id, [FromBody] UpdateRolRequest request)
     {
@@ -54,6 +57,7 @@ public class RolesController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Seguridad", "Eliminar")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteRol(Guid id)
     {
@@ -63,6 +67,7 @@ public class RolesController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Seguridad", "AsignarRoles")]
     [HttpPost("assign-to-user")]
     public async Task<IActionResult> AssignRol([FromBody] AssignRolToUserCommand command)
     {
@@ -72,6 +77,7 @@ public class RolesController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Seguridad", "AsignarRoles")]
     [HttpPost("remove-from-user")]
     public async Task<IActionResult> RemoveRol([FromBody] RemoveRolFromUserCommand command)
     {
@@ -81,6 +87,7 @@ public class RolesController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Seguridad", "Leer")]
     [HttpGet("{id:guid}/permissions")]
     public async Task<IActionResult> GetPermissions(Guid id)
     {
@@ -90,6 +97,7 @@ public class RolesController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Seguridad", "GestionarPermisos")]
     [HttpPost("permissions")]
     public async Task<IActionResult> AssignPermission([FromBody] AssignPermissionToRolCommand command)
     {
@@ -99,6 +107,7 @@ public class RolesController(ISender sender) : ControllerBase
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Seguridad", "GestionarPermisos")]
     [HttpDelete("permissions/{permisoId:guid}")]
     public async Task<IActionResult> RevokePermission(Guid permisoId)
     {

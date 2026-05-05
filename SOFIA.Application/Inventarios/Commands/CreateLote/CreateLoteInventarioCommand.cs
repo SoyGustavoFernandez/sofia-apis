@@ -46,6 +46,15 @@ public class CreateLoteInventarioHandler(IApplicationDbContext context)
             return Result.Failure<Guid>(Error.NotFound("Medicamento.NotFound", "The specified product does not exist."));
         }
 
+        // Validate batch number uniqueness
+        var batchExists = await context.LotesInventario
+            .AnyAsync(l => l.ProductoId == request.ProductoId && l.NumeroLoteMfr == request.NumeroLoteMfr, cancellationToken);
+
+        if (batchExists)
+        {
+            return Result.Failure<Guid>(Error.Validation("LoteInventario.Duplicate", $"A batch with number '{request.NumeroLoteMfr}' already exists for this product."));
+        }
+
         var result = LoteInventario.Create(
             request.ProductoId,
             request.NumeroLoteMfr,

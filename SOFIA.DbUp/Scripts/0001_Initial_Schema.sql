@@ -161,6 +161,8 @@ CREATE TABLE Lotes_Inventario (
     CONSTRAINT FK_Lotes_Prod FOREIGN KEY (Producto_ID) REFERENCES Medicamentos(Producto_ID)
 );
 
+CREATE UNIQUE NONCLUSTERED INDEX UX_Lotes_Producto_NumeroLote ON Lotes_Inventario(Producto_ID, Numero_Lote_Mfr) WHERE IsDeleted = 0;
+
 CREATE NONCLUSTERED INDEX IX_Lotes_Caducidad ON Lotes_Inventario(Fecha_Caducidad);
 
 CREATE TABLE Inventario_Sucursal (

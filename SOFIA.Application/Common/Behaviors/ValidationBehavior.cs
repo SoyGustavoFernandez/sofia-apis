@@ -1,7 +1,6 @@
 using FluentValidation;
 using MediatR;
 using SOFIA.Domain.Common;
-
 namespace SOFIA.Application.Common.Behaviors;
 
 public class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TRequest>> validators)
@@ -30,12 +29,13 @@ public class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TReq
             if (typeof(TResponse).IsGenericType && typeof(TResponse).GetGenericTypeDefinition() == typeof(Result<>))
             {
                 var resultType = typeof(TResponse).GetGenericArguments()[0];
-                var failureMethod = typeof(Result<>)
-                    .MakeGenericType(resultType)
-                    .GetMethod("Failure", [typeof(Error), typeof(int)]);
+                var failureMethod = typeof(Result)
+                    .GetMethods()
+                    .First(m => m.Name == "Failure" && m.IsGenericMethod)
+                    .MakeGenericMethod(resultType);
 
                 var error = Error.Validation("ValidationError", string.Join("; ", failures.Select(f => f.ErrorMessage)));
-                return (TResponse)failureMethod!.Invoke(null, [error, 400])!;
+                return (TResponse)failureMethod.Invoke(null, [error, 400])!;
             }
 
             if (typeof(TResponse) == typeof(Result))

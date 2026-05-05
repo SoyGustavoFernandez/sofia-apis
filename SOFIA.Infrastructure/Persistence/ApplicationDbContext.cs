@@ -20,6 +20,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Rol> Roles => Set<Rol>();
     public DbSet<PermisoRol> PermisosRol => Set<PermisoRol>();
     public DbSet<CuentaRol> CuentasRoles => Set<CuentaRol>();
+    public DbSet<LoteInventario> LotesInventario => Set<LoteInventario>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

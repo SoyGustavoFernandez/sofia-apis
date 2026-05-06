@@ -21,8 +21,7 @@ public class GetMedicamentosQueryHandler(IApplicationDbContext context) : IReque
             .AsNoTracking()
             .Include(x => x.Laboratorio)
             .Include(x => x.UnidadBase)
-            .Where(x => !x.IsDeleted)
-            .AsQueryable();
+            .Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {

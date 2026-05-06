@@ -342,6 +342,8 @@ CREATE TABLE Ventas_Cabecera (
     Sesion_ID UNIQUEIDENTIFIER NULL,
     Fecha_Hora_UTC DATETIME DEFAULT CURRENT_TIMESTAMP,
     Monto_Total_Bruto DECIMAL(12,2) NOT NULL,
+    Estado VARCHAR(20) NOT NULL DEFAULT 'Completada',
+    Motivo_Anulacion VARCHAR(255) NULL,
     CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
     CreatedBy VARCHAR(100) NULL,
     LastModifiedAt DATETIMEOFFSET NULL,
@@ -352,7 +354,8 @@ CREATE TABLE Ventas_Cabecera (
     CONSTRAINT FK_VentaCab_Sucursal FOREIGN KEY (Sucursal_ID) REFERENCES Sucursales(Sucursal_ID),
     CONSTRAINT FK_VentaCab_Empleado FOREIGN KEY (Empleado_ID) REFERENCES Empleados(Empleado_ID),
     CONSTRAINT FK_VentaCab_Sesion FOREIGN KEY (Sesion_ID) REFERENCES POS_Sesiones_Caja(Sesion_ID),
-    CONSTRAINT FK_VentaCab_Cliente FOREIGN KEY (Cliente_ID) REFERENCES Pacientes_Clientes(Cliente_ID)
+    CONSTRAINT FK_VentaCab_Cliente FOREIGN KEY (Cliente_ID) REFERENCES Pacientes_Clientes(Cliente_ID),
+    CONSTRAINT CHK_Venta_Estado CHECK (Estado IN ('Completada', 'Anulada', 'Devuelta', 'Pendiente'))
 );
 
 CREATE TABLE Ventas_Detalle (

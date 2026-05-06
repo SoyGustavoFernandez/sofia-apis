@@ -19,6 +19,8 @@ public interface IApplicationDbContext
     DbSet<CuentaRol> CuentasRoles { get; }
     DbSet<LoteInventario> LotesInventario { get; }
     DbSet<InventarioSucursal> LotesEnSucursal { get; }
+    DbSet<Venta> Ventas { get; }
+    DbSet<DetalleVenta> DetallesVenta { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

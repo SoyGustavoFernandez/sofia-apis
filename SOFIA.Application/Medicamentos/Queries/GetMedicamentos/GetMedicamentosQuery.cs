@@ -21,7 +21,8 @@ public class GetMedicamentosQueryHandler(IApplicationDbContext context) : IReque
             .AsNoTracking()
             .Include(x => x.Laboratorio)
             .Include(x => x.UnidadBase)
-            .Where(x => !x.IsDeleted);
+            .Where(x => !x.IsDeleted)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
@@ -30,6 +31,8 @@ public class GetMedicamentosQueryHandler(IApplicationDbContext context) : IReque
                                      x.NombreComercial.ToLower().Contains(searchTerm) ||
                                      (x.Laboratorio != null && x.Laboratorio.NombreCompania.ToLower().Contains(searchTerm)));
         }
+
+        query = query.OrderBy(x => x.NombreComercial);
 
         var paginatedList = await PaginatedList<MedicamentoDto>.CreateAsync(
             query.Select(x => new MedicamentoDto(

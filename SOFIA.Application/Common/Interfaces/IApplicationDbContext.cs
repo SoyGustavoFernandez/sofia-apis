@@ -18,6 +18,7 @@ public interface IApplicationDbContext
     DbSet<PermisoRol> PermisosRol { get; }
     DbSet<CuentaRol> CuentasRoles { get; }
     DbSet<LoteInventario> LotesInventario { get; }
+    DbSet<InventarioSucursal> LotesEnSucursal { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

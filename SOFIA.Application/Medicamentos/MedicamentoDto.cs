@@ -1,3 +1,5 @@
+using SOFIA.Application.Inventarios.Queries.GetStockByMedicamento;
+
 namespace SOFIA.Application.Medicamentos;
 
 public record MedicamentoDto(
@@ -8,4 +10,6 @@ public record MedicamentoDto(
     string LaboratorioNombre,
     Guid UnidadBaseId,
     string UnidadBaseNombre,
-    string CondicionVenta);
+    string CondicionVenta,
+    decimal? StockTotal = null,
+    List<StockSucursalDto>? StockPorSucursal = null);

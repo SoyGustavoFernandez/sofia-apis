@@ -4,6 +4,8 @@ using SOFIA.Application.Inventarios.Commands.UpdateLote;
 using SOFIA.Application.Inventarios.Queries.GetLoteById;
 using SOFIA.Application.Inventarios.Queries.GetLotes;
 using SOFIA.Application.Inventarios.Queries.GetLotesByProducto;
+using SOFIA.Application.Inventarios.Commands.RegisterInventario;
+using SOFIA.Application.Inventarios.Queries.GetStockByMedicamento;
 
 namespace SOFIA.API.Controllers;
 
@@ -69,5 +71,21 @@ public class LotesInventarioController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(new DeleteLoteInventarioCommand(id));
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+    }
+
+    [HasPermission("Inventarios", "Actualizar")]
+    [HttpPost("stock")]
+    public async Task<IActionResult> RegisterStock([FromBody] RegisterInventarioCommand command)
+    {
+        var result = await sender.Send(command);
+        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+    }
+
+    [HasPermission("Inventarios", "Leer")]
+    [HttpGet("stock/medicamento/{medicamentoId:guid}")]
+    public async Task<IActionResult> GetStockByMedicamento(Guid medicamentoId)
+    {
+        var result = await sender.Send(new GetStockByMedicamentoQuery(medicamentoId));
+        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 }

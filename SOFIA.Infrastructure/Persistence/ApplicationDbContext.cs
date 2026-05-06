@@ -21,6 +21,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PermisoRol> PermisosRol => Set<PermisoRol>();
     public DbSet<CuentaRol> CuentasRoles => Set<CuentaRol>();
     public DbSet<LoteInventario> LotesInventario => Set<LoteInventario>();
+    public DbSet<InventarioSucursal> LotesEnSucursal => Set<InventarioSucursal>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

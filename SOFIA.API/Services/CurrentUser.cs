@@ -13,5 +13,7 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUse
                         ?? httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Name)
                         ?? httpContextAccessor.HttpContext?.User?.Identity?.Name;
 
+    public string? SucursalId => httpContextAccessor.HttpContext?.User?.FindFirstValue("sucursalId");
+
     public bool IsAuthenticated => httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
 }

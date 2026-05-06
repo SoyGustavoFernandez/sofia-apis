@@ -40,7 +40,10 @@ public class GetMedicamentosQueryHandler(IApplicationDbContext context) : IReque
                 x.Laboratorio != null ? x.Laboratorio.NombreCompania : "Unknown",
                 x.UnidadBaseId,
                 x.UnidadBase != null ? x.UnidadBase.Descripcion : "Unknown",
-                x.CondicionVenta)),
+                x.CondicionVenta,
+                context.LotesEnSucursal
+                    .Where(ls => ls.Lote != null && ls.Lote.ProductoId == x.Id)
+                    .Sum(ls => ls.CantidadFisica))),
             request.PageNumber,
             request.PageSize);
 

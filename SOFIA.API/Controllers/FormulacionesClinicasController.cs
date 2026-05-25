@@ -48,6 +48,7 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFormulacionClinicaCommand command)
     {
+        command = command with { Id = id };
         if (id != command.Id)
         {
             return BadRequest("ID mismatch.");

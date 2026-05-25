@@ -40,6 +40,7 @@ public class IngredientesActivosController(ISender sender) : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateIngredienteActivoCommand command)
     {
+        command = command with { Id = id };
         if (id != command.Id)
         {
             return BadRequest("ID mismatch.");

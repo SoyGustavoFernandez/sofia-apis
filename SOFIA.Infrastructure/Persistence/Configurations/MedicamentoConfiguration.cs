@@ -1,3 +1,5 @@
+using SOFIA.Domain.Enums;
+using SOFIA.Infrastructure.Persistence.Converters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SOFIA.Domain.Entities;
@@ -35,6 +37,7 @@ public class MedicamentoConfiguration : IEntityTypeConfiguration<Medicamento>
             .IsRequired();
 
         _ = builder.Property(x => x.CondicionVenta)
+            .HasConversion(new EnumDescriptionConverter<CondicionVenta>())
             .HasColumnName("Condicion_Venta")
             .HasMaxLength(20)
             .IsRequired();

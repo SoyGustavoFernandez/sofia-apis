@@ -11,7 +11,7 @@ public record CreateMedicamentoCommand(
     string NombreComercial,
     Guid LaboratorioId,
     Guid UnidadBaseId,
-    string CondicionVenta) : IRequest<Result<Guid>>;
+    Domain.Enums.CondicionVenta CondicionVenta) : IRequest<Result<Guid>>;
 
 public class CreateMedicamentoCommandValidator : AbstractValidator<CreateMedicamentoCommand>
 {
@@ -32,9 +32,7 @@ public class CreateMedicamentoCommandValidator : AbstractValidator<CreateMedicam
             .NotEmpty().WithMessage("Unidad Base ID is required.");
 
         _ = RuleFor(v => v.CondicionVenta)
-            .NotEmpty().WithMessage("Condición de Venta is required.")
-            .Must(v => Medicamento.CondicionesValidas.Contains(v))
-            .WithMessage($"Invalid Condición de Venta. Must be one of: {string.Join(", ", Medicamento.CondicionesValidas)}");
+            .IsInEnum().WithMessage("Invalid Condición de Venta.");
     }
 }
 

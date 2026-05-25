@@ -10,7 +10,7 @@ public sealed class Medicamento : BaseEntity
     public string NombreComercial { get; private set; } = string.Empty;
     public Guid LaboratorioId { get; private set; }
     public Guid UnidadBaseId { get; private set; }
-    public string CondicionVenta { get; private set; } = string.Empty;
+    public Enums.CondicionVenta CondicionVenta { get; private set; }
 
     // Navigation Properties
     public Laboratorio? Laboratorio { get; private set; }
@@ -30,7 +30,7 @@ public sealed class Medicamento : BaseEntity
         string nombreComercial,
         Guid laboratorioId,
         Guid unidadBaseId,
-        string condicionVenta) =>
+        Enums.CondicionVenta condicionVenta) =>
         string.IsNullOrWhiteSpace(codigoNacional)
             ? Result.Failure<Medicamento>(Error.Validation("Medicamento.CodigoNacional", "Código Nacional is required."))
             : codigoNacional.Length > 50
@@ -43,8 +43,6 @@ public sealed class Medicamento : BaseEntity
             ? Result.Failure<Medicamento>(Error.Validation("Medicamento.LaboratorioId", "Laboratorio ID is required."))
             : unidadBaseId == Guid.Empty
             ? Result.Failure<Medicamento>(Error.Validation("Medicamento.UnidadBaseId", "Unidad Base ID is required."))
-            : !CondicionesValidas.Contains(condicionVenta)
-            ? Result.Failure<Medicamento>(Error.Validation("Medicamento.CondicionVenta", $"Invalid Condición de Venta. Must be one of: {string.Join(", ", CondicionesValidas)}"))
             : Result.Success(new Medicamento
             {
                 CodigoNacional = codigoNacional,
@@ -59,7 +57,7 @@ public sealed class Medicamento : BaseEntity
         string nombreComercial,
         Guid laboratorioId,
         Guid unidadBaseId,
-        string condicionVenta)
+        Enums.CondicionVenta condicionVenta)
     {
         if (string.IsNullOrWhiteSpace(codigoNacional))
         {
@@ -89,11 +87,6 @@ public sealed class Medicamento : BaseEntity
         if (unidadBaseId == Guid.Empty)
         {
             return Result.Failure(Error.Validation("Medicamento.UnidadBaseId", "Unidad Base ID is required."));
-        }
-
-        if (!CondicionesValidas.Contains(condicionVenta))
-        {
-            return Result.Failure(Error.Validation("Medicamento.CondicionVenta", $"Invalid Condición de Venta. Must be one of: {string.Join(", ", CondicionesValidas)}"));
         }
 
         CodigoNacional = codigoNacional;

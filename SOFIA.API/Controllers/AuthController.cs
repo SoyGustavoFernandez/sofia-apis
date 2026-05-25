@@ -13,6 +13,7 @@ namespace SOFIA.API.Controllers;
 public class AuthController(ISender sender) : ControllerBase
 {
     [HttpPost("login")]
+    [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginCommand command)
     {
         var result = await sender.Send(command);
@@ -54,6 +55,7 @@ public class AuthController(ISender sender) : ControllerBase
     }
 
     [HttpPost("forgot-password")]
+    [AllowAnonymous]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
     {
         var result = await sender.Send(command);
@@ -63,6 +65,7 @@ public class AuthController(ISender sender) : ControllerBase
     }
 
     [HttpPost("reset-password")]
+    [AllowAnonymous]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
     {
         var result = await sender.Send(command);
@@ -72,6 +75,7 @@ public class AuthController(ISender sender) : ControllerBase
     }
 
     [HttpPost("register")]
+    [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] RegisterAccountCommand command)
     {
         var result = await sender.Send(command);

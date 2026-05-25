@@ -481,6 +481,6 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
- . a n t i g r a v i t y / 
- s k i l l s /  
- 
+
+.antigravity/
+skills/

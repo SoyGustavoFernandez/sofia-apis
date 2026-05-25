@@ -18,10 +18,13 @@ public sealed class Venta : BaseEntity
     public EstadoVenta Estado { get; private set; }
     public string? MotivoAnulacion { get; private set; }
 
-    public IReadOnlyCollection<DetalleVenta> Detalles => _detalles.AsReadOnly();
-
-    // Navigation Property
+    // Propiedades de navegación
     public Sucursal? Sucursal { get; private set; }
+    public Empleado? Empleado { get; private set; }
+    public PacienteCliente? Cliente { get; private set; }
+    public POSSesionCaja? Sesion { get; private set; }
+
+    public IReadOnlyCollection<DetalleVenta> Detalles => _detalles.AsReadOnly();
 
     public static Result<Venta> Create(
         Guid sucursalId,

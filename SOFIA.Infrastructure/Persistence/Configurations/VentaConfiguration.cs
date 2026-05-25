@@ -1,3 +1,5 @@
+using SOFIA.Domain.Enums;
+using SOFIA.Infrastructure.Persistence.Converters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SOFIA.Domain.Entities;
@@ -36,6 +38,7 @@ public class VentaConfiguration : IEntityTypeConfiguration<Venta>
             .HasPrecision(12, 2);
 
         _ = builder.Property(x => x.Estado)
+            .HasConversion(new EnumDescriptionConverter<EstadoVenta>())
             .HasColumnName("Estado")
             .HasConversion<string>()
             .HasMaxLength(20);

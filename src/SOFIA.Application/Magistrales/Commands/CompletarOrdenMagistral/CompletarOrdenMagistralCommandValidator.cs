@@ -6,6 +6,8 @@ public class CompletarOrdenMagistralCommandValidator : AbstractValidator<Complet
 {
     public CompletarOrdenMagistralCommandValidator()
     {
-        // TODO: Add validation rules
+        _ = RuleFor(x => x.OrdenId).NotEmpty();
+        _ = RuleFor(x => x.NumeroLoteMfr).NotEmpty().MaximumLength(50);
+        _ = RuleFor(x => x.FechaCaducidad).GreaterThan(DateTimeOffset.UtcNow);
     }
 }

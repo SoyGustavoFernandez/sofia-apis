@@ -81,11 +81,11 @@ public class CreateVentaCommandHandlerTests
     {
         // Arrange
         var sesionCajaResult = POSSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
-        var sesiones = new List<POSSesionCaja> { sesionCajaResult.Value };
+        var sesiones = new List<POSSesionCaja> { sesionCajaResult.Value! };
         typeof(POSSesionCaja).GetProperty("Id")?.SetValue(sesiones[0], _sesionId);
 
         var cuarentenaResult = DIGEMIDInventarioCuarentena.Create(_sucursalId, _loteId, null, 10, "Observación", "Retenido", _empleadoId);
-        var cuarentenas = new List<DIGEMIDInventarioCuarentena> { cuarentenaResult.Value };
+        var cuarentenas = new List<DIGEMIDInventarioCuarentena> { cuarentenaResult.Value! };
 
         SetupMocks(sesionesCaja: sesiones, cuarentenas: cuarentenas);
 
@@ -107,7 +107,7 @@ public class CreateVentaCommandHandlerTests
     {
         // Arrange
         var sesionCajaResult = POSSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
-        var sesiones = new List<POSSesionCaja> { sesionCajaResult.Value };
+        var sesiones = new List<POSSesionCaja> { sesionCajaResult.Value! };
         typeof(POSSesionCaja).GetProperty("Id")?.SetValue(sesiones[0], _sesionId);
 
         SetupMocks(sesionesCaja: sesiones, inventario: []); // Empty inventory
@@ -130,12 +130,12 @@ public class CreateVentaCommandHandlerTests
     {
         // Arrange
         var sesionCajaResult = POSSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
-        var sesiones = new List<POSSesionCaja> { sesionCajaResult.Value };
+        var sesiones = new List<POSSesionCaja> { sesionCajaResult.Value! };
         typeof(POSSesionCaja).GetProperty("Id")?.SetValue(sesiones[0], _sesionId);
 
         var inventarioItemResult = InventarioSucursal.Create(_sucursalId, _loteId, 5); // Only 5 in stock
-        var inventarioItem = inventarioItemResult.Value;
-        var inventario = new List<InventarioSucursal> { inventarioItem };
+        var inventarioItem = inventarioItemResult.Value!;
+        var inventario = new List<InventarioSucursal> { inventarioItem! };
 
         SetupMocks(sesionesCaja: sesiones, inventario: inventario);
 
@@ -157,12 +157,12 @@ public class CreateVentaCommandHandlerTests
     {
         // Arrange
         var sesionCajaResult = POSSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
-        var sesiones = new List<POSSesionCaja> { sesionCajaResult.Value };
+        var sesiones = new List<POSSesionCaja> { sesionCajaResult.Value! };
         typeof(POSSesionCaja).GetProperty("Id")?.SetValue(sesiones[0], _sesionId);
 
         var inventarioItemResult = InventarioSucursal.Create(_sucursalId, _loteId, 20);
-        var inventarioItem = inventarioItemResult.Value;
-        var inventario = new List<InventarioSucursal> { inventarioItem };
+        var inventarioItem = inventarioItemResult.Value!;
+        var inventario = new List<InventarioSucursal> { inventarioItem! };
 
         SetupMocks(sesionesCaja: sesiones, inventario: inventario);
 

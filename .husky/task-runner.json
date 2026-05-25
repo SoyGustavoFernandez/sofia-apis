@@ -38,7 +38,7 @@
          "command": "dotnet",
          "args": [
             "test",
-            "SOFIA.ArchitectureTests/SOFIA.ArchitectureTests.csproj",
+            "src/SOFIA.ArchitectureTests/SOFIA.ArchitectureTests.csproj",
             "--configuration",
             "Release",
             "--no-restore"

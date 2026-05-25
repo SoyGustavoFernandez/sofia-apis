@@ -24,6 +24,35 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<InventarioSucursal> LotesEnSucursal => Set<InventarioSucursal>();
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<DetalleVenta> DetallesVenta => Set<DetalleVenta>();
+    public DbSet<Transferencia> Transferencias => Set<Transferencia>();
+    public DbSet<DetalleTransferencia> DetallesTransferencia => Set<DetalleTransferencia>();
+    public DbSet<ProveedorDistribuidor> Proveedores => Set<ProveedorDistribuidor>();
+    public DbSet<HistorialPrecioProveedor> HistorialPreciosProveedor => Set<HistorialPrecioProveedor>();
+    public DbSet<PacienteCliente> Pacientes => Set<PacienteCliente>();
+    public DbSet<ProfesionalSalud> ProfesionalesSalud => Set<ProfesionalSalud>();
+    public DbSet<RecetaMedica> Recetas => Set<RecetaMedica>();
+    public DbSet<POSSesionCaja> POSSesionesCaja => Set<POSSesionCaja>();
+    public DbSet<VentaPago> VentasPagos => Set<VentaPago>();
+    public DbSet<AseguradoraMedica> Aseguradoras => Set<AseguradoraMedica>();
+    public DbSet<VentaReclamoSeguro> VentasReclamosSeguro => Set<VentaReclamoSeguro>();
+    public DbSet<DespachoDelivery> DespachosDelivery => Set<DespachoDelivery>();
+    public DbSet<ServicioClinicoInmunizacion> ServiciosClinicosInmunizacion => Set<ServicioClinicoInmunizacion>();
+    public DbSet<ServicioAgenda> ServiciosAgenda => Set<ServicioAgenda>();
+    public DbSet<DevolucionCabecera> Devoluciones => Set<DevolucionCabecera>();
+    public DbSet<DevolucionDetalle> DetallesDevolucion => Set<DevolucionDetalle>();
+    public DbSet<DIGEMIDCatalogoProducto> DIGEMIDCatalogoProductos => Set<DIGEMIDCatalogoProducto>();
+    public DbSet<DIGEMIDInventarioCuarentena> DIGEMIDInventarioCuarentena => Set<DIGEMIDInventarioCuarentena>();
+    public DbSet<DIGEMIDActaDestruccion> DIGEMIDActasDestruccion => Set<DIGEMIDActaDestruccion>();
+    public DbSet<DIGEMIDActaDetalle> DIGEMIDActasDetalle => Set<DIGEMIDActaDetalle>();
+    public DbSet<MagistralOrdenProduccion> MagistralesOrdenesProduccion => Set<MagistralOrdenProduccion>();
+    public DbSet<MagistralConsumoInsumo> MagistralesConsumosInsumo => Set<MagistralConsumoInsumo>();
+    public DbSet<SUNATSerieFiscal> SUNATSeriesFiscales => Set<SUNATSerieFiscal>();
+    public DbSet<SUNATComprobanteEmitido> SUNATComprobantesEmitidos => Set<SUNATComprobanteEmitido>();
+    public DbSet<AuditoriaEventoSeguridad> AuditoriasEventosSeguridad => Set<AuditoriaEventoSeguridad>();
+    public DbSet<SistemaOutboxEvento> SistemaOutboxEventos => Set<SistemaOutboxEvento>();
+    public DbSet<RegistroPrivacidadPresidio> RegistrosPrivacidadPresidio => Set<RegistroPrivacidadPresidio>();
+    public DbSet<RecetaDigitalizadaIA> RecetasDigitalizadasIA => Set<RecetaDigitalizadaIA>();
+    public DbSet<SistemaNotificacionInterna> SistemaNotificacionesInternas => Set<SistemaNotificacionInterna>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

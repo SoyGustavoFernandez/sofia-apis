@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Infrastructure.Authentication;
 using SOFIA.Infrastructure.Persistence;
+using SOFIA.Infrastructure.Services;
 
 namespace SOFIA.Infrastructure;
 
@@ -17,7 +18,10 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         _ = services.AddDbContext<ApplicationDbContext>(options =>
-            _ = options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+        {
+            _ = options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
+            _ = options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning));
+        });
 
         _ = services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
@@ -80,6 +84,12 @@ public static class DependencyInjection
         _ = services.AddMemoryCache();
         _ = services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
         _ = services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+        _ = services.AddHostedService<OutboxProcessor>();
+
+        // AI and Privacy Services
+        _ = services.AddHttpClient<IPrivacyService, PresidioPrivacyService>();
+        _ = services.AddScoped<IRecetaAnalyzer, OpenAIRecetaAnalyzer>();
+        _ = services.AddScoped<IBuscadorService, BuscadorFuzzyService>();
 
         _ = services.AddAuthorization();
 

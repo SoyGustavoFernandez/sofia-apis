@@ -31,6 +31,7 @@ public sealed class PermissionPolicyProvider(IOptions<AuthorizationOptions> opti
         var action = parts[2];
 
         var policy = new AuthorizationPolicyBuilder();
+        _ = policy.RequireAuthenticatedUser();
         _ = policy.AddRequirements(new PermissionRequirement(module, action));
 
         return policy.Build();

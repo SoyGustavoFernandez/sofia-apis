@@ -61,7 +61,7 @@ public sealed class PermissionAuthorizationHandler(
             .Select(p => new { p.ModuloSistema, p.Accion })
             .ToListAsync();
 
-        permissions = [.. permissionsFromDb.Select(p => (p.ModuloSistema, p.Accion))];
+        permissions = [.. permissionsFromDb.Select(p => (p.ModuloSistema.Trim(), p.Accion.Trim()))];
 
         // Cache permissions for 30 minutes to reduce database roundtrips
         _ = memoryCache.Set(cacheKey, permissions, TimeSpan.FromMinutes(30));

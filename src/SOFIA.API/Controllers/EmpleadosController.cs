@@ -7,7 +7,8 @@ using SOFIA.Application.Empleados.Queries.GetEmpleadosWithPagination;
 namespace SOFIA.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class EmpleadosController(ISender sender) : ControllerBase
 {
     [HasPermission("Empleados", "Leer")]

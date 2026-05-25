@@ -3,7 +3,8 @@ using SOFIA.Application.Devoluciones.Commands.ProcesarDevolucion;
 namespace SOFIA.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class DevolucionesController(ISender sender) : ControllerBase
 {
 

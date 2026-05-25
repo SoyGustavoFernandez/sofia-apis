@@ -10,7 +10,8 @@ using SOFIA.Application.Servicios.Commands.AgendarServicio;
 namespace SOFIA.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class ServiciosController(ISender sender) : ControllerBase
 {
 

@@ -7,7 +7,8 @@ using SOFIA.Application.JerarquiasUoM.Queries.GetJerarquiasUoM;
 namespace SOFIA.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class JerarquiasUoMController(ISender sender) : ControllerBase
 {
     [HasPermission("JerarquiasUoM", "Leer")]

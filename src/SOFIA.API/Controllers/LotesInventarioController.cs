@@ -10,7 +10,8 @@ using SOFIA.Application.Inventarios.Queries.GetStockByMedicamento;
 namespace SOFIA.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 [Authorize]
 public class LotesInventarioController(ISender sender) : ControllerBase
 {

@@ -7,7 +7,8 @@ using SOFIA.Application.UnidadesMedida.Queries.GetUnidadesMedida;
 namespace SOFIA.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class UnidadesMedidaController(ISender sender) : ControllerBase
 {
     [HasPermission("UnidadesMedida", "Leer")]

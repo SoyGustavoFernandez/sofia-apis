@@ -7,7 +7,8 @@ using SOFIA.Application.Sucursales.Queries.GetSucursalesWithPagination;
 namespace SOFIA.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class SucursalesController(ISender sender) : ControllerBase
 {
     [HasPermission("Sucursales", "Leer")]

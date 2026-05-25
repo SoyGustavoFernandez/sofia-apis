@@ -6,7 +6,8 @@ using SOFIA.Application.Ventas.Queries.GetVentas;
 namespace SOFIA.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class VentasController(ISender sender) : ControllerBase
 {
     [HasPermission("Ventas", "Leer")]

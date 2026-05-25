@@ -8,7 +8,8 @@ using SOFIA.Application.Proveedores.Queries.GetProveedores;
 namespace SOFIA.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class ProveedoresController(ISender sender) : ControllerBase
 {
 

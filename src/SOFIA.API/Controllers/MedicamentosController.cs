@@ -8,7 +8,8 @@ using SOFIA.Domain.Entities;
 namespace SOFIA.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class MedicamentosController(ISender sender) : ControllerBase
 {
     [HasPermission("Medicamentos", "Leer")]

@@ -7,7 +7,8 @@ using SOFIA.Application.Pacientes.Commands.CreatePaciente;
 namespace SOFIA.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class PacientesController(ISender sender) : ControllerBase
 {
 

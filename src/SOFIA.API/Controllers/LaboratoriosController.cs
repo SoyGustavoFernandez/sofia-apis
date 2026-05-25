@@ -7,7 +7,8 @@ using SOFIA.Application.Laboratorios.Queries.GetLaboratorios;
 namespace SOFIA.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class LaboratoriosController(ISender sender) : ControllerBase
 {
     [HasPermission("Laboratorios", "Leer")]

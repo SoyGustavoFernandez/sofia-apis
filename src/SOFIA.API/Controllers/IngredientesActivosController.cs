@@ -7,7 +7,8 @@ using SOFIA.Application.IngredientesActivos.Queries.GetIngredientesActivos;
 namespace SOFIA.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class IngredientesActivosController(ISender sender) : ControllerBase
 {
     [HasPermission("IngredientesActivos", "Leer")]

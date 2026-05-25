@@ -4,7 +4,8 @@ using SOFIA.Application.DIGEMID.Commands.GenerarActaDestruccion;
 namespace SOFIA.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class DIGEMIDController(ISender sender) : ControllerBase
 {
 

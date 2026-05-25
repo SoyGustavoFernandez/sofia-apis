@@ -30,11 +30,22 @@ _ = builder.Services.AddCors(options =>
 // --- Container Services ---
 _ = builder.Services.AddControllers();
 _ = builder.Services.AddOpenApi();
-_ = builder.Services.AddEndpointsApiExplorer();
+
+_ = builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+}).AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
+
+_ = builder.Services.AddTransient<Microsoft.Extensions.Options.IConfigureOptions<Swashbuckle.AspNetCore.SwaggerGen.SwaggerGenOptions>, ConfigureSwaggerOptions>();
+
 _ = builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "SOFIA API", Version = "v1" });
-
     // Configuración para usar JWT en Swagger
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -75,7 +86,11 @@ if (app.Environment.IsDevelopment())
     _ = app.UseSwagger();
     _ = app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "SOFIA API v1");
+        var descriptions = app.DescribeApiVersions();
+        foreach (var description in descriptions)
+        {
+            options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
+        }
         options.RoutePrefix = "swagger";
         options.DocumentTitle = "SOFIA API Documentation";
     });

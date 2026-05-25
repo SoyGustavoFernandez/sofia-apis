@@ -14,6 +14,19 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- CORS Configuration (OWASP Recommended) ---
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? ["http://localhost:4200", "https://localhost:4200"];
+_ = builder.Services.AddCors(options =>
+{
+    options.AddPolicy("SofiaCorsPolicy", policy =>
+    {
+        _ = policy.WithOrigins(allowedOrigins)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials(); // OWASP: Never use AllowAnyOrigin with AllowCredentials
+    });
+});
+
 // --- Container Services ---
 _ = builder.Services.AddControllers();
 _ = builder.Services.AddOpenApi();
@@ -70,6 +83,8 @@ if (app.Environment.IsDevelopment())
 
 _ = app.UseExceptionHandler();
 _ = app.UseHttpsRedirection();
+
+_ = app.UseCors("SofiaCorsPolicy");
 
 _ = app.UseAuthentication();
 _ = app.UseAuthorization();

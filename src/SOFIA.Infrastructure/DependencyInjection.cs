@@ -88,7 +88,7 @@ public static class DependencyInjection
 
         // AI and Privacy Services
         _ = services.AddHttpClient<IPrivacyService, PresidioPrivacyService>();
-        _ = services.AddScoped<IRecetaAnalyzer, OpenAIRecetaAnalyzer>();
+        _ = services.AddHttpClient<IRecetaAnalyzer, GeminiRecetaAnalyzer>();
         _ = services.AddScoped<IBuscadorService, BuscadorFuzzyService>();
 
         _ = services.AddAuthorization();

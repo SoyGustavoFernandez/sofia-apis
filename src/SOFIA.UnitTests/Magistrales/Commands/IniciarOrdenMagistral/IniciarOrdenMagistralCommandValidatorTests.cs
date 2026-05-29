@@ -1,6 +1,5 @@
 using FluentAssertions;
 using SOFIA.Application.Magistrales.Commands.IniciarOrdenMagistral;
-using Xunit;
 
 namespace SOFIA.UnitTests.Magistrales.Commands.IniciarOrdenMagistral;
 
@@ -8,10 +7,7 @@ public class IniciarOrdenMagistralCommandValidatorTests
 {
     private readonly IniciarOrdenMagistralCommandValidator _validator;
 
-    public IniciarOrdenMagistralCommandValidatorTests()
-    {
-        _validator = new IniciarOrdenMagistralCommandValidator();
-    }
+    public IniciarOrdenMagistralCommandValidatorTests() => _validator = new IniciarOrdenMagistralCommandValidator();
 
     [Fact]
     public void ValidCommand_ShouldNotHaveAnyValidationErrors()
@@ -23,17 +19,16 @@ public class IniciarOrdenMagistralCommandValidatorTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             10,
-            new List<InsumoDto>
-            {
-                new InsumoDto(Guid.NewGuid(), 5)
-            }
+            [
+                new(Guid.NewGuid(), 5)
+            ]
         );
 
         // Act
         var result = _validator.Validate(command);
 
         // Assert
-        result.IsValid.Should().BeTrue();
+        _ = result.IsValid.Should().BeTrue();
     }
 
     [Fact]
@@ -46,15 +41,15 @@ public class IniciarOrdenMagistralCommandValidatorTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             10,
-            new List<InsumoDto> { new InsumoDto(Guid.NewGuid(), 5) }
+            [new(Guid.NewGuid(), 5)]
         );
 
         // Act
         var result = _validator.Validate(command);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == "SucursalId");
+        _ = result.IsValid.Should().BeFalse();
+        _ = result.Errors.Should().Contain(e => e.PropertyName == "SucursalId");
     }
 
     [Fact]
@@ -67,15 +62,15 @@ public class IniciarOrdenMagistralCommandValidatorTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             10,
-            new List<InsumoDto>() // Empty list
+            [] // Empty list
         );
 
         // Act
         var result = _validator.Validate(command);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == "Consumos");
+        _ = result.IsValid.Should().BeFalse();
+        _ = result.Errors.Should().Contain(e => e.PropertyName == "Consumos");
     }
 
     [Fact]
@@ -88,14 +83,14 @@ public class IniciarOrdenMagistralCommandValidatorTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             10,
-            new List<InsumoDto> { new InsumoDto(Guid.NewGuid(), -1) } // Negative quantity
+            [new(Guid.NewGuid(), -1)] // Negative quantity
         );
 
         // Act
         var result = _validator.Validate(command);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == "Consumos[0].CantidadConsumida");
+        _ = result.IsValid.Should().BeFalse();
+        _ = result.Errors.Should().Contain(e => e.PropertyName == "Consumos[0].CantidadConsumida");
     }
 }

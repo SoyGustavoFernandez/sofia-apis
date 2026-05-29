@@ -1,6 +1,5 @@
 using FluentAssertions;
 using SOFIA.Application.Magistrales.Commands.CompletarOrdenMagistral;
-using Xunit;
 
 namespace SOFIA.UnitTests.Magistrales.Commands.CompletarOrdenMagistral;
 
@@ -8,10 +7,7 @@ public class CompletarOrdenMagistralCommandValidatorTests
 {
     private readonly CompletarOrdenMagistralCommandValidator _validator;
 
-    public CompletarOrdenMagistralCommandValidatorTests()
-    {
-        _validator = new CompletarOrdenMagistralCommandValidator();
-    }
+    public CompletarOrdenMagistralCommandValidatorTests() => _validator = new CompletarOrdenMagistralCommandValidator();
 
     [Fact]
     public void ValidCommand_ShouldNotHaveAnyValidationErrors()
@@ -27,7 +23,7 @@ public class CompletarOrdenMagistralCommandValidatorTests
         var result = _validator.Validate(command);
 
         // Assert
-        result.IsValid.Should().BeTrue();
+        _ = result.IsValid.Should().BeTrue();
     }
 
     [Fact]
@@ -44,8 +40,8 @@ public class CompletarOrdenMagistralCommandValidatorTests
         var result = _validator.Validate(command);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == "OrdenId");
+        _ = result.IsValid.Should().BeFalse();
+        _ = result.Errors.Should().Contain(e => e.PropertyName == "OrdenId");
     }
 
     [Fact]
@@ -62,8 +58,8 @@ public class CompletarOrdenMagistralCommandValidatorTests
         var result = _validator.Validate(command);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == "NumeroLoteMfr");
+        _ = result.IsValid.Should().BeFalse();
+        _ = result.Errors.Should().Contain(e => e.PropertyName == "NumeroLoteMfr");
     }
 
     [Fact]
@@ -80,7 +76,7 @@ public class CompletarOrdenMagistralCommandValidatorTests
         var result = _validator.Validate(command);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == "FechaCaducidad");
+        _ = result.IsValid.Should().BeFalse();
+        _ = result.Errors.Should().Contain(e => e.PropertyName == "FechaCaducidad");
     }
 }

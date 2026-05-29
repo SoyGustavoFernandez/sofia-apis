@@ -4,7 +4,6 @@ using Moq;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Magistrales.Commands.CompletarOrdenMagistral;
 using SOFIA.Domain.Entities;
-using Xunit;
 
 namespace SOFIA.UnitTests.Magistrales.Commands.CompletarOrdenMagistral;
 
@@ -41,18 +40,18 @@ public class CompletarOrdenMagistralCommandHandlerTests
         );
 
         var ordenes = new List<MagistralOrdenProduccion> { orden }.BuildMockDbSet();
-        _dbContextMock.Setup(db => db.MagistralesOrdenesProduccion).Returns(ordenes.Object);
-        _dbContextMock.Setup(db => db.LotesInventario).Returns(new List<LoteInventario>().BuildMockDbSet().Object);
-        _dbContextMock.Setup(db => db.LotesEnSucursal).Returns(new List<InventarioSucursal>().BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(db => db.MagistralesOrdenesProduccion).Returns(ordenes.Object);
+        _ = _dbContextMock.Setup(db => db.LotesInventario).Returns(new List<LoteInventario>().BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(db => db.LotesEnSucursal).Returns(new List<InventarioSucursal>().BuildMockDbSet().Object);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(orden.Id);
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value.Should().Be(orden.Id);
 
-        orden.EstadoProduccion.Should().Be("Completada");
+        _ = orden.EstadoProduccion.Should().Be("Completada");
 
         _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _dbContextMock.Verify(db => db.LotesInventario.Add(It.IsAny<LoteInventario>()), Times.Once);
@@ -71,14 +70,14 @@ public class CompletarOrdenMagistralCommandHandlerTests
         );
 
         var ordenes = new List<MagistralOrdenProduccion>().BuildMockDbSet();
-        _dbContextMock.Setup(db => db.MagistralesOrdenesProduccion).Returns(ordenes.Object);
+        _ = _dbContextMock.Setup(db => db.MagistralesOrdenesProduccion).Returns(ordenes.Object);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Orden.NotFound");
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Orden.NotFound");
 
         _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -105,14 +104,14 @@ public class CompletarOrdenMagistralCommandHandlerTests
         );
 
         var ordenes = new List<MagistralOrdenProduccion> { orden }.BuildMockDbSet();
-        _dbContextMock.Setup(db => db.MagistralesOrdenesProduccion).Returns(ordenes.Object);
+        _ = _dbContextMock.Setup(db => db.MagistralesOrdenesProduccion).Returns(ordenes.Object);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Orden.Estado");
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Orden.Estado");
 
         _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -139,14 +138,14 @@ public class CompletarOrdenMagistralCommandHandlerTests
         );
 
         var ordenes = new List<MagistralOrdenProduccion> { orden }.BuildMockDbSet();
-        _dbContextMock.Setup(db => db.MagistralesOrdenesProduccion).Returns(ordenes.Object);
+        _ = _dbContextMock.Setup(db => db.MagistralesOrdenesProduccion).Returns(ordenes.Object);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Orden.Cantidad");
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Orden.Cantidad");
 
         _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }

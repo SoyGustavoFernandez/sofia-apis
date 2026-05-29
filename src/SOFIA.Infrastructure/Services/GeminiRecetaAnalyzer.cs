@@ -61,8 +61,9 @@ public class GeminiRecetaAnalyzer(
 
     private async Task<string> ExtractTextFromImageAsync(string base64Image, string apiKey, CancellationToken cancellationToken)
     {
-        var model = "gemini-1.5-flash"; // Flash is fast and excellent for OCR
-        var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+        var model = _configuration["GeminiApi:OcrModel"] ?? "gemini-flash-latest";
+        var baseUrl = _configuration["GeminiApi:BaseUrl"] ?? "https://generativelanguage.googleapis.com/v1beta/models/";
+        var url = $"{baseUrl}{model}:generateContent?key={apiKey}";
 
         var payload = new
         {
@@ -94,8 +95,9 @@ public class GeminiRecetaAnalyzer(
 
     private async Task<List<MedicamentoInterpretadoDto>> AnalyzeTextWithGeminiAsync(string textoAnomizado, string? especialidadContexto, string apiKey, CancellationToken cancellationToken)
     {
-        var model = "gemini-1.5-pro"; // Pro is better for complex reasoning and JSON generation
-        var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+        var model = _configuration["GeminiApi:OcrModel"] ?? "gemini-flash-latest";
+        var baseUrl = _configuration["GeminiApi:BaseUrl"] ?? "https://generativelanguage.googleapis.com/v1beta/models/";
+        var url = $"{baseUrl}{model}:generateContent?key={apiKey}";
 
         var promptSistema = @"
 Eres SOFIA, un asistente farmacéutico experto en el mercado de PERÚ. 

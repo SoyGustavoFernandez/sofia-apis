@@ -14,16 +14,30 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- CORS Configuration (OWASP Recommended) ---
-var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? ["http://localhost:4200", "https://localhost:4200"];
+// --- CORS Configuration ---
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
 _ = builder.Services.AddCors(options =>
 {
     options.AddPolicy("SofiaCorsPolicy", policy =>
     {
-        _ = policy.WithOrigins(allowedOrigins)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials(); // OWASP: Never use AllowAnyOrigin with AllowCredentials
+        if (builder.Environment.IsDevelopment())
+        {
+            _ = policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+        }
+        else
+        {
+            if (allowedOrigins == null || allowedOrigins.Length == 0)
+            {
+                throw new InvalidOperationException("CRITICAL: 'AllowedOrigins' no está configurado para el entorno de Producción en appsettings.json.");
+            }
+
+            _ = policy.WithOrigins(allowedOrigins)
+                      .AllowAnyMethod()
+                      .AllowAnyHeader()
+                      .AllowCredentials(); // OWASP strict
+        }
     });
 });
 
@@ -54,7 +68,7 @@ _ = builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Ingresa ÚNICAMENTE el token JWT (el 'candado' ya añade el prefijo Bearer)"
+        Description = "Ingresa el JWT"
     });
 
     options.AddSecurityRequirement(document => new OpenApiSecurityRequirement

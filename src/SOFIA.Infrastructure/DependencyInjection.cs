@@ -87,7 +87,11 @@ public static class DependencyInjection
         _ = services.AddHostedService<OutboxProcessor>();
 
         // AI and Privacy Services
-        _ = services.AddHttpClient<IPrivacyService, PresidioPrivacyService>();
+        _ = services.AddHttpClient<IPrivacyService, PresidioPrivacyService>(client =>
+        {
+            var presidioUrl = configuration["PresidioApi:BaseUrl"] ?? throw new InvalidOperationException("CRITICAL: La URL de Presidio (PresidioApi:BaseUrl) no está configurada.");
+            client.BaseAddress = new Uri(presidioUrl);
+        });
         _ = services.AddHttpClient<IRecetaAnalyzer, GeminiRecetaAnalyzer>();
         _ = services.AddScoped<IBuscadorService, BuscadorFuzzyService>();
 

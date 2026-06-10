@@ -1,4 +1,4 @@
-namespace SOFIA.Application.DTOs;
+namespace SOFIA.Application.Security;
 
 public record PermisoResponse(
     Guid Id,

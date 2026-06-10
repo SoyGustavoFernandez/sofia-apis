@@ -17,32 +17,24 @@ public class RegisterAccountCommandHandler(
 {
     public async Task<Result<Guid>> Handle(RegisterAccountCommand request, CancellationToken cancellationToken)
     {
-        // Verificar si el empleado existe
-        var empleadoExists = await context.Empleados
+        // Ejecutar las 3 verificaciones en paralelo
+        var empleadoExistsTask = context.Empleados
             .AnyAsync(e => e.Id == request.EmpleadoId && !e.IsDeleted, cancellationToken);
-
-        if (!empleadoExists)
-        {
-            return Result.Failure<Guid>(Error.NotFound("Empleado.NotFound", "El empleado especificado no existe."));
-        }
-
-        // Verificar si ya tiene una cuenta (Relación 1:1)
-        var cuentaExists = await context.Cuentas
+        var cuentaExistsTask = context.Cuentas
             .AnyAsync(c => c.EmpleadoId == request.EmpleadoId && !c.IsDeleted, cancellationToken);
-
-        if (cuentaExists)
-        {
-            return Result.Failure<Guid>(Error.Conflict("Auth.DuplicateAccount", "Este empleado ya tiene una cuenta de usuario vinculada."));
-        }
-
-        // Verificar si el nombre de usuario ya está tomado
-        var usernameTaken = await context.Cuentas
+        var usernameTakenTask = context.Cuentas
             .AnyAsync(c => c.NombreUsuario == request.NombreUsuario && !c.IsDeleted, cancellationToken);
 
-        if (usernameTaken)
-        {
+        _ = await Task.WhenAll(empleadoExistsTask, cuentaExistsTask, usernameTakenTask);
+
+        if (!empleadoExistsTask.Result)
+            return Result.Failure<Guid>(Error.NotFound("Empleado.NotFound", "El empleado especificado no existe."));
+
+        if (cuentaExistsTask.Result)
+            return Result.Failure<Guid>(Error.Conflict("Auth.DuplicateAccount", "Este empleado ya tiene una cuenta de usuario vinculada."));
+
+        if (usernameTakenTask.Result)
             return Result.Failure<Guid>(Error.Conflict("Auth.DuplicateUsername", "El nombre de usuario ya está en uso."));
-        }
 
         var passwordHash = passwordHasher.Hash(request.Password);
 

@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Common.Interfaces;
 
 public interface IApplicationDbContext
 {
+    DatabaseFacade Database { get; }
     DbSet<Sucursal> Sucursales { get; }
     DbSet<Empleado> Empleados { get; }
     DbSet<UnidadMedida> UnidadesMedida { get; }

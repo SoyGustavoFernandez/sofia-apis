@@ -21,19 +21,19 @@ public class LoginCommandHandler(
 
         if (cuenta is null || !cuenta.CuentaActiva)
         {
-            return Result.Failure<string>(Error.Unauthorized("Auth.InvalidCredentials", "Usuario o contraseña incorrectos."));
+            return Result.Failure<string>(Error.Unauthorized("Auth.InvalidCredentials", "Usuario o contraseña incorrectos."), 401);
         }
 
         if (cuenta.BloqueadoHasta > DateTimeOffset.UtcNow)
         {
-            return Result.Failure<string>(Error.Forbidden("Auth.Blocked", $"Cuenta bloqueada hasta {cuenta.BloqueadoHasta}."));
+            return Result.Failure<string>(Error.Forbidden("Auth.Blocked", $"Cuenta bloqueada hasta {cuenta.BloqueadoHasta}."), 403);
         }
 
         if (!passwordHasher.Verify(request.Password, cuenta.PasswordHash))
         {
             cuenta.RegisterFailedAttempt();
             _ = await context.SaveChangesAsync(cancellationToken);
-            return Result.Failure<string>(Error.Unauthorized("Auth.InvalidCredentials", "Usuario o contraseña incorrectos."));
+            return Result.Failure<string>(Error.Unauthorized("Auth.InvalidCredentials", "Usuario o contraseña incorrectos."), 401);
         }
 
         cuenta.ResetFailedAttempts();

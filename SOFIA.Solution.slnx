@@ -7,4 +7,5 @@
   <Project Path="src/SOFIA.Infrastructure/SOFIA.Infrastructure.csproj" />
   <Project Path="src/SOFIA.SharedKernel/SOFIA.SharedKernel.csproj" />
   <Project Path="src/SOFIA.UnitTests/SOFIA.UnitTests.csproj" />
+  <Project Path="src/SOFIA.IntegrationTests/SOFIA.IntegrationTests.csproj" />
 </Solution>

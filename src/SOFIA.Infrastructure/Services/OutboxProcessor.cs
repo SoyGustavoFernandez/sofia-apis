@@ -1,12 +1,17 @@
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SOFIA.Application.Common.Interfaces;
+using System.Text.Json;
 
 namespace SOFIA.Infrastructure.Services;
 
 public class OutboxProcessor(IServiceProvider serviceProvider, ILogger<OutboxProcessor> logger) : BackgroundService
 {
+    // Caché de tipos de eventos para evitar reflexión repetida
+    private static readonly Dictionary<string, Type?> _typeCache = [];
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("Outbox Processor background service starting.");
@@ -30,6 +35,7 @@ public class OutboxProcessor(IServiceProvider serviceProvider, ILogger<OutboxPro
     {
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+        var publisher = scope.ServiceProvider.GetRequiredService<IPublisher>();
 
         var events = await dbContext.SistemaOutboxEventos
             .Where(e => !e.Procesado && e.ErrorPublicacion == null && !e.IsDeleted)
@@ -48,29 +54,59 @@ public class OutboxProcessor(IServiceProvider serviceProvider, ILogger<OutboxPro
         {
             try
             {
-                // Simulamos la publicación del evento en la consola/bus
-                logger.LogInformation("Publishing event of type '{Type}' with payload: {Payload}", outboxEvent.TipoEvento, outboxEvent.PayloadJson);
+                await DispatchEventAsync(publisher, outboxEvent.TipoEvento, outboxEvent.PayloadJson, stoppingToken);
 
-                // Marcar como procesado
                 _ = outboxEvent.Update(
                     outboxEvent.TipoEvento,
                     outboxEvent.PayloadJson,
                     true,
                     DateTime.UtcNow,
                     null);
+
+                logger.LogInformation("Dispatched outbox event {Id} of type '{Type}'.", outboxEvent.Id, outboxEvent.TipoEvento);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to publish outbox event {Id}.", outboxEvent.Id);
+                logger.LogError(ex, "Failed to dispatch outbox event {Id} of type '{Type}'.", outboxEvent.Id, outboxEvent.TipoEvento);
                 _ = outboxEvent.Update(
                     outboxEvent.TipoEvento,
                     outboxEvent.PayloadJson,
                     false,
                     null,
-                    ex.Message);
+                    ex.Message[..Math.Min(ex.Message.Length, 500)]);
             }
         }
 
         _ = await dbContext.SaveChangesAsync(stoppingToken);
+    }
+
+    private async Task DispatchEventAsync(IPublisher publisher, string tipoEvento, string payloadJson, CancellationToken ct)
+    {
+        if (!_typeCache.TryGetValue(tipoEvento, out var eventType))
+        {
+            // Busca el tipo en todos los assemblies cargados
+            eventType = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => a.GetType(tipoEvento))
+                .FirstOrDefault(t => t is not null);
+
+            _typeCache[tipoEvento] = eventType;
+        }
+
+        if (eventType is null)
+        {
+            logger.LogWarning("No se encontró el tipo '{Type}' para el evento outbox. Se omite.", tipoEvento);
+            return;
+        }
+
+        if (!typeof(INotification).IsAssignableFrom(eventType))
+        {
+            logger.LogWarning("El tipo '{Type}' no implementa INotification. Se omite.", tipoEvento);
+            return;
+        }
+
+        var notification = (INotification?)JsonSerializer.Deserialize(payloadJson, eventType)
+            ?? throw new InvalidOperationException($"No se pudo deserializar el payload para '{tipoEvento}'.");
+
+        await publisher.Publish(notification, ct);
     }
 }

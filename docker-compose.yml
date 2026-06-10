@@ -1,0 +1,82 @@
+services:
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sofia-sqlserver
+    environment:
+      SA_PASSWORD: "${SA_PASSWORD:?Falta SA_PASSWORD — copia .env.example a .env y completa los valores}"
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1434:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"${SA_PASSWORD}\" -Q 'SELECT 1' -No"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  presidio-api:
+    build:
+      context: ./src/SOFIA.PresidioAPI
+      dockerfile: Dockerfile
+    container_name: sofia-presidio
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 20s
+      timeout: 15s
+      retries: 5
+      start_period: 90s
+
+  sofia-api:
+    build:
+      context: .
+      dockerfile: src/SOFIA.API/Dockerfile
+    container_name: sofia-api
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=SofiaDb;User Id=sa;Password=${SA_PASSWORD:?Falta SA_PASSWORD};TrustServerCertificate=True;
+      - Jwt__SecretKey=${JWT_SECRET_KEY:?Falta JWT_SECRET_KEY — mínimo 32 caracteres}
+      - Jwt__Issuer=SOFIA.API
+      - Jwt__Audience=SOFIA.Clients
+      - Jwt__ExpiryMinutes=60
+      - PresidioApi__BaseUrl=http://presidio-api:8000
+      - GeminiApi__BaseUrl=${GEMINI_BASE_URL:-}
+      - GeminiApi__OcrModel=${GEMINI_OCR_MODEL:-gemini-1.5-flash}
+      - GeminiApi__ReasoningModel=${GEMINI_REASONING_MODEL:-gemini-1.5-pro}
+      - GeminiApi__ApiKey=${GEMINI_API_KEY:-}
+    volumes:
+      - sofia_logs:/app/logs
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      presidio-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  sofia-dbup:
+    build:
+      context: .
+      dockerfile: src/SOFIA.DbUp/Dockerfile
+    container_name: sofia-dbup
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=SofiaDb;User Id=sa;Password=${SA_PASSWORD:?Falta SA_PASSWORD};TrustServerCertificate=True;
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  sqlserver_data:
+  sofia_logs:

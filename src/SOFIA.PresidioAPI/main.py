@@ -82,6 +82,10 @@ anonymizer = AnonymizerEngine()
 class TextoRequest(BaseModel):
     texto: str
 
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "service": "presidio-api"}
+
 @app.post("/api/anonimizar")
 def anonimizar_texto(request: TextoRequest):
     # Analizar el texto con los recognizers y la lista de permitidos

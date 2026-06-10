@@ -27,7 +27,6 @@ public class PacientesController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
-
     [HttpGet("{id}")]
     [HasPermission("Pacientes", "Leer")]
     public async Task<IActionResult> GetPacienteById(Guid id)

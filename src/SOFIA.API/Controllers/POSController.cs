@@ -24,7 +24,6 @@ public class POSController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
-
     [HasPermission("POS", "Leer")]
     [HttpGet("sesiones")]
     public async Task<IActionResult> GetSesiones([FromQuery] Guid? sucursalId, [FromQuery] Domain.Enums.EstadoSesion? estadoSesion, [FromQuery] DateTime? fechaInicio, [FromQuery] DateTime? fechaFin, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
@@ -33,7 +32,6 @@ public class POSController(ISender sender) : ControllerBase
         var result = await sender.Send(query);
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
-
 
     [HttpGet("{id}")]
     [HasPermission("POS", "Leer")]

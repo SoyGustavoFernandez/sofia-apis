@@ -26,7 +26,7 @@ public class DeleteMedicamentoCommandHandlerTests
     public async Task Handle_ShouldReturnNotFound_WhenMedicamentoDoesNotExist()
     {
         // Arrange
-        _medicamentosDbSetMock
+        _ = _medicamentosDbSetMock
             .Setup(m => m.FindAsync(It.IsAny<object[]>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.FromResult<Medicamento?>(null));
 
@@ -50,7 +50,7 @@ public class DeleteMedicamentoCommandHandlerTests
             Guid.NewGuid(), Guid.NewGuid(),
             CondicionVenta.VentaLibreOTC).Value!;
 
-        _medicamentosDbSetMock
+        _ = _medicamentosDbSetMock
             .Setup(m => m.FindAsync(It.IsAny<object[]>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.FromResult<Medicamento?>(medicamento));
 
@@ -74,7 +74,7 @@ public class DeleteMedicamentoCommandHandlerTests
     public async Task Handle_ShouldNotCallSave_WhenMedicamentoNotFound()
     {
         // Arrange
-        _medicamentosDbSetMock
+        _ = _medicamentosDbSetMock
             .Setup(m => m.FindAsync(It.IsAny<object[]>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.FromResult<Medicamento?>(null));
 

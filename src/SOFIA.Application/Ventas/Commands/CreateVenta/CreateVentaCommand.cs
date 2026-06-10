@@ -18,6 +18,9 @@ public record CreateVentaCommand(
     decimal? MontoCubiertoSeguro = null) : IRequest<Result<VentaCreadaDto>>;
 
 public record VentaCreadaDto(Guid VentaId, ComprobanteEmitidoDto? Comprobante);
+
+// NOTA: La integración SUNAT es simulada (tesis). Los campos de hash, URL y CDR son placeholders.
+// La integración real requiere un OSE/PSE homologado y firma digital con certificado.
 public record ComprobanteEmitidoDto(string Tipo, string Numero, string EstadoAceptacion, string? UrlVerificacion, string? UrlXml, string? UrlCdr);
 
 public record CreateVentaDetailDto(

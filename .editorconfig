@@ -48,3 +48,7 @@ csharp_style_expression_bodied_accessors = true:suggestion
 # Analyzers
 dotnet_analyzer_diagnostic.category-Style.severity = error
 dotnet_analyzer_diagnostic.category-CodeQuality.severity = warning
+
+# Formato estricto como error de compilación
+dotnet_diagnostic.IDE0055.severity = error
+dotnet_style_allow_multiple_blank_lines_experimental = false:error

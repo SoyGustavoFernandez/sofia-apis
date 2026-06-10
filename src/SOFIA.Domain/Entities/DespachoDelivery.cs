@@ -5,7 +5,6 @@ namespace SOFIA.Domain.Entities;
 public sealed class DespachoDelivery : BaseEntity
 {
 
-
     private DespachoDelivery() { } // Required for EF Core
 
     public Guid VentaId { get; private set; }

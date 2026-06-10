@@ -15,8 +15,6 @@ public sealed class SUNATSerieFiscal : BaseEntity
     // Navigation Properties
     public Sucursal? Sucursal { get; private set; }
 
-
-
     public static Result<SUNATSerieFiscal> Create(
         Guid sucursalId,
         Enums.TipoComprobante tipoComprobante,

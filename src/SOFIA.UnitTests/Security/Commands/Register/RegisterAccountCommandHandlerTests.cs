@@ -55,7 +55,7 @@ public class RegisterAccountCommandHandlerTests
         // Assert
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Empleado.NotFound");
-        _ = result.Error.Type.Should().Be(SOFIA.Domain.Common.ErrorType.NotFound);
+        _ = result.Error.Type.Should().Be(Domain.Common.ErrorType.NotFound);
     }
 
     [Fact]

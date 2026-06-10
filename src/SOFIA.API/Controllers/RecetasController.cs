@@ -5,7 +5,7 @@ using SOFIA.Application.Recetas.Commands.CreateReceta;
 using SOFIA.Application.Recetas.Queries.AnalizarReceta;
 using Microsoft.AspNetCore.RateLimiting;
 
-namespace SOFIA.Api.Controllers;
+namespace SOFIA.API.Controllers;
 
 [ApiController]
 [ApiVersion("1.0")]
@@ -22,8 +22,6 @@ public class RecetasController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
-
-
     [HasPermission("Recetas", "Leer")]
     [HttpGet]
     public async Task<IActionResult> GetRecetas([FromQuery] Guid? clienteId, [FromQuery] DateTime? fechaInicio, [FromQuery] DateTime? fechaFin, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
@@ -33,14 +31,14 @@ public class RecetasController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
-
-
     [HttpGet("{id}")]
     [HasPermission("Recetas", "Leer")]
     public async Task<IActionResult> GetRecetaById(Guid id)
     {
         var result = await sender.Send(new GetRecetaByIdQuery(id));
-        return !result.IsSuccess ? NotFound(result) : Ok(result);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
     [HttpPost("analizar")]
@@ -71,7 +69,9 @@ public class RecetasController(ISender sender) : ControllerBase
         }
 
         var result = await sender.Send(command);
-        return !result.IsSuccess ? BadRequest(result) : Ok(result);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
     [HttpDelete("{id}")]
@@ -79,7 +79,9 @@ public class RecetasController(ISender sender) : ControllerBase
     public async Task<IActionResult> DeleteReceta(Guid id)
     {
         var result = await sender.Send(new DeleteRecetaCommand(id));
-        return !result.IsSuccess ? BadRequest(result) : Ok(result);
+        return result.IsSuccess
+            ? NoContent()
+            : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
 }

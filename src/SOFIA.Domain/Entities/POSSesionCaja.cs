@@ -20,8 +20,6 @@ public sealed class POSSesionCaja : BaseEntity
     public Sucursal? Sucursal { get; private set; }
     public Empleado? Empleado { get; private set; }
 
-
-
     public static Result<POSSesionCaja> Create(
         Guid sucursalId,
         Guid empleadoId,

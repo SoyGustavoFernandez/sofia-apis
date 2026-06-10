@@ -24,7 +24,6 @@ public class DIGEMIDController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
-
     [HasPermission("DIGEMID", "Leer")]
     [HttpGet("cuarentena")]
     public async Task<IActionResult> GetCuarentena([FromQuery] Guid? sucursalId, [FromQuery] string? estadoResolucion, [FromQuery] DateTime? fechaInicio, [FromQuery] DateTime? fechaFin, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)

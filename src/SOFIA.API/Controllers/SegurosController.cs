@@ -27,7 +27,6 @@ public class SegurosController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
-
     [HttpGet("{id}")]
     [HasPermission("Seguros", "Leer")]
     public async Task<IActionResult> GetAseguradoraById(Guid id)

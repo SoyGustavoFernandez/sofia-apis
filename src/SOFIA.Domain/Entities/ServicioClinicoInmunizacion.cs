@@ -5,7 +5,6 @@ namespace SOFIA.Domain.Entities;
 public sealed class ServicioClinicoInmunizacion : BaseEntity
 {
 
-
     private ServicioClinicoInmunizacion() { } // Required for EF Core
 
     public Guid? VentaId { get; private set; }

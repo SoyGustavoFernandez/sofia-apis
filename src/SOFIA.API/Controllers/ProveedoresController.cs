@@ -35,7 +35,6 @@ public class ProveedoresController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
-
     [HttpGet("{id}")]
     [HasPermission("Proveedores", "Leer")]
     public async Task<IActionResult> GetProveedorById(Guid id)

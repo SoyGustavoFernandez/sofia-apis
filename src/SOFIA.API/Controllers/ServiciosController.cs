@@ -30,7 +30,6 @@ public class ServiciosController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
-
     [HasPermission("Servicios", "Leer")]
     [HttpGet("agenda")]
     public async Task<IActionResult> GetServicios([FromQuery] string? estadoCita, [FromQuery] DateTime? fechaInicio, [FromQuery] DateTime? fechaFin, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
@@ -48,8 +47,6 @@ public class ServiciosController(ISender sender) : ControllerBase
         var result = await sender.Send(query);
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
-
-
 
     [HttpGet("servicio/{id}")]
     [HasPermission("Servicios", "Leer")]

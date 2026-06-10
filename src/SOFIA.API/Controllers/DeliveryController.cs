@@ -27,7 +27,6 @@ public class DeliveryController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
-
     [HasPermission("Delivery", "Leer")]
     [HttpGet("despachos")]
     public async Task<IActionResult> GetDespachos([FromQuery] Domain.Enums.EstadoDespacho? estadoDespacho, [FromQuery] DateTime? fechaInicio, [FromQuery] DateTime? fechaFin, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
@@ -36,8 +35,6 @@ public class DeliveryController(ISender sender) : ControllerBase
         var result = await sender.Send(query);
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
-
-
 
     [HttpGet("{id}")]
     [HasPermission("Delivery", "Leer")]

@@ -16,7 +16,6 @@ public class GetActasQueryHandler(IApplicationDbContext dbContext) : IRequestHan
     {
         var query = dbContext.DIGEMIDActasDestruccion.AsNoTracking().AsQueryable();
 
-
         if (request.FechaInicio.HasValue)
         {
             query = query.Where(a => a.FechaEjecucion >= request.FechaInicio.Value);

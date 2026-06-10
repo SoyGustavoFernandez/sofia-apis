@@ -3,12 +3,14 @@ using SOFIA.Application.Recetas.Commands.UpdateReceta;
 using SOFIA.Application.Recetas.Queries.GetRecetaById;
 using SOFIA.Application.Recetas.Commands.CreateReceta;
 using SOFIA.Application.Recetas.Queries.AnalizarReceta;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace SOFIA.Api.Controllers;
 
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
+[EnableRateLimiting("general")]
 public class RecetasController(ISender sender) : ControllerBase
 {
 
@@ -43,6 +45,7 @@ public class RecetasController(ISender sender) : ControllerBase
 
     [HttpPost("analizar")]
     [HasPermission("Recetas", "Analizar")]
+    [EnableRateLimiting("ai-endpoints")]
     public async Task<IActionResult> Analizar(IFormFile imagen, [FromQuery] string? especialidadContexto)
     {
         if (imagen == null || imagen.Length == 0)

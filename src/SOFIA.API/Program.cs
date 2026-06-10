@@ -6,13 +6,29 @@ using SOFIA.Infrastructure;
 using SOFIA.Domain;
 using SOFIA.SharedKernel;
 using Microsoft.OpenApi;
-
+using Serilog;
+using Serilog.Formatting.Compact;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 using System.IdentityModel.Tokens.Jwt;
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- Structured Logging with Serilog ---
+builder.Host.UseSerilog((ctx, cfg) => cfg
+    .ReadFrom.Configuration(ctx.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .WriteTo.Console(new CompactJsonFormatter())
+    .WriteTo.File(
+        new CompactJsonFormatter(),
+        path: "logs/sofia-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 30,
+        fileSizeLimitBytes: 50 * 1024 * 1024));
 
 // --- CORS Configuration ---
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
@@ -81,6 +97,30 @@ _ = builder.Services.AddSwaggerGen(options =>
 _ = builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 _ = builder.Services.AddProblemDetails();
 
+// --- Rate Limiting ---
+_ = builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Endpoints de IA (digitalización de recetas): muy restrictivo por costo de procesamiento
+    _ = options.AddFixedWindowLimiter("ai-endpoints", o =>
+    {
+        o.PermitLimit = 10;
+        o.Window = TimeSpan.FromMinutes(1);
+        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        o.QueueLimit = 2;
+    });
+
+    // API general: 200 requests por minuto por IP
+    _ = options.AddFixedWindowLimiter("general", o =>
+    {
+        o.PermitLimit = 200;
+        o.Window = TimeSpan.FromMinutes(1);
+        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        o.QueueLimit = 10;
+    });
+});
+
 // Infrastructure Services
 _ = builder.Services.AddHttpContextAccessor();
 
@@ -111,12 +151,14 @@ if (app.Environment.IsDevelopment())
 }
 
 _ = app.UseExceptionHandler();
+_ = app.UseSerilogRequestLogging();
 _ = app.UseHttpsRedirection();
 
 _ = app.UseCors("SofiaCorsPolicy");
 
 _ = app.UseAuthentication();
 _ = app.UseAuthorization();
+_ = app.UseRateLimiter();
 
 _ = app.MapControllers();
 

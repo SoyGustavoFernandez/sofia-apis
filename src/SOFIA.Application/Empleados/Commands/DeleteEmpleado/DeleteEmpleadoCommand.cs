@@ -26,8 +26,7 @@ public class DeleteEmpleadoCommandHandler(IApplicationDbContext context) : IRequ
                 $"Cannot delete employee because they are the Manager of branch: {entity.Sucursal_Gerenciada.Nombre}. Please assign a new manager first."));
         }
 
-        entity.IsDeleted = true;
-        entity.DeletedAt = DateTimeOffset.UtcNow;
+        _ = context.Empleados.Remove(entity);
 
         _ = await context.SaveChangesAsync(cancellationToken);
 

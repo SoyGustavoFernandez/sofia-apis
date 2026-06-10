@@ -18,8 +18,7 @@ public class DeleteUnidadMedidaCommandHandler(IApplicationDbContext context) : I
             return Result.Failure(Error.NotFound("UnidadMedida.NotFound", $"Unidad de Medida with ID {request.Id} was not found."), 404);
         }
 
-        entity.IsDeleted = true;
-        entity.DeletedAt = DateTimeOffset.UtcNow;
+        _ = context.UnidadesMedida.Remove(entity);
 
         _ = await context.SaveChangesAsync(cancellationToken);
 

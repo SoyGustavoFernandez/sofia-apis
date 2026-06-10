@@ -23,10 +23,7 @@ public class DeleteAseguradoraCommandHandler(IApplicationDbContext context) : IR
             return Result.Failure<Guid>(Error.NotFound("NotFound", "No se encontró el registro."));
         }
 
-        // Entity framework interceptor or soft delete mechanism should handle this
-        // but we will just manually soft delete if the property exists, else remove
-        entity.IsDeleted = true;
-        entity.DeletedAt = DateTime.UtcNow;
+        _ = context.Aseguradoras.Remove(entity);
 
         _ = await context.SaveChangesAsync(cancellationToken);
         return Result.Success(entity.Id);

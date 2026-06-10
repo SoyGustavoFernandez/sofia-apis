@@ -18,8 +18,7 @@ public class DeleteMedicamentoCommandHandler(IApplicationDbContext context) : IR
             return Result.Failure(Error.NotFound("Medicamento.NotFound", $"Medicamento with ID {request.Id} was not found."), 404);
         }
 
-        entity.IsDeleted = true;
-        entity.DeletedAt = DateTimeOffset.UtcNow;
+        _ = context.Medicamentos.Remove(entity);
 
         _ = await context.SaveChangesAsync(cancellationToken);
 

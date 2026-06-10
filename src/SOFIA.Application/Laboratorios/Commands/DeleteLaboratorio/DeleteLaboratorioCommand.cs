@@ -18,8 +18,7 @@ public class DeleteLaboratorioCommandHandler(IApplicationDbContext context) : IR
             return Result.Failure(Error.NotFound("Laboratorio.NotFound", $"Laboratorio with ID {request.Id} was not found."), 404);
         }
 
-        entity.IsDeleted = true;
-        entity.DeletedAt = DateTimeOffset.UtcNow;
+        _ = context.Laboratorios.Remove(entity);
 
         _ = await context.SaveChangesAsync(cancellationToken);
 

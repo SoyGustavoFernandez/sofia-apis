@@ -18,8 +18,7 @@ public class DeleteSucursalCommandHandler(IApplicationDbContext context) : IRequ
             return Result.Failure(Error.NotFound("Sucursal.NotFound", $"Sucursal with ID {request.Id} was not found."), 404);
         }
 
-        entity.IsDeleted = true;
-        entity.DeletedAt = DateTimeOffset.UtcNow;
+        _ = context.Sucursales.Remove(entity);
 
         _ = await context.SaveChangesAsync(cancellationToken);
 

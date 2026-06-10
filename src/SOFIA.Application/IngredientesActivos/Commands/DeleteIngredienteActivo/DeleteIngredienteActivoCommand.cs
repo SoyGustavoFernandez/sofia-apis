@@ -18,8 +18,7 @@ public class DeleteIngredienteActivoCommandHandler(IApplicationDbContext context
             return Result.Failure(Error.NotFound("IngredienteActivo.NotFound", $"Ingrediente Activo with ID {request.Id} was not found."), 404);
         }
 
-        entity.IsDeleted = true;
-        entity.DeletedAt = DateTimeOffset.UtcNow;
+        _ = context.IngredientesActivos.Remove(entity);
 
         _ = await context.SaveChangesAsync(cancellationToken);
 

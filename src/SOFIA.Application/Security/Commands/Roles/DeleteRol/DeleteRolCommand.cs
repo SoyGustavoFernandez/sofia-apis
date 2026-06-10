@@ -25,8 +25,7 @@ public class DeleteRolCommandHandler(IApplicationDbContext context) : IRequestHa
             return Result.Failure(Error.Conflict("Rol.InUse", "No se puede eliminar un rol que tiene usuarios activos vinculados."));
         }
 
-        rol.IsDeleted = true;
-        rol.DeletedAt = DateTimeOffset.UtcNow;
+        _ = context.Roles.Remove(rol);
 
         _ = await context.SaveChangesAsync(cancellationToken);
 

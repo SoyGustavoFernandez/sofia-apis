@@ -23,10 +23,7 @@ public class DeleteProveedorCommandHandler(IApplicationDbContext context) : IReq
             return Result.Failure<Guid>(Error.NotFound("NotFound", "No se encontró el registro."));
         }
 
-        // Entity framework interceptor or soft delete mechanism should handle this
-        // but we will just manually soft delete if the property exists, else remove
-        entity.IsDeleted = true;
-        entity.DeletedAt = DateTime.UtcNow;
+        _ = context.Proveedores.Remove(entity);
 
         _ = await context.SaveChangesAsync(cancellationToken);
         return Result.Success(entity.Id);

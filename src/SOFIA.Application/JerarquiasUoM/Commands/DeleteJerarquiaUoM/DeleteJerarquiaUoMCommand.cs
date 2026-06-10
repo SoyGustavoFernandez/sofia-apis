@@ -18,8 +18,7 @@ public class DeleteJerarquiaUoMCommandHandler(IApplicationDbContext context) : I
             return Result.Failure(Error.NotFound("JerarquiaUoM.NotFound", $"Jerarquía with ID {request.Id} was not found."), 404);
         }
 
-        entity.IsDeleted = true;
-        entity.DeletedAt = DateTimeOffset.UtcNow;
+        _ = context.JerarquiasUoM.Remove(entity);
 
         _ = await context.SaveChangesAsync(cancellationToken);
 

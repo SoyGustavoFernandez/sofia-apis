@@ -50,7 +50,7 @@ public class GetVentasQueryHandler(
             .Include(v => v.Detalles)
             .Where(v => v.SucursalId == sucursalId);
 
-        // Aplicar filtros
+        // Apply filters
         if (request.FechaInicio.HasValue)
         {
             query = query.Where(v => v.FechaHoraUtc >= request.FechaInicio.Value);

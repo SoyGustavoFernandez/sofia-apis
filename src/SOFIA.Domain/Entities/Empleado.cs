@@ -16,10 +16,10 @@ public class Empleado : BaseEntity
 
     public string Nombre_Completo => $"{Nombres} {Apellido_Paterno} {Apellido_Materno}".Trim();
 
-    // BLOB en SQL Server -> byte[]
+    // SQL Server BLOB stored as byte[]
     public byte[]? Huella_Biometrica { get; private set; }
 
-    // Si es gerente de una sucursal
+    // Set if the employee manages a branch
     public virtual Sucursal? Sucursal_Gerenciada { get; private set; }
 
     public static Result<Empleado> Create(

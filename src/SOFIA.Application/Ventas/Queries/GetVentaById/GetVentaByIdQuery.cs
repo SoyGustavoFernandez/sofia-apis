@@ -64,7 +64,7 @@ public class GetVentaByIdQueryHandler(
             return Result.Failure<VentaConDetalleDto>(Error.NotFound("Venta.NotFound", $"No se encontrÃ³ la venta con ID {request.Id}"));
         }
 
-        // Validar que la venta pertenece a la sucursal del usuario
+        // Verify the sale belongs to the user's branch
         if (venta.SucursalId.ToString().ToLower() != currentUser.SucursalId.ToLower())
         {
             return Result.Failure<VentaConDetalleDto>(Error.Forbidden("Venta.Forbidden", "No tiene permiso para ver esta venta."));

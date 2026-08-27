@@ -18,7 +18,7 @@ public class AssignPermissionToRolCommandHandler(IApplicationDbContext context) 
             return Result.Failure<Guid>(Error.NotFound("Rol.NotFound", "El rol especificado no existe."));
         }
 
-        // Verificar si ya existe el permiso para ese rol
+        // Check whether the permission is already assigned to the role
         var alreadyExists = await context.PermisosRol
             .AnyAsync(p => p.RolId == request.RolId &&
                            p.ModuloSistema == request.ModuloSistema &&

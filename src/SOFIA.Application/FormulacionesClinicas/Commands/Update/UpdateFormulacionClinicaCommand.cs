@@ -39,7 +39,7 @@ public class UpdateFormulacionClinicaCommandHandler(IApplicationDbContext contex
             return Result.Failure(Error.NotFound("Formulacion.NotFound", $"Formulación with ID {request.Id} not found."));
         }
 
-        // Verificar si el ingrediente existe (si cambió)
+        // Check that the ingredient exists (only if it changed)
         if (formulacion.IngredienteId != request.IngredienteId)
         {
             var ingredienteExists = await context.IngredientesActivos

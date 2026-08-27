@@ -4,7 +4,7 @@ using SOFIA.Application.Common.Interfaces;
 
 namespace SOFIA.Application.Common.Behaviors;
 
-// Marcador interno compartido con ICommand / ICommand<T>
+// Internal marker shared with ICommand / ICommand<T>
 public interface IBaseCommand;
 
 public class TransactionBehavior<TRequest, TResponse>(IApplicationDbContext context)

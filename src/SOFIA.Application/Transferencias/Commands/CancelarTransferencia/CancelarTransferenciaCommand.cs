@@ -59,7 +59,7 @@ public class CancelarTransferenciaCommandHandler(
                 }
                 else
                 {
-                    // Por consistencia, si por algún motivo no existía (ej. borrado manual erróneo), lo recreamos
+                    // For consistency: recreate if missing (e.g., erroneous manual deletion)
                     var newInventarioResult = InventarioSucursal.Create(transferencia.SucursalOrigenId, detalle.LoteId, detalle.CantidadEnviada);
                     if (newInventarioResult.IsFailure)
                     {

@@ -57,7 +57,7 @@ public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext) :
         // 3. Crear Cabecera
         var cabeceraResult = DevolucionCabecera.Create(
             request.ComprobanteOrigenId,
-            Guid.Empty, // ComprobanteNcId (por ahora Empty, generaremos NC abajo y lo actualizaremos)
+            Guid.Empty, // ComprobanteNcId placeholder; generated below and updated
             request.EmpleadoAutorizaId,
             request.MotivoSunatCatalogo,
             request.SustentoDescriptivo,
@@ -76,7 +76,7 @@ public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext) :
         {
             var ventaDetalle = venta.Detalles.First(d => d.Id == dto.DetalleVentaId);
 
-            // Reingreso de stock si aplica
+            // Restock if applicable
             if (dto.DestinoFisicoLogico == Domain.Enums.DestinoDevolucion.Reingreso_Venta)
             {
                 var inventario = await dbContext.LotesEnSucursal
@@ -92,7 +92,7 @@ public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext) :
 
         _ = _ = dbContext.Devoluciones.Add(devolucion!);
 
-        // Generar Nota de Crédito
+        // Generate Credit Note
         var serie = await dbContext.SUNATSeriesFiscales
             .FirstOrDefaultAsync(s => s.SucursalId == venta.SucursalId && s.TipoComprobante == Domain.Enums.TipoComprobante.NotaCredito && s.EstadoSerie == "Activa", cancellationToken);
 

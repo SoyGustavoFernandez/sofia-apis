@@ -52,7 +52,7 @@ public class DespacharTransferenciaCommandHandler(
                 return Result.Failure(Error.Validation("Transferencia.StockInsuficiente", $"Stock insuficiente para despachar el lote {detalle.LoteId}. Disponible: {inventario?.CantidadFisica ?? 0}"));
             }
 
-            // Descontar
+            // Deduct stock
             inventario.UpdateStock(inventario.CantidadFisica - detalle.CantidadEnviada);
         }
 

@@ -42,7 +42,7 @@ public class GetTransferenciasQueryHandler(
                 .ThenInclude(d => d.Lote)
             .Where(t => t.SucursalOrigenId == userSucursalId || t.SucursalDestinoId == userSucursalId);
 
-        // Aplicar filtros adicionales
+        // Apply additional filters
         if (request.SucursalFiltroId.HasValue)
         {
             query = query.Where(t => t.SucursalOrigenId == request.SucursalFiltroId.Value || t.SucursalDestinoId == request.SucursalFiltroId.Value);

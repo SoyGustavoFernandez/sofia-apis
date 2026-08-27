@@ -25,7 +25,7 @@ public static class DependencyInjection
 
         _ = services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
-        // Autenticación
+        // Authentication
         _ = services.AddScoped<IPasswordHasher, PasswordHasher>();
         _ = services.AddScoped<IJwtProvider, JwtProvider>();
         _ = services.Configure<JwtOptions>(configuration.GetSection("Jwt"));

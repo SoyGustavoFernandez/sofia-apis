@@ -19,8 +19,8 @@ public record CreateVentaCommand(
 
 public record VentaCreadaDto(Guid VentaId, ComprobanteEmitidoDto? Comprobante);
 
-// NOTA: La integración SUNAT es simulada (tesis). Los campos de hash, URL y CDR son placeholders.
-// La integración real requiere un OSE/PSE homologado y firma digital con certificado.
+// NOTE: SUNAT integration is simulated (thesis). Hash, URL and CDR fields are placeholders.
+// Real integration requires a certified OSE/PSE and a valid digital signature certificate.
 public record ComprobanteEmitidoDto(string Tipo, string Numero, string EstadoAceptacion, string? UrlVerificacion, string? UrlXml, string? UrlCdr);
 
 public record CreateVentaDetailDto(
@@ -86,7 +86,7 @@ public class CreateVentaCommandHandler(
         // 2. Validar y preparar detalles
         foreach (var detailDto in request.Detalles)
         {
-            // Validar si el lote está en CUARENTENA (DIGEMID)
+            // Check if the lot is under DIGEMID quarantine
             var enCuarentena = await context.DIGEMIDInventarioCuarentena
                 .AnyAsync(q => q.LoteId == detailDto.LoteId && q.EstadoResolucion == "Retenido" && !q.IsDeleted, cancellationToken);
 
@@ -95,7 +95,7 @@ public class CreateVentaCommandHandler(
                 return Result.Failure<VentaCreadaDto>(Error.Validation("Venta.Cuarentena", $"El lote {detailDto.LoteId} se encuentra retenido en cuarentena y no está permitido venderlo bajo ninguna circunstancia."));
             }
 
-            // Validar existencia del lote y stock en la sucursal actual
+            // Check lot existence and available stock at the current branch
             var inventario = await context.LotesEnSucursal
                 .FirstOrDefaultAsync(x => x.LoteId == detailDto.LoteId && x.SucursalId == sucursalId, cancellationToken);
 
@@ -151,7 +151,7 @@ public class CreateVentaCommandHandler(
 
         if (serie == null)
         {
-            // Crear una serie por defecto si no existe
+            // Create a default fiscal series if none exists
             var newSerieResult = SUNATSerieFiscal.Create(sucursalId, TipoComprobante.Boleta, "B001", 0, "Activa");
             if (newSerieResult.IsSuccess)
             {

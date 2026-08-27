@@ -32,7 +32,7 @@ public class CreateFormulacionClinicaCommandHandler(IApplicationDbContext contex
 {
     public async Task<Result<Guid>> Handle(CreateFormulacionClinicaCommand request, CancellationToken cancellationToken)
     {
-        // Verificar si el producto existe
+        // Check that the product exists
         var productoExists = await context.Medicamentos
             .AnyAsync(x => x.Id == request.ProductoId && !x.IsDeleted, cancellationToken);
 
@@ -41,7 +41,7 @@ public class CreateFormulacionClinicaCommandHandler(IApplicationDbContext contex
             return Result.Failure<Guid>(Error.NotFound("Medicamento.NotFound", $"Medicamento with ID {request.ProductoId} not found."));
         }
 
-        // Verificar si el ingrediente existe
+        // Check that the ingredient exists
         var ingredienteExists = await context.IngredientesActivos
             .AnyAsync(x => x.Id == request.IngredienteId && !x.IsDeleted, cancellationToken);
 

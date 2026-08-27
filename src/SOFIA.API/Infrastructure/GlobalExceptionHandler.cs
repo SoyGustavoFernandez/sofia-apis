@@ -9,13 +9,13 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         Exception exception,
         CancellationToken cancellationToken)
     {
-        // Generamos un TraceId único para esta petición (o usamos el de .NET)
+        // Reuse .NET's TraceIdentifier as the correlation id for this request
         var traceId = httpContext.TraceIdentifier;
 
-        // Loggeamos el error incluyendo el TraceId para búsqueda rápida
+        // Log the error with the TraceId so it can be correlated in log search
         logger.LogError(
             exception,
-            "Ocurrió una excepción no controlada. [TraceId: {TraceId}]",
+            "Unhandled exception. [TraceId: {TraceId}]",
             traceId);
 
         var problemDetails = new ProblemDetails
@@ -27,7 +27,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             Instance = $"{httpContext.Request.Method} {httpContext.Request.Path}"
         };
 
-        // Agregamos el TraceId también como una propiedad extra en el JSON
+        // Also surface the TraceId as an extra JSON property for API consumers
         problemDetails.Extensions["traceId"] = traceId;
 
         httpContext.Response.StatusCode = problemDetails.Status.Value;

@@ -38,7 +38,7 @@ public class GetTransferenciaByIdQueryHandler(
             return Result.Failure<TransferenciaDto>(Error.NotFound("Transferencia.NotFound", $"La transferencia con ID {request.Id} no existe."), 404);
         }
 
-        // Verificar pertenencia a la sucursal de origen o destino
+        // Verify the transfer belongs to the user's branch (origin or destination)
         if (entity.SucursalOrigenId != userSucursalId && entity.SucursalDestinoId != userSucursalId)
         {
             return Result.Failure<TransferenciaDto>(Error.Forbidden("Transferencia.Forbidden", "No tiene permisos para acceder a esta transferencia ya que no pertenece a la sucursal de origen ni destino."));

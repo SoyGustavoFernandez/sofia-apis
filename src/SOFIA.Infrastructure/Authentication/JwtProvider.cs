@@ -23,7 +23,7 @@ public class JwtProvider(IOptions<JwtOptions> options) : IJwtProvider
             new("securityStamp", cuenta.SecurityStamp.ToString())
         };
 
-        // Agregar roles como claims
+        // Add roles as claims
         foreach (var rol in cuenta.Roles)
         {
             claims.Add(new(ClaimTypes.Role, rol.NombreRol));

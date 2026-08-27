@@ -39,15 +39,15 @@ public class AnalizarRecetaQueryHandler(IRecetaAnalyzer recetaAnalyzer, IBuscado
 
             if (candidatosDigemid.Any())
             {
-                // El BuscadorService ya retorna ordenado por similitud (Levenshtein)
+                // BuscadorService already returns results sorted by similarity (Levenshtein)
                 var mejorCoincidencia = candidatosDigemid.First();
 
                 nombreDigemidOficial = mejorCoincidencia.NomProd;
                 terminoParaBusquedaInterna = $"{mejorCoincidencia.NomProd} {mejorCoincidencia.Concent}".Trim();
                 encontradoEnDigemid = true;
 
-                // Simple cálculo de similitud local
-                similarityScore = 0.9; // Base alta porque ya pasó Levenshtein en el buscador
+                // Simple local similarity score
+                similarityScore = 0.9; // High base: already filtered by Levenshtein in the search service
             }
 
             // 2. Calcular confianza final
@@ -56,7 +56,7 @@ public class AnalizarRecetaQueryHandler(IRecetaAnalyzer recetaAnalyzer, IBuscado
             // 3. Buscar en Inventario Interno con el término
             var productoDb = await _buscadorService.BuscarMejorCoincidenciaAsync(terminoParaBusquedaInterna, cancellationToken);
 
-            // Si no se encontró con el nombre de DIGEMID, intentar con el original de IA por si acaso
+            // If not found by DIGEMID name, fall back to the original AI-provided name
             if (productoDb == null && encontradoEnDigemid)
             {
                 productoDb = await _buscadorService.BuscarMejorCoincidenciaAsync(terminoOriginalIA, cancellationToken);
@@ -72,7 +72,7 @@ public class AnalizarRecetaQueryHandler(IRecetaAnalyzer recetaAnalyzer, IBuscado
                 encontradoEnDigemid
             );
 
-            // Sugerencias de Cross-Selling
+            // Cross-selling suggestions
             if (itemIA.Sugerencias != null)
             {
                 foreach (var sugerencia in itemIA.Sugerencias)

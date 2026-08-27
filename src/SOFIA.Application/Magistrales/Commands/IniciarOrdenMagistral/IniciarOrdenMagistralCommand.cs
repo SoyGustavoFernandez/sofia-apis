@@ -57,11 +57,11 @@ public class IniciarOrdenMagistralCommandHandler(IApplicationDbContext dbContext
                 return Result.Failure<Guid>(Error.Validation("Inventario.StockInsuficiente", $"Stock insuficiente para el inventario {dto.InventarioSucursalId}. Stock actual: {inventario.CantidadFisica}"));
             }
 
-            // Descontar inventario
+            // Deduct inventory
             inventario.UpdateStock(inventario.CantidadFisica - dto.CantidadConsumida);
             _ = dbContext.LotesEnSucursal.Update(inventario);
 
-            // Registrar consumo
+            // Record consumption
             var consumoResult = MagistralConsumoInsumo.Create(
                 orden!.Id,
                 inventario.LoteId,

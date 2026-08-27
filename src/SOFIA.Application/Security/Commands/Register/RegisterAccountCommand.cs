@@ -17,7 +17,7 @@ public class RegisterAccountCommandHandler(
 {
     public async Task<Result<Guid>> Handle(RegisterAccountCommand request, CancellationToken cancellationToken)
     {
-        // Las 3 verificaciones deben ser secuenciales — EF Core no admite queries concurrentes sobre el mismo DbContext
+        // These 3 checks must be sequential — EF Core does not support concurrent queries on the same DbContext
         var empleadoExists = await context.Empleados
             .AnyAsync(e => e.Id == request.EmpleadoId && !e.IsDeleted, cancellationToken);
         var cuentaExists = await context.Cuentas

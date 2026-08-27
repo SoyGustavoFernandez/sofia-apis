@@ -82,7 +82,7 @@ public class RecibirTransferenciaCommandHandler(
                 }
                 else
                 {
-                    // Crear nuevo registro de stock en la sucursal de destino si no existía antes
+                    // Create a new stock record at the destination branch if none existed
                     var newInventarioResult = InventarioSucursal.Create(transferencia.SucursalDestinoId, detalle.LoteId, cantidadARecibir);
                     if (newInventarioResult.IsFailure)
                     {

@@ -76,7 +76,7 @@ _ = builder.Services.AddTransient<Microsoft.Extensions.Options.IConfigureOptions
 
 _ = builder.Services.AddSwaggerGen(options =>
 {
-    // Configuración para usar JWT en Swagger
+    // JWT Bearer configuration for Swagger UI
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -93,7 +93,7 @@ _ = builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Error Handling Moderno
+// Modern Error Handling
 _ = builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 _ = builder.Services.AddProblemDetails();
 
@@ -102,7 +102,7 @@ _ = builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    // Endpoints de IA (digitalización de recetas): muy restrictivo por costo de procesamiento
+    // AI endpoints (prescription digitization): strict limit due to processing cost
     _ = options.AddFixedWindowLimiter("ai-endpoints", o =>
     {
         o.PermitLimit = 10;
@@ -111,7 +111,7 @@ _ = builder.Services.AddRateLimiter(options =>
         o.QueueLimit = 2;
     });
 
-    // API general: 200 requests por minuto por IP
+    // General API: 200 requests per minute per IP
     _ = options.AddFixedWindowLimiter("general", o =>
     {
         o.PermitLimit = 200;

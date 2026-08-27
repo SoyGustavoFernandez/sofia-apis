@@ -3,6 +3,7 @@ namespace SOFIA.Domain.Common;
 public abstract class BaseEntity<TId> : IAuditableEntity
 {
     public TId Id { get; private set; } = default!;
+    public Guid? TenantId { get; protected set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public string? CreatedBy { get; set; }
     public DateTimeOffset? LastModifiedAt { get; set; }

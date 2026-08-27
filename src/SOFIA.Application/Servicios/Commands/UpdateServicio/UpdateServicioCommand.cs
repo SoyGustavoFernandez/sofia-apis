@@ -1,4 +1,4 @@
-﻿using SOFIA.Domain.Common;
+using SOFIA.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;

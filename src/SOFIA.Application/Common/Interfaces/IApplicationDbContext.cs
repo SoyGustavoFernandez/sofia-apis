@@ -7,6 +7,7 @@ namespace SOFIA.Application.Common.Interfaces;
 public interface IApplicationDbContext
 {
     DatabaseFacade Database { get; }
+    DbSet<Empresa> Empresas { get; }
     DbSet<Sucursal> Sucursales { get; }
     DbSet<Empleado> Empleados { get; }
     DbSet<UnidadMedida> UnidadesMedida { get; }

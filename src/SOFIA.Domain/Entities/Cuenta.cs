@@ -25,23 +25,37 @@ public sealed class Cuenta : BaseEntity
     public static Result<Cuenta> Create(
         Guid empleadoId,
         string nombreUsuario,
-        string passwordHash) =>
-        empleadoId == Guid.Empty
-            ? Result.Failure<Cuenta>(Error.Validation("Cuenta.EmpleadoId", "Empleado ID is required."))
-            : string.IsNullOrWhiteSpace(nombreUsuario)
-            ? Result.Failure<Cuenta>(Error.Validation("Cuenta.Usuario", "Nombre de Usuario is required."))
-            : string.IsNullOrWhiteSpace(passwordHash)
-            ? Result.Failure<Cuenta>(Error.Validation("Cuenta.Password", "Password Hash is required."))
-            : Result.Success(new Cuenta
-            {
-                EmpleadoId = empleadoId,
-                NombreUsuario = nombreUsuario,
-                PasswordHash = passwordHash,
-                SecurityStamp = Guid.NewGuid(),
-                RequiereCambioClave = true,
-                IntentosFallidos = 0,
-                CuentaActiva = true
-            });
+        string passwordHash,
+        Guid? tenantId = null,
+        bool requiereCambioClave = true)
+    {
+        if (empleadoId == Guid.Empty)
+        {
+            return Result.Failure<Cuenta>(Error.Validation("Cuenta.EmpleadoId", "Empleado ID is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(nombreUsuario))
+        {
+            return Result.Failure<Cuenta>(Error.Validation("Cuenta.Usuario", "Nombre de Usuario is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(passwordHash))
+        {
+            return Result.Failure<Cuenta>(Error.Validation("Cuenta.Password", "Password Hash is required."));
+        }
+
+        return Result.Success(new Cuenta
+        {
+            EmpleadoId = empleadoId,
+            NombreUsuario = nombreUsuario,
+            PasswordHash = passwordHash,
+            SecurityStamp = Guid.NewGuid(),
+            RequiereCambioClave = requiereCambioClave,
+            IntentosFallidos = 0,
+            CuentaActiva = true,
+            TenantId = tenantId
+        });
+    }
 
     public void UpdatePassword(string newPasswordHash)
     {

@@ -28,23 +28,40 @@ public class Empleado : BaseEntity
         string apellidoPaterno,
         string apellidoMaterno,
         string? licenciaProf = null,
-        byte[]? huellaBiometrica = null) => sucursalBaseId == Guid.Empty
-            ? Result.Failure<Empleado>(Error.Validation("Empleado.Sucursal", "Sucursal ID is required."))
-            : string.IsNullOrWhiteSpace(nombres)
-            ? Result.Failure<Empleado>(Error.Validation("Empleado.Nombres", "Nombres is required."))
-            : string.IsNullOrWhiteSpace(apellidoPaterno)
-            ? Result.Failure<Empleado>(Error.Validation("Empleado.ApellidoPaterno", "Apellido Paterno is required."))
-            : string.IsNullOrWhiteSpace(apellidoMaterno)
-            ? Result.Failure<Empleado>(Error.Validation("Empleado.ApellidoMaterno", "Apellido Materno is required."))
-            : Result.Success(new Empleado
-            {
-                Sucursal_Base_ID = sucursalBaseId,
-                Nombres = nombres,
-                Apellido_Paterno = apellidoPaterno,
-                Apellido_Materno = apellidoMaterno,
-                Licencia_Prof = licenciaProf,
-                Huella_Biometrica = huellaBiometrica
-            });
+        byte[]? huellaBiometrica = null,
+        Guid? tenantId = null)
+    {
+        if (sucursalBaseId == Guid.Empty)
+        {
+            return Result.Failure<Empleado>(Error.Validation("Empleado.Sucursal", "Sucursal ID is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(nombres))
+        {
+            return Result.Failure<Empleado>(Error.Validation("Empleado.Nombres", "Nombres is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(apellidoPaterno))
+        {
+            return Result.Failure<Empleado>(Error.Validation("Empleado.ApellidoPaterno", "Apellido Paterno is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(apellidoMaterno))
+        {
+            return Result.Failure<Empleado>(Error.Validation("Empleado.ApellidoMaterno", "Apellido Materno is required."));
+        }
+
+        return Result.Success(new Empleado
+        {
+            Sucursal_Base_ID = sucursalBaseId,
+            Nombres = nombres,
+            Apellido_Paterno = apellidoPaterno,
+            Apellido_Materno = apellidoMaterno,
+            Licencia_Prof = licenciaProf,
+            Huella_Biometrica = huellaBiometrica,
+            TenantId = tenantId
+        });
+    }
 
     public Result Update(
         Guid sucursalBaseId,

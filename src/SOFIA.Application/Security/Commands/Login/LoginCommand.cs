@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
@@ -16,7 +16,7 @@ public class LoginCommandHandler(
     {
         var cuenta = await context.Cuentas
             .Include(c => c.Roles)
-            .Include(c => c.Empleado)
+            .Include(c => c.Empleado).ThenInclude(e => e!.Sucursal_Base)
             .FirstOrDefaultAsync(c => c.NombreUsuario == request.NombreUsuario && !c.IsDeleted, cancellationToken);
 
         if (cuenta is null || !cuenta.CuentaActiva)

@@ -6,6 +6,9 @@ public class Sucursal : BaseEntity
 {
     private Sucursal() { } // Required for EF Core
 
+    public Guid? EmpresaId { get; private set; }
+    public virtual Empresa? Empresa { get; private set; }
+
     public string Nombre { get; private set; } = string.Empty;
     public string Direccion_Fisica { get; private set; } = string.Empty;
     public string Numero_Licencia { get; private set; } = string.Empty;
@@ -21,19 +24,34 @@ public class Sucursal : BaseEntity
         string nombre,
         string direccionFisica,
         string numeroLicencia,
-        Guid? gerenteId = null) => string.IsNullOrWhiteSpace(nombre)
-            ? Result.Failure<Sucursal>(Error.Validation("Sucursal.Nombre", "Nombre is required."))
-            : string.IsNullOrWhiteSpace(direccionFisica)
-            ? Result.Failure<Sucursal>(Error.Validation("Sucursal.Direccion", "Direccion is required."))
-            : string.IsNullOrWhiteSpace(numeroLicencia)
-            ? Result.Failure<Sucursal>(Error.Validation("Sucursal.Licencia", "Licencia is required."))
-            : Result.Success(new Sucursal
-            {
-                Nombre = nombre,
-                Direccion_Fisica = direccionFisica,
-                Numero_Licencia = numeroLicencia,
-                Gerente_ID = gerenteId
-            });
+        Guid? gerenteId = null,
+        Guid? empresaId = null)
+    {
+        if (string.IsNullOrWhiteSpace(nombre))
+        {
+            return Result.Failure<Sucursal>(Error.Validation("Sucursal.Nombre", "Nombre is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(direccionFisica))
+        {
+            return Result.Failure<Sucursal>(Error.Validation("Sucursal.Direccion", "Direccion is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(numeroLicencia))
+        {
+            return Result.Failure<Sucursal>(Error.Validation("Sucursal.Licencia", "Licencia is required."));
+        }
+
+        return Result.Success(new Sucursal
+        {
+            Nombre = nombre,
+            Direccion_Fisica = direccionFisica,
+            Numero_Licencia = numeroLicencia,
+            Gerente_ID = gerenteId,
+            EmpresaId = empresaId,
+            TenantId = empresaId
+        });
+    }
 
     public Result Update(
         string nombre,

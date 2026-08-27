@@ -1,4 +1,4 @@
-﻿using SOFIA.Domain.Enums;
+using SOFIA.Domain.Enums;
 using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;

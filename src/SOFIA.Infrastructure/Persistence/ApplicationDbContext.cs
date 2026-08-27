@@ -8,6 +8,7 @@ namespace SOFIA.Infrastructure.Persistence;
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ICurrentUser currentUser)
     : DbContext(options), IApplicationDbContext
 {
+    public DbSet<Empresa> Empresas => Set<Empresa>();
     public DbSet<Sucursal> Sucursales => Set<Sucursal>();
     public DbSet<Empleado> Empleados => Set<Empleado>();
     public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();

@@ -137,8 +137,5 @@ public class CreateTransferenciaCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.Sucursales).Returns(sucursales.BuildMockDbSet().Object);
     }
 
-    private void SetupInventario(List<InventarioSucursal> inventario)
-    {
-        _ = _dbContextMock.Setup(c => c.LotesEnSucursal).Returns(inventario.BuildMockDbSet().Object);
-    }
+    private void SetupInventario(List<InventarioSucursal> inventario) => _ = _dbContextMock.Setup(c => c.LotesEnSucursal).Returns(inventario.BuildMockDbSet().Object);
 }

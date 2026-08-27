@@ -6,15 +6,18 @@ namespace SOFIA.UnitTests.Transferencias.Domain;
 
 public class TransferenciaTests
 {
-    private readonly Guid _origenId  = Guid.NewGuid();
+    private readonly Guid _origenId = Guid.NewGuid();
     private readonly Guid _destinoId = Guid.NewGuid();
-    private readonly Guid _emisorId  = Guid.NewGuid();
+    private readonly Guid _emisorId = Guid.NewGuid();
 
     private List<DetalleTransferencia> ValidDetalles(int count = 1)
     {
         var detalles = new List<DetalleTransferencia>();
         for (var i = 0; i < count; i++)
+        {
             detalles.Add(DetalleTransferencia.Create(Guid.NewGuid(), 10).Value!);
+        }
+
         return detalles;
     }
 

@@ -12,16 +12,24 @@ public class JwtProvider(IOptions<JwtOptions> options) : IJwtProvider
 {
     private readonly JwtOptions _options = options.Value;
 
-    public string Generate(Cuenta cuenta)
+    public string Generate(Cuenta cuenta, Guid? empresaId = null, Guid? sucursalId = null)
     {
+        var resolvedEmpresaId = empresaId ?? cuenta.Empleado?.Sucursal_Base?.EmpresaId;
+        var resolvedSucursalId = sucursalId ?? cuenta.Empleado?.Sucursal_Base_ID;
+
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, cuenta.Id.ToString()),
             new(JwtRegisteredClaimNames.UniqueName, cuenta.NombreUsuario),
             new("empleadoId", cuenta.EmpleadoId.ToString()),
-            new("sucursalId", cuenta.Empleado?.Sucursal_Base_ID.ToString() ?? string.Empty),
+            new("sucursalId", resolvedSucursalId?.ToString() ?? string.Empty),
             new("securityStamp", cuenta.SecurityStamp.ToString())
         };
+
+        if (resolvedEmpresaId.HasValue)
+        {
+            claims.Add(new("empresaId", resolvedEmpresaId.Value.ToString()));
+        }
 
         // Add roles as claims
         foreach (var rol in cuenta.Roles)

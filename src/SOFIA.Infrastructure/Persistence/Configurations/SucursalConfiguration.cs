@@ -30,6 +30,9 @@ public class SucursalConfiguration : IEntityTypeConfiguration<Sucursal>
             .HasMaxLength(50)
             .IsRequired();
 
+        _ = builder.Property(x => x.EmpresaId)
+            .HasColumnName("Empresa_ID");
+
         _ = builder.HasOne(x => x.Gerente)
             .WithOne(x => x.Sucursal_Gerenciada)
             .HasForeignKey<Sucursal>(x => x.Gerente_ID)

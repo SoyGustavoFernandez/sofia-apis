@@ -30,27 +30,21 @@ public sealed class Medicamento : BaseEntity
         string nombreComercial,
         Guid laboratorioId,
         Guid unidadBaseId,
-        Enums.CondicionVenta condicionVenta) =>
-        string.IsNullOrWhiteSpace(codigoNacional)
-            ? Result.Failure<Medicamento>(Error.Validation("Medicamento.CodigoNacional", "Código Nacional is required."))
-            : codigoNacional.Length > 50
-            ? Result.Failure<Medicamento>(Error.Validation("Medicamento.CodigoNacional", "Código Nacional must not exceed 50 characters."))
-            : string.IsNullOrWhiteSpace(nombreComercial)
-            ? Result.Failure<Medicamento>(Error.Validation("Medicamento.NombreComercial", "Nombre Comercial is required."))
-            : nombreComercial.Length > 150
-            ? Result.Failure<Medicamento>(Error.Validation("Medicamento.NombreComercial", "Nombre Comercial must not exceed 150 characters."))
-            : laboratorioId == Guid.Empty
-            ? Result.Failure<Medicamento>(Error.Validation("Medicamento.LaboratorioId", "Laboratorio ID is required."))
-            : unidadBaseId == Guid.Empty
-            ? Result.Failure<Medicamento>(Error.Validation("Medicamento.UnidadBaseId", "Unidad Base ID is required."))
-            : Result.Success(new Medicamento
-            {
-                CodigoNacional = codigoNacional,
-                NombreComercial = nombreComercial,
-                LaboratorioId = laboratorioId,
-                UnidadBaseId = unidadBaseId,
-                CondicionVenta = condicionVenta
-            });
+        Enums.CondicionVenta condicionVenta)
+    {
+        var error = ValidateFields(codigoNacional, nombreComercial, laboratorioId, unidadBaseId);
+        if (error is not null)
+            return Result.Failure<Medicamento>(error);
+
+        return Result.Success(new Medicamento
+        {
+            CodigoNacional = codigoNacional,
+            NombreComercial = nombreComercial,
+            LaboratorioId = laboratorioId,
+            UnidadBaseId = unidadBaseId,
+            CondicionVenta = condicionVenta
+        });
+    }
 
     public Result Update(
         string codigoNacional,
@@ -59,35 +53,9 @@ public sealed class Medicamento : BaseEntity
         Guid unidadBaseId,
         Enums.CondicionVenta condicionVenta)
     {
-        if (string.IsNullOrWhiteSpace(codigoNacional))
-        {
-            return Result.Failure(Error.Validation("Medicamento.CodigoNacional", "Código Nacional is required."));
-        }
-
-        if (codigoNacional.Length > 50)
-        {
-            return Result.Failure(Error.Validation("Medicamento.CodigoNacional", "Código Nacional must not exceed 50 characters."));
-        }
-
-        if (string.IsNullOrWhiteSpace(nombreComercial))
-        {
-            return Result.Failure(Error.Validation("Medicamento.NombreComercial", "Nombre Comercial is required."));
-        }
-
-        if (nombreComercial.Length > 150)
-        {
-            return Result.Failure(Error.Validation("Medicamento.NombreComercial", "Nombre Comercial must not exceed 150 characters."));
-        }
-
-        if (laboratorioId == Guid.Empty)
-        {
-            return Result.Failure(Error.Validation("Medicamento.LaboratorioId", "Laboratorio ID is required."));
-        }
-
-        if (unidadBaseId == Guid.Empty)
-        {
-            return Result.Failure(Error.Validation("Medicamento.UnidadBaseId", "Unidad Base ID is required."));
-        }
+        var error = ValidateFields(codigoNacional, nombreComercial, laboratorioId, unidadBaseId);
+        if (error is not null)
+            return Result.Failure(error);
 
         CodigoNacional = codigoNacional;
         NombreComercial = nombreComercial;
@@ -96,5 +64,26 @@ public sealed class Medicamento : BaseEntity
         CondicionVenta = condicionVenta;
 
         return Result.Success();
+    }
+
+    private static Error? ValidateFields(
+        string codigoNacional,
+        string nombreComercial,
+        Guid laboratorioId,
+        Guid unidadBaseId)
+    {
+        if (string.IsNullOrWhiteSpace(codigoNacional))
+            return Error.Validation("Medicamento.CodigoNacional", "Código Nacional is required.");
+        if (codigoNacional.Length > 50)
+            return Error.Validation("Medicamento.CodigoNacional", "Código Nacional must not exceed 50 characters.");
+        if (string.IsNullOrWhiteSpace(nombreComercial))
+            return Error.Validation("Medicamento.NombreComercial", "Nombre Comercial is required.");
+        if (nombreComercial.Length > 150)
+            return Error.Validation("Medicamento.NombreComercial", "Nombre Comercial must not exceed 150 characters.");
+        if (laboratorioId == Guid.Empty)
+            return Error.Validation("Medicamento.LaboratorioId", "Laboratorio ID is required.");
+        if (unidadBaseId == Guid.Empty)
+            return Error.Validation("Medicamento.UnidadBaseId", "Unidad Base ID is required.");
+        return null;
     }
 }

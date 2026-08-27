@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
@@ -7,7 +7,7 @@ using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.FormulacionesClinicas.Commands.Create;
 
-public record CreateFormulacionClinicaCommand : IRequest<Result<Guid>>
+public record CreateFormulacionClinicaCommand : ICommand<Guid>
 {
     public Guid ProductoId { get; init; }
     public Guid IngredienteId { get; init; }

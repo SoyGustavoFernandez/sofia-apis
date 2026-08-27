@@ -1,10 +1,10 @@
-using MediatR;
+﻿using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.JerarquiasUoM.Commands.DeleteJerarquiaUoM;
 
-public record DeleteJerarquiaUoMCommand(Guid Id) : IRequest<Result>;
+public record DeleteJerarquiaUoMCommand(Guid Id) : ICommand;
 
 public class DeleteJerarquiaUoMCommandHandler(IApplicationDbContext context) : IRequestHandler<DeleteJerarquiaUoMCommand, Result>
 {

@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
@@ -6,7 +6,7 @@ using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Empleados.Commands.CreateEmpleado;
 
-public record CreateEmpleadoCommand : IRequest<Result<Guid>>
+public record CreateEmpleadoCommand : ICommand<Guid>
 {
     public Guid Sucursal_Base_ID { get; init; }
     public string Nombres { get; init; } = string.Empty;

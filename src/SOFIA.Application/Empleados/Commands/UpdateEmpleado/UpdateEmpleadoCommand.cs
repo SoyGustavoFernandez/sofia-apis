@@ -1,11 +1,11 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Empleados.Commands.UpdateEmpleado;
 
-public record UpdateEmpleadoCommand : IRequest<Result>
+public record UpdateEmpleadoCommand : ICommand
 {
     public Guid Id { get; init; }
     public Guid Sucursal_Base_ID { get; init; }

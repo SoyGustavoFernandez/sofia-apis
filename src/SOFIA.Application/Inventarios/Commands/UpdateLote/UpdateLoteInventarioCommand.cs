@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
@@ -10,7 +10,7 @@ public record UpdateLoteInventarioCommand(
     Guid Id,
     string NumeroLoteMfr,
     DateTimeOffset? FechaFabricacion,
-    DateTimeOffset FechaCaducidad) : IRequest<Result>;
+    DateTimeOffset FechaCaducidad) : ICommand;
 
 public class UpdateLoteInventarioValidator : AbstractValidator<UpdateLoteInventarioCommand>
 {

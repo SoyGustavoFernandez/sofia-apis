@@ -1,10 +1,10 @@
-using MediatR;
+﻿using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Medicamentos.Commands.DeleteMedicamento;
 
-public record DeleteMedicamentoCommand(Guid Id) : IRequest<Result>;
+public record DeleteMedicamentoCommand(Guid Id) : ICommand;
 
 public class DeleteMedicamentoCommandHandler(IApplicationDbContext context) : IRequestHandler<DeleteMedicamentoCommand, Result>
 {

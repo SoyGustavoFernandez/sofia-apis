@@ -1,10 +1,10 @@
-using MediatR;
+﻿using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.UnidadesMedida.Commands.DeleteUnidadMedida;
 
-public record DeleteUnidadMedidaCommand(Guid Id) : IRequest<Result>;
+public record DeleteUnidadMedidaCommand(Guid Id) : ICommand;
 
 public class DeleteUnidadMedidaCommandHandler(IApplicationDbContext context) : IRequestHandler<DeleteUnidadMedidaCommand, Result>
 {

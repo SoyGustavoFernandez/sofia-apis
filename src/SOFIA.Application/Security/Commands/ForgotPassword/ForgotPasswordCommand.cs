@@ -1,11 +1,11 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Security.Commands.ForgotPassword;
 
-public record ForgotPasswordCommand(string NombreUsuario) : IRequest<Result<string>>;
+public record ForgotPasswordCommand(string NombreUsuario) : ICommand<string>;
 
 public class ForgotPasswordCommandHandler(IApplicationDbContext context) : IRequestHandler<ForgotPasswordCommand, Result<string>>
 {

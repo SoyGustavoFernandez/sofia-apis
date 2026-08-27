@@ -1,4 +1,4 @@
-using SOFIA.Domain.Common;
+﻿using SOFIA.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace SOFIA.Application.Recetas.Commands.DeleteReceta;
 
-public record DeleteRecetaCommand(Guid Id) : IRequest<Result<Guid>>;
+public record DeleteRecetaCommand(Guid Id) : ICommand<Guid>;
 
 public class DeleteRecetaCommandHandler(IApplicationDbContext context) : IRequestHandler<DeleteRecetaCommand, Result<Guid>>
 {

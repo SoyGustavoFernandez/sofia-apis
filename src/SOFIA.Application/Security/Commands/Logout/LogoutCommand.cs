@@ -1,11 +1,11 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Security.Commands.Logout;
 
-public record LogoutCommand(Guid CuentaId) : IRequest<Result>;
+public record LogoutCommand(Guid CuentaId) : ICommand;
 
 public class LogoutCommandHandler(IApplicationDbContext context) : IRequestHandler<LogoutCommand, Result>
 {

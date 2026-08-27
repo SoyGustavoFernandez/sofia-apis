@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
@@ -11,7 +11,7 @@ public record CreateLoteInventarioCommand(
     Guid ProductoId,
     string NumeroLoteMfr,
     DateTimeOffset? FechaFabricacion,
-    DateTimeOffset FechaCaducidad) : IRequest<Result<Guid>>;
+    DateTimeOffset FechaCaducidad) : ICommand<Guid>;
 
 public class CreateLoteInventarioValidator : AbstractValidator<CreateLoteInventarioCommand>
 {

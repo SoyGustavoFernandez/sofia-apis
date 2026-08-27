@@ -1,10 +1,10 @@
-using MediatR;
+﻿using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Pacientes.Commands.CreatePaciente;
 
-public record CreatePacienteCommand(string DocIdentidadGub, string NombreApellidos, DateOnly FechaNacimiento, string? ContactoPrimario) : IRequest<Result<Guid>>;
+public record CreatePacienteCommand(string DocIdentidadGub, string NombreApellidos, DateOnly FechaNacimiento, string? ContactoPrimario) : ICommand<Guid>;
 
 public class CreatePacienteCommandHandler(IApplicationDbContext dbContext) : IRequestHandler<CreatePacienteCommand, Result<Guid>>
 {

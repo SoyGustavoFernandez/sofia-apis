@@ -1,11 +1,11 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Security.Commands.Roles.AssignRol;
 
-public record AssignRolToUserCommand(Guid CuentaId, Guid RolId) : IRequest<Result>;
+public record AssignRolToUserCommand(Guid CuentaId, Guid RolId) : ICommand;
 
 public class AssignRolToUserCommandHandler(IApplicationDbContext context) : IRequestHandler<AssignRolToUserCommand, Result>
 {

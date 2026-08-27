@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
@@ -10,7 +10,7 @@ public record CreateJerarquiaUoMCommand(
     Guid ProductoId,
     Guid UnidadMayorId,
     Guid UnidadMenorId,
-    decimal Multiplicador) : IRequest<Result<Guid>>;
+    decimal Multiplicador) : ICommand<Guid>;
 
 public class CreateJerarquiaUoMCommandValidator : AbstractValidator<CreateJerarquiaUoMCommand>
 {

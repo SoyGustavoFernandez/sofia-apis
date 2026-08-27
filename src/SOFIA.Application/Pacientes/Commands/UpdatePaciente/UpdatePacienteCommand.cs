@@ -1,4 +1,4 @@
-using SOFIA.Domain.Common;
+﻿using SOFIA.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace SOFIA.Application.Pacientes.Commands.UpdatePaciente;
 
-public record UpdatePacienteCommand(Guid Id) : IRequest<Result<Guid>>; // TODO: Add properties manually
+public record UpdatePacienteCommand(Guid Id) : ICommand<Guid>; // TODO: Add properties manually
 
 public class UpdatePacienteCommandHandler(IApplicationDbContext context) : IRequestHandler<UpdatePacienteCommand, Result<Guid>>
 {

@@ -13,12 +13,7 @@ public class TransactionBehavior<TRequest, TResponse>(IApplicationDbContext cont
 {
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        // Aplica transacción a requests que implementan IBaseCommand (ICommand / ICommand<T>)
-        // o que siguen la convención de nombre "*Command" para compatibilidad con código existente
-        var isCommand = request is IBaseCommand
-            || typeof(TRequest).Name.EndsWith("Command", StringComparison.Ordinal);
-
-        if (!isCommand)
+        if (request is not IBaseCommand)
         {
             return await next();
         }

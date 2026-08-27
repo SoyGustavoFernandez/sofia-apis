@@ -1,4 +1,4 @@
-using SOFIA.Domain.Common;
+﻿using SOFIA.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace SOFIA.Application.Proveedores.Commands.DeleteProveedor;
 
-public record DeleteProveedorCommand(Guid Id) : IRequest<Result<Guid>>;
+public record DeleteProveedorCommand(Guid Id) : ICommand<Guid>;
 
 public class DeleteProveedorCommandHandler(IApplicationDbContext context) : IRequestHandler<DeleteProveedorCommand, Result<Guid>>
 {

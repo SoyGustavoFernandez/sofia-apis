@@ -1,11 +1,11 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Security.Commands.Login;
 
-public record LoginCommand(string NombreUsuario, string Password) : IRequest<Result<string>>;
+public record LoginCommand(string NombreUsuario, string Password) : ICommand<string>;
 
 public class LoginCommandHandler(
     IApplicationDbContext context,

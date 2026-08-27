@@ -1,11 +1,11 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.FormulacionesClinicas.Commands.Delete;
 
-public record DeleteFormulacionClinicaCommand(Guid Id) : IRequest<Result>;
+public record DeleteFormulacionClinicaCommand(Guid Id) : ICommand;
 
 public class DeleteFormulacionClinicaCommandHandler(IApplicationDbContext context) : IRequestHandler<DeleteFormulacionClinicaCommand, Result>
 {

@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
@@ -12,7 +12,7 @@ public record UpdateMedicamentoCommand(
     string NombreComercial,
     Guid LaboratorioId,
     Guid UnidadBaseId,
-    Domain.Enums.CondicionVenta CondicionVenta) : IRequest<Result>;
+    Domain.Enums.CondicionVenta CondicionVenta) : ICommand;
 
 // Validator = pipeline fast-fail; entity method = domain invariant. Both layers are intentional.
 public class UpdateMedicamentoCommandValidator : AbstractValidator<UpdateMedicamentoCommand>

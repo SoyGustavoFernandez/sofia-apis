@@ -1,11 +1,11 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Sucursales.Commands.UpdateSucursal;
 
-public record UpdateSucursalCommand : IRequest<Result>
+public record UpdateSucursalCommand : ICommand
 {
     public Guid Id { get; init; }
     public string Nombre { get; init; } = string.Empty;

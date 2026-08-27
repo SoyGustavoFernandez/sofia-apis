@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
@@ -11,7 +11,7 @@ public record RegisterInventarioCommand(
     Guid SucursalId,
     Guid LoteId,
     decimal Cantidad,
-    bool EsAjusteDirecto = false) : IRequest<Result<Guid>>;
+    bool EsAjusteDirecto = false) : ICommand<Guid>;
 
 public class RegisterInventarioValidator : AbstractValidator<RegisterInventarioCommand>
 {

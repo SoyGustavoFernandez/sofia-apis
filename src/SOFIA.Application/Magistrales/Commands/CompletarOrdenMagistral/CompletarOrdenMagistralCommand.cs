@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
@@ -10,7 +10,7 @@ public record CompletarOrdenMagistralCommand(
     Guid OrdenId,
     string NumeroLoteMfr,
     DateTimeOffset FechaCaducidad
-) : IRequest<Result<Guid>>;
+) : ICommand<Guid>;
 
 public class CompletarOrdenMagistralCommandHandler(IApplicationDbContext dbContext) : IRequestHandler<CompletarOrdenMagistralCommand, Result<Guid>>
 {

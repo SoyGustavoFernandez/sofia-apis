@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
@@ -15,7 +15,7 @@ public record CreateVentaCommand(
     List<CreateVentaDetailDto> Detalles,
     EstadoVenta Estado = EstadoVenta.Completada,
     Guid? AseguradoraId = null,
-    decimal? MontoCubiertoSeguro = null) : IRequest<Result<VentaCreadaDto>>;
+    decimal? MontoCubiertoSeguro = null) : ICommand<VentaCreadaDto>;
 
 public record VentaCreadaDto(Guid VentaId, ComprobanteEmitidoDto? Comprobante);
 

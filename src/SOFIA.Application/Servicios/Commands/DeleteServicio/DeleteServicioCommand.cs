@@ -1,4 +1,4 @@
-using SOFIA.Domain.Common;
+﻿using SOFIA.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace SOFIA.Application.Servicios.Commands.DeleteServicio;
 
-public record DeleteServicioCommand(Guid Id) : IRequest<Result<Guid>>;
+public record DeleteServicioCommand(Guid Id) : ICommand<Guid>;
 
 public class DeleteServicioCommandHandler(IApplicationDbContext context) : IRequestHandler<DeleteServicioCommand, Result<Guid>>
 {

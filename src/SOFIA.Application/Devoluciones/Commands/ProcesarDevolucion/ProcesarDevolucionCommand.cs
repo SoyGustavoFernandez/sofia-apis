@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
@@ -14,7 +14,7 @@ public record ProcesarDevolucionCommand(
     string MotivoSunatCatalogo,
     string SustentoDescriptivo,
     List<DevolucionDetalleDto> Detalles
-) : IRequest<Result<Guid>>;
+) : ICommand<Guid>;
 
 public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext) : IRequestHandler<ProcesarDevolucionCommand, Result<Guid>>
 {

@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
@@ -15,7 +15,7 @@ public record IniciarOrdenMagistralCommand(
     Guid QuimicoPreparadorId,
     decimal? CantidadProducida,
     List<InsumoDto> Consumos
-) : IRequest<Result<Guid>>;
+) : ICommand<Guid>;
 
 public class IniciarOrdenMagistralCommandHandler(IApplicationDbContext dbContext) : IRequestHandler<IniciarOrdenMagistralCommand, Result<Guid>>
 {

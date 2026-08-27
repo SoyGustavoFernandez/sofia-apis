@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
@@ -9,7 +9,7 @@ namespace SOFIA.Application.Security.Commands.Register;
 public record RegisterAccountCommand(
     Guid EmpleadoId,
     string NombreUsuario,
-    string Password) : IRequest<Result<Guid>>;
+    string Password) : ICommand<Guid>;
 
 public class RegisterAccountCommandHandler(
     IApplicationDbContext context,

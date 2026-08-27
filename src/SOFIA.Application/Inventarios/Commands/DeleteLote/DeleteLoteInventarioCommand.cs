@@ -1,10 +1,10 @@
-using MediatR;
+﻿using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Inventarios.Commands.DeleteLote;
 
-public record DeleteLoteInventarioCommand(Guid Id) : IRequest<Result>;
+public record DeleteLoteInventarioCommand(Guid Id) : ICommand;
 
 public class DeleteLoteInventarioHandler(IApplicationDbContext context)
     : IRequestHandler<DeleteLoteInventarioCommand, Result>

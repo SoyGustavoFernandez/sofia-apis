@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
@@ -11,7 +11,7 @@ public record CreateTransferenciaDetailDto(Guid LoteId, decimal CantidadEnviada)
 
 public record CreateTransferenciaCommand(
     Guid SucursalDestinoId,
-    List<CreateTransferenciaDetailDto> Detalles) : IRequest<Result<Guid>>;
+    List<CreateTransferenciaDetailDto> Detalles) : ICommand<Guid>;
 
 public class CreateTransferenciaCommandValidator : AbstractValidator<CreateTransferenciaCommand>
 {

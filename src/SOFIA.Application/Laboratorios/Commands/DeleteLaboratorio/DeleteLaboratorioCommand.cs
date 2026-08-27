@@ -1,10 +1,10 @@
-using MediatR;
+﻿using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Laboratorios.Commands.DeleteLaboratorio;
 
-public record DeleteLaboratorioCommand(Guid Id) : IRequest<Result>;
+public record DeleteLaboratorioCommand(Guid Id) : ICommand;
 
 public class DeleteLaboratorioCommandHandler(IApplicationDbContext context) : IRequestHandler<DeleteLaboratorioCommand, Result>
 {

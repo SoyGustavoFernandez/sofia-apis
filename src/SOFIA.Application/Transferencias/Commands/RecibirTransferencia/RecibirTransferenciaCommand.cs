@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
@@ -11,7 +11,7 @@ public record RecepcionLoteInputDto(Guid LoteId, decimal CantidadRecibida);
 
 public record RecibirTransferenciaCommand(
     Guid Id,
-    List<RecepcionLoteInputDto> Recepciones) : IRequest<Result>;
+    List<RecepcionLoteInputDto> Recepciones) : ICommand;
 
 public class RecibirTransferenciaCommandValidator : AbstractValidator<RecibirTransferenciaCommand>
 {

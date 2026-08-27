@@ -5,7 +5,6 @@ using SOFIA.Application;
 using SOFIA.Infrastructure;
 using SOFIA.Domain;
 using SOFIA.SharedKernel;
-using Microsoft.OpenApi;
 using Serilog;
 using Serilog.Formatting.Compact;
 using System.Threading.RateLimiting;
@@ -59,38 +58,11 @@ _ = builder.Services.AddCors(options =>
 
 // --- Container Services ---
 _ = builder.Services.AddControllers();
-_ = builder.Services.AddOpenApi();
-
 _ = builder.Services.AddApiVersioning(options =>
 {
     options.DefaultApiVersion = new ApiVersion(1, 0);
     options.AssumeDefaultVersionWhenUnspecified = true;
     options.ReportApiVersions = true;
-}).AddApiExplorer(options =>
-{
-    options.GroupNameFormat = "'v'VVV";
-    options.SubstituteApiVersionInUrl = true;
-});
-
-_ = builder.Services.AddTransient<Microsoft.Extensions.Options.IConfigureOptions<Swashbuckle.AspNetCore.SwaggerGen.SwaggerGenOptions>, ConfigureSwaggerOptions>();
-
-_ = builder.Services.AddSwaggerGen(options =>
-{
-    // JWT Bearer configuration for Swagger UI
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Ingresa el JWT"
-    });
-
-    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-    {
-        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
-    });
 });
 
 // Modern Error Handling
@@ -134,22 +106,6 @@ _ = builder.Services.AddInfrastructure(builder.Configuration);
 var app = builder.Build();
 
 // --- HTTP Request Pipeline ---
-if (app.Environment.IsDevelopment())
-{
-    _ = app.MapOpenApi();
-    _ = app.UseSwagger();
-    _ = app.UseSwaggerUI(options =>
-    {
-        var descriptions = app.DescribeApiVersions();
-        foreach (var description in descriptions)
-        {
-            options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
-        }
-        options.RoutePrefix = "swagger";
-        options.DocumentTitle = "SOFIA API Documentation";
-    });
-}
-
 _ = app.UseExceptionHandler();
 _ = app.UseSerilogRequestLogging();
 _ = app.UseHttpsRedirection();

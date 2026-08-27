@@ -129,7 +129,7 @@ public class CreateTransferenciaCommandHandlerTests
             .Select(id =>
             {
                 var s = Sucursal.Create($"Sucursal {id}", "Dirección test", "LIC-001").Value!;
-                typeof(Sucursal).GetProperty("Id")?.SetValue(s, id);
+                s.SetId(id);
                 return s;
             })
             .ToList();

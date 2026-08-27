@@ -29,7 +29,7 @@ public class RegisterAccountCommandHandlerTests
     private Empleado CreateEmpleado(Guid id)
     {
         var empleado = Empleado.Create(Guid.NewGuid(), "Juan", "Perez", "Lopez").Value!;
-        typeof(Empleado).GetProperty("Id")?.SetValue(empleado, id);
+        empleado.SetId(id);
         return empleado;
     }
 

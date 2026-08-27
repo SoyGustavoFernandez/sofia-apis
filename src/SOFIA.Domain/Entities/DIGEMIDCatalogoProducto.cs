@@ -37,7 +37,6 @@ public class DIGEMIDCatalogoProducto : BaseEntity
 
         return Result.Success(new DIGEMIDCatalogoProducto
         {
-            Id = Guid.NewGuid(),
             CodProd = codProd,
             NomProd = nomProd,
             Concent = concent,

@@ -2,7 +2,7 @@ namespace SOFIA.Domain.Common;
 
 public abstract class BaseEntity<TId> : IAuditableEntity
 {
-    public TId Id { get; init; } = default!;
+    public TId Id { get; private set; } = default!;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public string? CreatedBy { get; set; }
     public DateTimeOffset? LastModifiedAt { get; set; }
@@ -11,9 +11,10 @@ public abstract class BaseEntity<TId> : IAuditableEntity
     public DateTimeOffset? DeletedAt { get; set; }
     public string? DeletedBy { get; set; }
 
+    internal void SetId(TId id) => Id = id;
 }
 
 public abstract class BaseEntity : BaseEntity<Guid>
 {
-    protected BaseEntity() => Id = Guid.NewGuid();
+    protected BaseEntity() => SetId(Guid.NewGuid());
 }

@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Reflection;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Domain.Entities;
@@ -19,14 +21,11 @@ public sealed class Medicamento : BaseEntity
     public const int CodigoNacionalMaxLength = 50;
     public const int NombreComercialMaxLength = 150;
 
-    // Valid values for Condicion_Venta based on SQL CHECK constraint
     public static readonly string[] CondicionesValidas =
-    [
-        "Venta Libre (OTC)",
-        "Receta Simple",
-        "Receta Retenida",
-        "Estupefaciente"
-    ];
+        [.. Enum.GetValues<Enums.CondicionVenta>()
+            .Select(e => typeof(Enums.CondicionVenta)
+                .GetField(e.ToString())!
+                .GetCustomAttribute<DescriptionAttribute>()?.Description ?? e.ToString())];
 
     public static Result<Medicamento> Create(
         string codigoNacional,

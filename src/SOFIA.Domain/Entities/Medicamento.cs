@@ -16,6 +16,9 @@ public sealed class Medicamento : BaseEntity
     public Laboratorio? Laboratorio { get; private set; }
     public UnidadMedida? UnidadBase { get; private set; }
 
+    public const int CodigoNacionalMaxLength = 50;
+    public const int NombreComercialMaxLength = 150;
+
     // Valid values for Condicion_Venta based on SQL CHECK constraint
     public static readonly string[] CondicionesValidas =
     [
@@ -74,12 +77,12 @@ public sealed class Medicamento : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(codigoNacional))
             return Error.Validation("Medicamento.CodigoNacional", "Código Nacional is required.");
-        if (codigoNacional.Length > 50)
-            return Error.Validation("Medicamento.CodigoNacional", "Código Nacional must not exceed 50 characters.");
+        if (codigoNacional.Length > CodigoNacionalMaxLength)
+            return Error.Validation("Medicamento.CodigoNacional", $"Código Nacional must not exceed {CodigoNacionalMaxLength} characters.");
         if (string.IsNullOrWhiteSpace(nombreComercial))
             return Error.Validation("Medicamento.NombreComercial", "Nombre Comercial is required.");
-        if (nombreComercial.Length > 150)
-            return Error.Validation("Medicamento.NombreComercial", "Nombre Comercial must not exceed 150 characters.");
+        if (nombreComercial.Length > NombreComercialMaxLength)
+            return Error.Validation("Medicamento.NombreComercial", $"Nombre Comercial must not exceed {NombreComercialMaxLength} characters.");
         if (laboratorioId == Guid.Empty)
             return Error.Validation("Medicamento.LaboratorioId", "Laboratorio ID is required.");
         if (unidadBaseId == Guid.Empty)

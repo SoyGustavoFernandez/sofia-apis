@@ -13,17 +13,18 @@ public record CreateMedicamentoCommand(
     Guid UnidadBaseId,
     Domain.Enums.CondicionVenta CondicionVenta) : IRequest<Result<Guid>>;
 
+// Validator = pipeline fast-fail; entity method = domain invariant. Both layers are intentional.
 public class CreateMedicamentoCommandValidator : AbstractValidator<CreateMedicamentoCommand>
 {
     public CreateMedicamentoCommandValidator()
     {
         _ = RuleFor(v => v.CodigoNacional)
             .NotEmpty().WithMessage("Código Nacional is required.")
-            .MaximumLength(50).WithMessage("Código Nacional must not exceed 50 characters.");
+            .MaximumLength(Medicamento.CodigoNacionalMaxLength).WithMessage($"Código Nacional must not exceed {Medicamento.CodigoNacionalMaxLength} characters.");
 
         _ = RuleFor(v => v.NombreComercial)
             .NotEmpty().WithMessage("Nombre Comercial is required.")
-            .MaximumLength(150).WithMessage("Nombre Comercial must not exceed 150 characters.");
+            .MaximumLength(Medicamento.NombreComercialMaxLength).WithMessage($"Nombre Comercial must not exceed {Medicamento.NombreComercialMaxLength} characters.");
 
         _ = RuleFor(v => v.LaboratorioId)
             .NotEmpty().WithMessage("Laboratorio ID is required.");

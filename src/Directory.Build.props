@@ -1,0 +1,18 @@
+<Project>
+  <!--
+    SonarAnalyzer.CSharp: Roslyn security analyzer.
+    Runs at build time. Excluded from test/tooling projects.
+    PrivateAssets="all" prevents transitive dependency leakage.
+  -->
+  <PropertyGroup>
+    <IsTestProject Condition="$(MSBuildProjectName.EndsWith('Tests'))">true</IsTestProject>
+    <IsTestProject Condition="$(MSBuildProjectName.Contains('DbUp'))">true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsTestProject)' != 'true'">
+    <PackageReference Include="SonarAnalyzer.CSharp"
+                      Version="9.32.0.97167"
+                      PrivateAssets="all"
+                      IncludeAssets="analyzers" />
+  </ItemGroup>
+</Project>

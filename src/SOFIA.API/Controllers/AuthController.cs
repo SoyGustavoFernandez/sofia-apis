@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using SOFIA.Application.Security.Commands.ForgotPassword;
 using SOFIA.Application.Security.Commands.Login;
 using SOFIA.Application.Security.Commands.Logout;
@@ -11,6 +12,7 @@ namespace SOFIA.API.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
+[EnableRateLimiting("auth")]
 public class AuthController(ISender sender) : ControllerBase
 {
     [HttpPost("login")]

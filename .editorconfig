@@ -52,3 +52,37 @@ dotnet_analyzer_diagnostic.category-CodeQuality.severity = warning
 # Formato estricto como error de compilación
 dotnet_diagnostic.IDE0055.severity = error
 dotnet_style_allow_multiple_blank_lines_experimental = false:error
+
+# ── SonarAnalyzer — Security rules (build errors) ────────────────────────────
+# SQL Injection
+dotnet_diagnostic.S2077.severity = error
+# OS Command Injection
+dotnet_diagnostic.S2076.severity = error
+# Path Traversal
+dotnet_diagnostic.S2083.severity = error
+# LDAP Injection
+dotnet_diagnostic.S2078.severity = error
+# XPath Injection
+dotnet_diagnostic.S2091.severity = error
+# HTTP Response Splitting
+dotnet_diagnostic.S5131.severity = error
+# Hardcoded credentials
+dotnet_diagnostic.S2068.severity = error
+# Weak cryptography
+dotnet_diagnostic.S2278.severity = error
+dotnet_diagnostic.S4426.severity = error
+# JWT without signature / weak algorithm
+dotnet_diagnostic.S5659.severity = error
+# Overly permissive CORS policy
+dotnet_diagnostic.S5122.severity = error
+# Cookie missing HttpOnly / Secure flag
+dotnet_diagnostic.S2092.severity = error
+dotnet_diagnostic.S3330.severity = error
+# Insecure deserialization
+dotnet_diagnostic.S5135.severity = error
+# XML External Entity (XXE)
+dotnet_diagnostic.S2755.severity = error
+# ── SonarAnalyzer — Code quality (warnings) ──────────────────────────────────
+dotnet_diagnostic.S1135.severity = warning  # TODO comments
+dotnet_diagnostic.S3776.severity = warning  # Cognitive complexity
+dotnet_diagnostic.S4457.severity = warning  # Parameters validated before await

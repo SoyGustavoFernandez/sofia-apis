@@ -13,7 +13,7 @@ namespace SOFIA.API.Controllers;
 public class EmpresasController(ISender sender) : ControllerBase
 {
     /// <summary>
-    /// Registro público: crea empresa, sede principal, admin y devuelve JWT para ingreso inmediato.
+    /// Public registration: creates the company, main branch, admin user, and returns a JWT for immediate login.
     /// </summary>
     [AllowAnonymous]
     [HttpPost("registrar")]

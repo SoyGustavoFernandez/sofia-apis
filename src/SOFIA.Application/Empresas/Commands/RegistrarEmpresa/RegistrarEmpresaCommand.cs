@@ -9,12 +9,12 @@ namespace SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 
 public record RegistrarEmpresaCommand : ICommand<string>
 {
-    // Mínimo obligatorio
+    // Minimum required
     public string NombreEmpresa { get; init; } = string.Empty;
     public string Usuario { get; init; } = string.Empty;
     public string Password { get; init; } = string.Empty;
 
-    // Opcionales — completables desde el perfil de la empresa después del registro
+    // Optional — completable from the company profile after registration
     public string? RUC { get; init; }
     public string? NombreSede { get; init; }
     public string? DireccionSede { get; init; }
@@ -29,22 +29,22 @@ public class RegistrarEmpresaCommandValidator : AbstractValidator<RegistrarEmpre
     public RegistrarEmpresaCommandValidator()
     {
         _ = RuleFor(x => x.NombreEmpresa)
-            .NotEmpty().WithMessage("El nombre de la empresa es requerido.")
+            .NotEmpty().WithMessage("Company name is required.")
             .MaximumLength(200);
 
         _ = RuleFor(x => x.Usuario)
-            .NotEmpty().WithMessage("El usuario es requerido.")
-            .MinimumLength(4).WithMessage("El usuario debe tener al menos 4 caracteres.")
+            .NotEmpty().WithMessage("Username is required.")
+            .MinimumLength(4).WithMessage("Username must be at least 4 characters long.")
             .MaximumLength(50);
 
         _ = RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("La contraseña es requerida.")
-            .MinimumLength(8).WithMessage("La contraseña debe tener al menos 8 caracteres.");
+            .NotEmpty().WithMessage("Password is required.")
+            .MinimumLength(8).WithMessage("Password must be at least 8 characters long.");
 
         _ = When(x => x.RUC is not null, () =>
             RuleFor(x => x.RUC)
-                .Length(11).WithMessage("El RUC debe tener exactamente 11 dígitos.")
-                .Matches("^[0-9]{11}$").WithMessage("El RUC debe contener solo dígitos."));
+                .Length(11).WithMessage("RUC must be exactly 11 digits.")
+                .Matches("^[0-9]{11}$").WithMessage("RUC must contain only digits."));
     }
 }
 
@@ -69,7 +69,7 @@ public class RegistrarEmpresaCommandHandler(
             .AnyAsync(c => c.NombreUsuario == request.Usuario && !c.IsDeleted, cancellationToken);
         if (usuarioTomado)
         {
-            return Result.Failure<string>(Error.Conflict("Auth.DuplicateUsername", "El nombre de usuario ya está en uso."), 409);
+            return Result.Failure<string>(Error.Conflict("Auth.DuplicateUsername", "Username is already in use."), 409);
         }
 
         var entityResult = CreateEntityChain(request, passwordHasher);

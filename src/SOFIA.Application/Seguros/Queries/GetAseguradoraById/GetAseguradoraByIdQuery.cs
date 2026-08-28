@@ -20,7 +20,7 @@ public class GetAseguradoraByIdQueryHandler(IApplicationDbContext context) : IRe
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
-        return entity == null ? Result.Failure<AseguradoraDto>(Error.NotFound("NotFound", "No se encontró el registro.")) : Result.Success(new AseguradoraDto(entity.Id));
+        return entity == null ? Result.Failure<AseguradoraDto>(Error.NotFound("NotFound", "Record not found.")) : Result.Success(new AseguradoraDto(entity.Id));
     }
 }
 

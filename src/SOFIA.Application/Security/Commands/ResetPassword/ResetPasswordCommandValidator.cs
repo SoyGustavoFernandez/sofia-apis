@@ -7,13 +7,13 @@ public class ResetPasswordCommandValidator : AbstractValidator<ResetPasswordComm
     public ResetPasswordCommandValidator()
     {
         _ = RuleFor(x => x.NombreUsuario)
-            .NotEmpty().WithMessage("El nombre de usuario es obligatorio.");
+            .NotEmpty().WithMessage("Username is required.");
 
         _ = RuleFor(x => x.Token)
-            .NotEmpty().WithMessage("El token de recuperación es obligatorio.");
+            .NotEmpty().WithMessage("Recovery token is required.");
 
         _ = RuleFor(x => x.NewPassword)
-            .NotEmpty().WithMessage("La nueva contraseña es obligatoria.")
-            .MinimumLength(8).WithMessage("La nueva contraseña debe tener al menos 8 caracteres.");
+            .NotEmpty().WithMessage("New password is required.")
+            .MinimumLength(8).WithMessage("New password must be at least 8 characters long.");
     }
 }

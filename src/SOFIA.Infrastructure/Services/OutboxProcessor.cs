@@ -9,7 +9,7 @@ namespace SOFIA.Infrastructure.Services;
 
 public class OutboxProcessor(IServiceProvider serviceProvider, ILogger<OutboxProcessor> logger) : BackgroundService
 {
-    // Caché de tipos de eventos para evitar reflexión repetida
+    // Cache of event types to avoid repeated reflection
     private static readonly Dictionary<string, Type?> _typeCache = [];
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -94,7 +94,7 @@ public class OutboxProcessor(IServiceProvider serviceProvider, ILogger<OutboxPro
 
         if (eventType is null)
         {
-            logger.LogWarning("No se encontró el tipo '{Type}' para el evento outbox. Se omite.", tipoEvento);
+            logger.LogWarning("Outbox event type '{Type}' not found. Skipping.", tipoEvento);
             return;
         }
 

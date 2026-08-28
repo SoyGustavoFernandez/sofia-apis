@@ -53,7 +53,7 @@ public sealed class Transferencia : BaseEntity
 
         if (detalles == null || detalles.Count == 0)
         {
-            return Result.Failure<Transferencia>(Error.Validation("Transferencia.Detalles", "La transferencia debe contener al menos un detalle."));
+            return Result.Failure<Transferencia>(Error.Validation("Transferencia.Detalles", "Transfer must contain at least one detail."));
         }
 
         var transferencia = new Transferencia
@@ -101,7 +101,7 @@ public sealed class Transferencia : BaseEntity
     {
         if (EstadoLogistico != EstadoLogistico.En_Transito)
         {
-            return Result.Failure(Error.Validation("Transferencia.EstadoLogistico", "Solo se pueden recibir transferencias que estén En Tránsito."));
+            return Result.Failure(Error.Validation("Transferencia.EstadoLogistico", "Only transfers in transit can be received."));
         }
 
         if (empleadoReceptorId == Guid.Empty)
@@ -124,7 +124,7 @@ public sealed class Transferencia : BaseEntity
 
             if (cantidadRecibida < 0)
             {
-                return Result.Failure(Error.Validation("Transferencia.Recepcion", "La cantidad recibida no puede ser negativa."));
+                return Result.Failure(Error.Validation("Transferencia.Recepcion", "Received quantity cannot be negative."));
             }
 
             if (cantidadRecibida > detalle.CantidadEnviada)

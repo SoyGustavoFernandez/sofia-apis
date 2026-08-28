@@ -119,14 +119,14 @@ public class CreateVentaCommandHandler(
     {
         if (sesionId == null)
         {
-            return Result.Failure(Error.Validation("Venta.Caja", "La sesión de caja es requerida para procesar la venta."));
+            return Result.Failure(Error.Validation("Venta.Caja", "A cash register session is required to process the sale."));
         }
 
         var sesionCaja = await context.POSSesionesCaja
             .FirstOrDefaultAsync(x => x.Id == sesionId && !x.IsDeleted, cancellationToken);
 
         return sesionCaja == null || sesionCaja.EstadoSesion != EstadoSesion.Abierta
-            ? Result.Failure(Error.Validation("Venta.Caja", "La sesión de caja no está abierta o no existe."))
+            ? Result.Failure(Error.Validation("Venta.Caja", "The cash register session is not open or does not exist."))
             : Result.Success();
     }
 
@@ -141,7 +141,7 @@ public class CreateVentaCommandHandler(
 
             if (enCuarentena)
             {
-                return Result.Failure<List<DetalleVenta>>(Error.Validation("Venta.Cuarentena", $"El lote {detailDto.LoteId} se encuentra retenido en cuarentena y no está permitido venderlo bajo ninguna circunstancia."));
+                return Result.Failure<List<DetalleVenta>>(Error.Validation("Venta.Cuarentena", $"Lot {detailDto.LoteId} is in quarantine and cannot be sold under any circumstances."));
             }
 
             var inventario = await context.LotesEnSucursal

@@ -36,12 +36,12 @@ public class GetVentasQueryHandler(
     {
         if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId))
         {
-            return Result.Failure<PaginatedList<VentaDto>>(Error.Unauthorized("Venta.Auth", "Usuario no autenticado."));
+            return Result.Failure<PaginatedList<VentaDto>>(Error.Unauthorized("Venta.Auth", "User is not authenticated."));
         }
 
         if (!Guid.TryParse(currentUser.SucursalId, out var sucursalId))
         {
-            return Result.Failure<PaginatedList<VentaDto>>(Error.Validation("Venta.Sucursal", "ID de sucursal inválido."));
+            return Result.Failure<PaginatedList<VentaDto>>(Error.Validation("Venta.Sucursal", "Invalid branch ID."));
         }
 
         var query = context.Ventas
@@ -71,13 +71,13 @@ public class GetVentasQueryHandler(
             query = query.Where(v => v.EmpleadoId == request.EmpleadoId.Value);
         }
 
-        // 1. Obtener la lista paginada de entidades (el motor de EF hace el trabajo pesado)
+        // 1. Fetch the paginated entity list (EF does the heavy lifting)
         var paginatedEntities = await PaginatedList<Venta>.CreateAsync(
             query.OrderByDescending(v => v.FechaHoraUtc),
             request.PageNumber,
             request.PageSize);
 
-        // 2. Mapear a DTO en memoria (código limpio y legible)
+        // 2. Map to DTO in memory
         var dtos = paginatedEntities.Items.Select(v => new VentaDto(
             v.Id,
             v.Id.ToString()[..8].ToUpper(),
@@ -85,10 +85,10 @@ public class GetVentasQueryHandler(
             v.MontoTotalBruto,
             v.Estado.ToString(),
             v.Empleado != null ? $"{v.Empleado.Nombres} {v.Empleado.Apellido_Paterno}" : "N/A",
-            v.ClienteId?.ToString()[..8] ?? "Público General",
+            v.ClienteId?.ToString()[..8] ?? "General Public",
             v.Detalles.Count)).ToList();
 
-        // 3. Devolver la nueva lista paginada
+        // 3. Return the new paginated list
         var result = new PaginatedList<VentaDto>(
             dtos,
             paginatedEntities.TotalCount,

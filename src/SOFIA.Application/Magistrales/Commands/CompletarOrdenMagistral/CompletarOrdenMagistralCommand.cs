@@ -21,7 +21,7 @@ public class CompletarOrdenMagistralCommandHandler(IApplicationDbContext dbConte
 
         if (orden == null)
         {
-            return Result.Failure<Guid>(Error.NotFound("Orden.NotFound", "La orden de producción no fue encontrada."));
+            return Result.Failure<Guid>(Error.NotFound("Orden.NotFound", "Production order not found."));
         }
 
         if (orden.EstadoProduccion == "Completada")
@@ -31,7 +31,7 @@ public class CompletarOrdenMagistralCommandHandler(IApplicationDbContext dbConte
 
         if (!orden.CantidadProducida.HasValue || orden.CantidadProducida.Value <= 0)
         {
-            return Result.Failure<Guid>(Error.Validation("Orden.Cantidad", "La orden debe tener una cantidad producida válida."));
+            return Result.Failure<Guid>(Error.Validation("Orden.Cantidad", "Order must have a valid produced quantity."));
         }
 
         // 1. Crear nuevo LoteInventario

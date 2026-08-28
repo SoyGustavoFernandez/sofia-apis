@@ -22,7 +22,7 @@ public class GeminiRecetaAnalyzer(
     {
         try
         {
-            _logger.LogInformation("Iniciando extracción de texto mediante Gemini 1.5 API...");
+            _logger.LogInformation("Starting text extraction via Gemini 1.5 API...");
 
             var apiKey = _configuration["GeminiApi:ApiKey"] ?? throw new InvalidOperationException("GeminiApi:ApiKey is missing.");
 
@@ -37,16 +37,16 @@ public class GeminiRecetaAnalyzer(
 
             if (string.IsNullOrWhiteSpace(ocrText))
             {
-                _logger.LogWarning("Gemini no pudo extraer texto de la imagen.");
+                _logger.LogWarning("Gemini could not extract text from the image.");
                 return [];
             }
 
-            _logger.LogInformation("Texto OCR extraído exitosamente (Longitud: {Len})", ocrText.Length);
+            _logger.LogInformation("OCR text extracted successfully (Length: {Len})", ocrText.Length);
 
-            // Anonimización del texto
+            // Anonymize the text
             var textoAnomizado = await _privacyService.AnonymizeTextAsync(ocrText, cancellationToken);
 
-            _logger.LogInformation("Texto OCR anonimizado que se enviará al LLM: {Texto}", textoAnomizado);
+            _logger.LogInformation("Anonymized OCR text to be sent to the LLM: {Texto}", textoAnomizado);
 
             // PASS 2: Reasoning with Gemini Pro/Flash
             var listaMedicamentos = await AnalyzeTextWithGeminiAsync(textoAnomizado, especialidadContexto, apiKey, cancellationToken);
@@ -175,7 +175,7 @@ Texto OCR Sucio: {textoAnomizado}";
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Error deserializando JSON de Gemini.");
+            _logger.LogError(ex, "Failed to deserialize Gemini JSON response.");
         }
 
         return [];

@@ -17,12 +17,12 @@ public class RecibirTransferenciaCommandValidator : AbstractValidator<RecibirTra
 {
     public RecibirTransferenciaCommandValidator()
     {
-        _ = RuleFor(v => v.Id).NotEmpty().WithMessage("El ID de transferencia es requerido.");
-        _ = RuleFor(v => v.Recepciones).NotEmpty().WithMessage("Debe proporcionar al menos una recepción de lote.");
+        _ = RuleFor(v => v.Id).NotEmpty().WithMessage("Transfer ID is required.");
+        _ = RuleFor(v => v.Recepciones).NotEmpty().WithMessage("At least one lot reception must be provided.");
         _ = RuleForEach(v => v.Recepciones).ChildRules(detail =>
         {
             _ = detail.RuleFor(d => d.LoteId).NotEmpty().WithMessage("El lote ID es requerido.");
-            _ = detail.RuleFor(d => d.CantidadRecibida).GreaterThanOrEqualTo(0).WithMessage("La cantidad recibida no puede ser negativa.");
+            _ = detail.RuleFor(d => d.CantidadRecibida).GreaterThanOrEqualTo(0).WithMessage("Received quantity cannot be negative.");
         });
     }
 }
@@ -72,17 +72,17 @@ public class RecibirTransferenciaCommandHandler(
 
         if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId) || string.IsNullOrEmpty(currentUser.Id))
         {
-            return Result.Failure(Error.Unauthorized("Transferencia.Auth", "El usuario debe estar autenticado."));
+            return Result.Failure(Error.Unauthorized("Transferencia.Auth", "User must be authenticated."));
         }
 
         if (!Guid.TryParse(currentUser.SucursalId, out sucursalId) || sucursalId != sucursalDestinoId)
         {
-            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Solo personal de la sucursal de destino puede recibir esta transferencia."));
+            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Only staff from the destination branch can receive this transfer."));
         }
 
         if (!Guid.TryParse(currentUser.Id, out empleadoId))
         {
-            return Result.Failure(Error.Validation("Transferencia.EmpleadoReceptor", "ID de empleado receptor inválido."));
+            return Result.Failure(Error.Validation("Transferencia.EmpleadoReceptor", "Invalid receptor employee ID."));
         }
 
         return Result.Success();

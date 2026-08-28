@@ -21,7 +21,7 @@ public class GetInmunizacionByIdQueryHandler(IApplicationDbContext context) : IR
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         return entity == null
-            ? Result.Failure<InmunizacionDto>(Error.NotFound("NotFound", "No se encontró el registro."))
+            ? Result.Failure<InmunizacionDto>(Error.NotFound("NotFound", "Record not found."))
             : Result.Success(new InmunizacionDto(entity.Id));
     }
 }

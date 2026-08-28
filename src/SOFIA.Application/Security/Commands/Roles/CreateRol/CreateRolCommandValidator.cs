@@ -7,13 +7,13 @@ public class CreateRolCommandValidator : AbstractValidator<CreateRolCommand>
     public CreateRolCommandValidator()
     {
         _ = RuleFor(x => x.NombreRol)
-            .NotEmpty().WithMessage("El nombre del rol es obligatorio.")
-            .MaximumLength(50).WithMessage("El nombre del rol no puede exceder los 50 caracteres.");
+            .NotEmpty().WithMessage("Role name is required.")
+            .MaximumLength(50).WithMessage("Role name must not exceed 50 characters.");
 
         _ = RuleFor(x => x.Descripcion)
-            .MaximumLength(255).WithMessage("La descripción no puede exceder los 255 caracteres.");
+            .MaximumLength(255).WithMessage("Description must not exceed 255 characters.");
 
         _ = RuleFor(x => x.NivelJerarquia)
-            .GreaterThanOrEqualTo(0).WithMessage("El nivel de jerarquía debe ser mayor o igual a 0.");
+            .GreaterThanOrEqualTo(0).WithMessage("Hierarchy level must be greater than or equal to 0.");
     }
 }

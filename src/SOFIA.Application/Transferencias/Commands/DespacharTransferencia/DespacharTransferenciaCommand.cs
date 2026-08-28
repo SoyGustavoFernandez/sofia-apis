@@ -20,18 +20,18 @@ public class DespacharTransferenciaCommandHandler(
 
         if (transferencia == null)
         {
-            return Result.Failure(Error.NotFound("Transferencia.NotFound", $"La transferencia con ID {request.Id} no existe."));
+            return Result.Failure(Error.NotFound("Transferencia.NotFound", $"Transfer with ID {request.Id} does not exist."));
         }
 
-        // 2. Verificar autorización (debe pertenecer a la sucursal de origen)
+        // 2. Verify authorization (must belong to the origin branch)
         if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId))
         {
-            return Result.Failure(Error.Unauthorized("Transferencia.Auth", "El usuario debe estar autenticado."));
+            return Result.Failure(Error.Unauthorized("Transferencia.Auth", "User must be authenticated."));
         }
 
         if (!Guid.TryParse(currentUser.SucursalId, out var userSucursalId) || userSucursalId != transferencia.SucursalOrigenId)
         {
-            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Solo personal de la sucursal de origen puede despachar esta transferencia."));
+            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Only staff from the origin branch can dispatch this transfer."));
         }
 
         // 3. Modificar estado en la entidad

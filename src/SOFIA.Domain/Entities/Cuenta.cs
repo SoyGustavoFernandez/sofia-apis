@@ -93,7 +93,7 @@ public sealed class Cuenta : BaseEntity
     {
         if (RecoveryToken != token || RecoveryTokenExpiry < DateTimeOffset.UtcNow)
         {
-            return Result.Failure(Error.Validation("Auth.InvalidToken", "El token de recuperación es inválido o ha expirado."));
+            return Result.Failure(Error.Validation("Auth.InvalidToken", "The recovery token is invalid or has expired."));
         }
 
         PasswordHash = newPasswordHash;

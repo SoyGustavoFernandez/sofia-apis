@@ -23,28 +23,28 @@ public class AnularVentaCommandHandler(
 {
     public async Task<Result> Handle(AnularVentaCommand request, CancellationToken cancellationToken)
     {
-        // 1. Obtener la venta con sus detalles
+        // 1. Fetch the sale with its details
         var venta = await context.Ventas
             .Include(v => v.Detalles)
             .FirstOrDefaultAsync(v => v.Id == request.VentaId, cancellationToken);
 
         if (venta == null)
         {
-            return Result.Failure(Error.NotFound("Venta.Anular", "La venta no existe."));
+            return Result.Failure(Error.NotFound("Venta.Anular", "Sale not found."));
         }
 
-        // 2. Seguridad: Solo se puede anular si pertenece a la sucursal del usuario
+        // 2. Security: only cancellable if it belongs to the user's branch
         if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId))
         {
-            return Result.Failure(Error.Unauthorized("Venta.Auth", "Usuario no autenticado."));
+            return Result.Failure(Error.Unauthorized("Venta.Auth", "User is not authenticated."));
         }
 
         if (!Guid.TryParse(currentUser.SucursalId, out var sucursalId) || venta.SucursalId != sucursalId)
         {
-            return Result.Failure(Error.Forbidden("Venta.Anular", "No tiene permisos para anular ventas de otra sucursal."));
+            return Result.Failure(Error.Forbidden("Venta.Anular", "You do not have permission to cancel sales from another branch."));
         }
 
-        // 3. Aplicar anulación en el dominio
+        // 3. Apply cancellation in the domain
         var resultAnular = venta.Anular(request.Motivo);
         if (!resultAnular.IsSuccess)
         {

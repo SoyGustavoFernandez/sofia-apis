@@ -20,7 +20,7 @@ public class DeleteProveedorCommandHandler(IApplicationDbContext context) : IReq
 
         if (entity == null)
         {
-            return Result.Failure<Guid>(Error.NotFound("NotFound", "No se encontró el registro."));
+            return Result.Failure<Guid>(Error.NotFound("NotFound", "Record not found."));
         }
 
         _ = context.Proveedores.Remove(entity);

@@ -10,7 +10,6 @@ namespace SOFIA.API.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-[EnableRateLimiting("general")]
 public class RecetasController(ISender sender) : ControllerBase
 {
 
@@ -44,11 +43,13 @@ public class RecetasController(ISender sender) : ControllerBase
     [HttpPost("analizar")]
     [HasPermission("Recetas", "Analizar")]
     [EnableRateLimiting("ai-endpoints")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)]
     public async Task<IActionResult> Analizar(IFormFile imagen, [FromQuery] string? especialidadContexto)
     {
         if (imagen == null || imagen.Length == 0)
         {
-            return BadRequest("La imagen es requerida.");
+            return BadRequest("Image is required.");
         }
 
         using var stream = imagen.OpenReadStream();
@@ -65,7 +66,7 @@ public class RecetasController(ISender sender) : ControllerBase
         command = command with { Id = id };
         if (id != command.Id)
         {
-            return BadRequest("El ID de la ruta no coincide con el comando.");
+            return BadRequest("Route ID does not match the command ID.");
         }
 
         var result = await sender.Send(command);

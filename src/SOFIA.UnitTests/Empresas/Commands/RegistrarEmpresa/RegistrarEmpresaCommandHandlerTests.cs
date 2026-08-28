@@ -48,6 +48,9 @@ public class RegistrarEmpresaCommandHandlerTests
         _ = empleadosDbSet.Setup(d => d.Add(It.IsAny<Empleado>()));
         _ = _dbContextMock.Setup(c => c.Empleados).Returns(empleadosDbSet.Object);
 
+        var rolesDbSet = new List<Rol>().BuildMockDbSet();
+        _ = _dbContextMock.Setup(c => c.Roles).Returns(rolesDbSet.Object);
+
         _ = _dbContextMock
             .Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);

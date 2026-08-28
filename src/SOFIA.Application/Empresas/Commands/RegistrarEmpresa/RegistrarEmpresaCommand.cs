@@ -113,6 +113,12 @@ public class RegistrarEmpresaCommandHandler(
 
         var cuenta = cuentaResult.Value!;
 
+        var rolAdmin = await context.Roles.FirstOrDefaultAsync(r => r.NombreRol == "Admin", cancellationToken);
+        if (rolAdmin is not null)
+        {
+            cuenta.AddRol(rolAdmin);
+        }
+
         _ = context.Empresas.Add(empresa);
         _ = context.Sucursales.Add(sucursal);
         _ = context.Empleados.Add(empleado);

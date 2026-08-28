@@ -55,6 +55,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<RegistroPrivacidadPresidio> RegistrosPrivacidadPresidio => Set<RegistroPrivacidadPresidio>();
     public DbSet<RecetaDigitalizadaIA> RecetasDigitalizadasIA => Set<RecetaDigitalizadaIA>();
     public DbSet<SistemaNotificacionInterna> SistemaNotificacionesInternas => Set<SistemaNotificacionInterna>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     private Guid? CurrentEmpresaId =>
         Guid.TryParse(currentUser.EmpresaId, out var id) ? id : null;

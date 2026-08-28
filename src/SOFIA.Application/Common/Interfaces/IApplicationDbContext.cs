@@ -53,6 +53,7 @@ public interface IApplicationDbContext
     DbSet<RegistroPrivacidadPresidio> RegistrosPrivacidadPresidio { get; }
     DbSet<RecetaDigitalizadaIA> RecetasDigitalizadasIA { get; }
     DbSet<SistemaNotificacionInterna> SistemaNotificacionesInternas { get; }
+    DbSet<RefreshToken> RefreshTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

@@ -16,7 +16,16 @@ public class LogoutCommandHandler(IApplicationDbContext context) : IRequestHandl
 
         if (cuenta is null)
         {
-            return Result.Failure(Error.NotFound("Auth.CuentaNotFound", "La cuenta especificada no existe."));
+            return Result.Failure(Error.NotFound("Auth.CuentaNotFound", "The specified account does not exist."));
+        }
+
+        var activeTokens = await context.RefreshTokens
+            .Where(rt => rt.CuentaId == request.CuentaId && !rt.IsRevoked)
+            .ToListAsync(cancellationToken);
+
+        foreach (var token in activeTokens)
+        {
+            token.Revoke();
         }
 
         cuenta.InvalidateSecurityStamp();

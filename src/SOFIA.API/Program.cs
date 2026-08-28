@@ -29,6 +29,13 @@ builder.Host.UseSerilog((ctx, cfg) => cfg
         retainedFileCountLimit: 30,
         fileSizeLimitBytes: 50 * 1024 * 1024));
 
+// --- HSTS ---
+_ = builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+});
+
 // --- CORS Configuration ---
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
 _ = builder.Services.AddCors(options =>
@@ -45,13 +52,13 @@ _ = builder.Services.AddCors(options =>
         {
             if (allowedOrigins == null || allowedOrigins.Length == 0)
             {
-                throw new InvalidOperationException("CRITICAL: 'AllowedOrigins' no está configurado para el entorno de Producción en appsettings.json.");
+                throw new InvalidOperationException("CRITICAL: 'AllowedOrigins' is not configured for the production environment.");
             }
 
             _ = policy.WithOrigins(allowedOrigins)
                       .AllowAnyMethod()
                       .AllowAnyHeader()
-                      .AllowCredentials(); // OWASP strict
+                      .AllowCredentials();
         }
     });
 });
@@ -74,8 +81,20 @@ _ = builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    // AI endpoints (prescription digitization): strict limit due to processing cost
-    _ = options.AddFixedWindowLimiter("ai-endpoints", o =>
+    // Catch-all: 200 req/min per IP for any endpoint without a named policy
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 200,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 10
+            }));
+
+    // Auth: 10 attempts/min per IP — brute-force protection for login/register
+    _ = options.AddFixedWindowLimiter("auth", o =>
     {
         o.PermitLimit = 10;
         o.Window = TimeSpan.FromMinutes(1);
@@ -83,13 +102,13 @@ _ = builder.Services.AddRateLimiter(options =>
         o.QueueLimit = 2;
     });
 
-    // General API: 200 requests per minute per IP
-    _ = options.AddFixedWindowLimiter("general", o =>
+    // AI endpoints (prescription digitization): strict limit due to processing cost
+    _ = options.AddFixedWindowLimiter("ai-endpoints", o =>
     {
-        o.PermitLimit = 200;
+        o.PermitLimit = 10;
         o.Window = TimeSpan.FromMinutes(1);
         o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        o.QueueLimit = 10;
+        o.QueueLimit = 2;
     });
 });
 
@@ -108,6 +127,12 @@ var app = builder.Build();
 // --- HTTP Request Pipeline ---
 _ = app.UseExceptionHandler();
 _ = app.UseSerilogRequestLogging();
+
+if (!app.Environment.IsDevelopment())
+{
+    _ = app.UseHsts();
+}
+
 _ = app.UseHttpsRedirection();
 
 _ = app.UseCors("SofiaCorsPolicy");

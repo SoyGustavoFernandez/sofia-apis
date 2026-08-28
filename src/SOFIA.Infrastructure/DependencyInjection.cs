@@ -33,13 +33,16 @@ public static class DependencyInjection
         var jwtOptions = configuration.GetSection("Jwt").Get<JwtOptions>()
             ?? throw new InvalidOperationException("JWT configuration is missing.");
 
+        if (string.IsNullOrEmpty(jwtOptions.SecretKey))
+            throw new InvalidOperationException("CRITICAL: JWT SecretKey is not configured. Provide Jwt:SecretKey via environment secrets.");
+
         _ = services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = !string.IsNullOrEmpty(jwtOptions.Issuer),
-                    ValidateAudience = !string.IsNullOrEmpty(jwtOptions.Audience),
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = jwtOptions.Issuer,

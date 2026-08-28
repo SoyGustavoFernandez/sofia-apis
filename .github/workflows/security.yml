@@ -1,0 +1,97 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  schedule:
+    # Runs every Monday at 08:00 UTC to catch newly published CVEs
+    - cron: '0 8 * * 1'
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # Job 1: Build + SonarAnalyzer (build errors = CI failure)
+  # ──────────────────────────────────────────────────────────────
+  build-analysis:
+    name: Build & Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore dependencies
+        run: dotnet restore SOFIA.Solution.slnx
+
+      - name: Build (SonarAnalyzer rules as errors)
+        run: dotnet build SOFIA.Solution.slnx --no-restore --configuration Release
+
+      - name: Run Unit Tests
+        run: |
+          dotnet test src/SOFIA.UnitTests/SOFIA.UnitTests.csproj \
+            --no-build --configuration Release \
+            --logger "trx;LogFileName=unit-tests.trx"
+
+      - name: Run Architecture Tests
+        run: |
+          dotnet test src/SOFIA.ArchitectureTests/SOFIA.ArchitectureTests.csproj \
+            --no-build --configuration Release
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: '**/*.trx'
+
+  # ──────────────────────────────────────────────────────────────
+  # Job 2: OWASP Dependency Check — CVEs in NuGet packages
+  # ──────────────────────────────────────────────────────────────
+  owasp-dependency-check:
+    name: OWASP Dependency Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore NuGet packages
+        run: dotnet restore SOFIA.Solution.slnx
+
+      - name: Run OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'SOFIA'
+          path: 'src'
+          format: 'ALL'
+          # Fail if any vulnerability has CVSS >= 7 (High or Critical)
+          args: >-
+            --failOnCVSS 7
+            --enableRetired
+            --suppression .dependency-check-suppressions.xml
+            --nvdApiDelay 6000
+        env:
+          # NVD_API_KEY: ${{ secrets.NVD_API_KEY }}  # Optional but speeds up the scan
+
+      - name: Upload OWASP report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: owasp-dependency-check-report
+          path: reports/
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: reports/dependency-check-report.sarif
+        continue-on-error: true  # requires GitHub Advanced Security to be enabled

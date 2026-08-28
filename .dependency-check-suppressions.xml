@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+  <!--
+    Add suppressions when a CVE is a confirmed false positive.
+    Always document the reason and the review date.
+
+    Example:
+    <suppress>
+      <notes>CVE-XXXX-XXXXX: false positive. Package X does not use the vulnerable function.
+             Reviewed: 2026-08-28</notes>
+      <cve>CVE-XXXX-XXXXX</cve>
+    </suppress>
+  -->
+</suppressions>

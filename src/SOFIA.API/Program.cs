@@ -127,6 +127,7 @@ var app = builder.Build();
 // --- HTTP Request Pipeline ---
 _ = app.UseExceptionHandler();
 _ = app.UseSerilogRequestLogging();
+_ = app.UseMiddleware<SecurityHeadersMiddleware>();
 
 if (!app.Environment.IsDevelopment())
 {

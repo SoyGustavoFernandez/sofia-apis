@@ -21,6 +21,8 @@ public class DeleteEmpresaCommandHandler(IApplicationDbContext context)
         }
 
         empresa.Cancelar();
+        empresa.IsDeleted = true;
+        empresa.DeletedAt = DateTimeOffset.UtcNow;
         _ = await context.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

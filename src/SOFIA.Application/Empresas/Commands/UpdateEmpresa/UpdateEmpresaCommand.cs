@@ -41,11 +41,14 @@ public class UpdateEmpresaCommandHandler(IApplicationDbContext context)
             return Result.Failure(Error.NotFound("Empresa.NotFound", "La empresa no existe."), 404);
         }
 
-        var rucTomado = await context.Empresas
-            .AnyAsync(e => e.RUC == request.RUC && e.Id != request.Id && !e.IsDeleted, cancellationToken);
-        if (rucTomado)
+        if (request.RUC is not null)
         {
-            return Result.Failure(Error.Conflict("Empresa.RUC.Duplicado", "Ya existe otra empresa con este RUC."), 409);
+            var rucTomado = await context.Empresas
+                .AnyAsync(e => e.RUC == request.RUC && e.Id != request.Id && !e.IsDeleted, cancellationToken);
+            if (rucTomado)
+            {
+                return Result.Failure(Error.Conflict("Empresa.RUC.Duplicado", "Ya existe otra empresa con este RUC."), 409);
+            }
         }
 
         var result = empresa.Update(request.Nombre, request.RUC);

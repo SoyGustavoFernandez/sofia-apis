@@ -8,7 +8,7 @@ CREATE TABLE Sucursales (
     Sucursal_ID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
     Nombre VARCHAR(100) NOT NULL,
     Direccion_Fisica VARCHAR(255) NOT NULL,
-    Numero_Licencia VARCHAR(50) NOT NULL UNIQUE,
+    Numero_Licencia VARCHAR(50) NOT NULL,
     Gerente_ID UNIQUEIDENTIFIER NULL,
     CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
     CreatedBy VARCHAR(100) NULL,
@@ -25,7 +25,7 @@ CREATE TABLE Empleados (
     Nombres VARCHAR(75) NOT NULL,
     Apellido_Paterno VARCHAR(75) NOT NULL,
     Apellido_Materno VARCHAR(75) NOT NULL,
-    Licencia_Prof VARCHAR(50) UNIQUE NULL,
+    Licencia_Prof VARCHAR(50) NULL,
     Huella_Biometrica VARBINARY(MAX) NULL,
     CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
     CreatedBy VARCHAR(100) NULL,
@@ -850,3 +850,8 @@ CREATE TABLE Seguridad_Permisos_Rol (
 );
 
 CREATE NONCLUSTERED INDEX IX_Cuentas_Login ON Seguridad_Cuentas(Nombre_Usuario) WHERE IsDeleted = 0 AND Cuenta_Activa = 1;
+
+-- Licencia_Prof es única solo cuando tiene valor (NULLs no compiten)
+CREATE UNIQUE NONCLUSTERED INDEX UX_Empleados_LicenciaProf
+    ON Empleados (Licencia_Prof)
+    WHERE Licencia_Prof IS NOT NULL AND IsDeleted = 0;

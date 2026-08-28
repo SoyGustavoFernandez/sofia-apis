@@ -25,6 +25,9 @@ public static class DependencyInjection
 
         _ = services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
+        // Sanitization
+        _ = services.AddSingleton<ISanitizer, HtmlSanitizerService>();
+
         // Authentication
         _ = services.AddScoped<IPasswordHasher, PasswordHasher>();
         _ = services.AddScoped<IJwtProvider, JwtProvider>();

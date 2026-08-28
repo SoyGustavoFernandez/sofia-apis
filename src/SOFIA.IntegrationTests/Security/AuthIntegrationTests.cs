@@ -19,7 +19,7 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
 
         // Assert
         _ = result.IsSuccess.Should().BeTrue();
-        _ = result.Value.Should().NotBeNullOrEmpty(because: "debe devolver un JWT válido");
+        _ = result.Value.AccessToken.Should().NotBeNullOrEmpty(because: "debe devolver un JWT válido");
     }
 
     [Fact]

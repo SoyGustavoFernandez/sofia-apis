@@ -21,7 +21,7 @@ public class IniciarOrdenMagistralCommandHandler(IApplicationDbContext dbContext
 {
     public async Task<Result<Guid>> Handle(IniciarOrdenMagistralCommand request, CancellationToken cancellationToken)
     {
-        // 1. Crear Orden de Producción
+        // 1. Create production order
         var ordenResult = MagistralOrdenProduccion.Create(
             request.SucursalId,
             request.RecetaId,

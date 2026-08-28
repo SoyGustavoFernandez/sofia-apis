@@ -20,7 +20,7 @@ public class GetProveedorByIdQueryHandler(IApplicationDbContext context) : IRequ
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
-        return entity == null ? Result.Failure<ProveedorDto>(Error.NotFound("NotFound", "No se encontró el registro.")) : Result.Success(new ProveedorDto(entity.Id));
+        return entity == null ? Result.Failure<ProveedorDto>(Error.NotFound("NotFound", "Record not found.")) : Result.Success(new ProveedorDto(entity.Id));
     }
 }
 

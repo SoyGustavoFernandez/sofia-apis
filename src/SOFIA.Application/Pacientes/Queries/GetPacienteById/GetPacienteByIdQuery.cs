@@ -20,7 +20,7 @@ public class GetPacienteByIdQueryHandler(IApplicationDbContext context) : IReque
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
-        return entity == null ? Result.Failure<PacienteDto>(Error.NotFound("NotFound", "No se encontró el registro.")) : Result.Success(new PacienteDto(entity.Id));
+        return entity == null ? Result.Failure<PacienteDto>(Error.NotFound("NotFound", "Record not found.")) : Result.Success(new PacienteDto(entity.Id));
     }
 }
 

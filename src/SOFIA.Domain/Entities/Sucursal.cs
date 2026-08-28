@@ -13,11 +13,11 @@ public class Sucursal : BaseEntity
     public string Direccion_Fisica { get; private set; } = string.Empty;
     public string Numero_Licencia { get; private set; } = string.Empty;
 
-    // Relación con el Gerente (Empleado)
+    // Relationship with the manager (Employee)
     public Guid? Gerente_ID { get; private set; }
     public virtual Empleado? Gerente { get; }
 
-    // Colección de empleados base en esta sucursal
+    // Base employees at this branch
     public virtual ICollection<Empleado> Empleados { get; private set; } = [];
 
     public static Result<Sucursal> Create(

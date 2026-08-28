@@ -94,7 +94,7 @@ public static class DependencyInjection
         // AI and Privacy Services
         _ = services.AddHttpClient<IPrivacyService, PresidioPrivacyService>(client =>
         {
-            var presidioUrl = configuration["PresidioApi:BaseUrl"] ?? throw new InvalidOperationException("CRITICAL: La URL de Presidio (PresidioApi:BaseUrl) no está configurada.");
+            var presidioUrl = configuration["PresidioApi:BaseUrl"] ?? throw new InvalidOperationException("CRITICAL: Presidio URL (PresidioApi:BaseUrl) is not configured.");
             client.BaseAddress = new Uri(presidioUrl);
         });
         _ = services.AddHttpClient<IRecetaAnalyzer, GeminiRecetaAnalyzer>();

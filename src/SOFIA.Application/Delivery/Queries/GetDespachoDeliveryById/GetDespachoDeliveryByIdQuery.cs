@@ -21,7 +21,7 @@ public class GetDespachoDeliveryByIdQueryHandler(IApplicationDbContext context) 
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         return entity == null
-            ? Result.Failure<DespachoDeliveryDto>(Error.NotFound("NotFound", "No se encontró el registro."))
+            ? Result.Failure<DespachoDeliveryDto>(Error.NotFound("NotFound", "Record not found."))
             : Result.Success(new DespachoDeliveryDto(entity.Id));
     }
 }

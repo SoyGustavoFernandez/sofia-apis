@@ -18,13 +18,13 @@ public class UpdateEmpresaCommandValidator : AbstractValidator<UpdateEmpresaComm
     public UpdateEmpresaCommandValidator()
     {
         _ = RuleFor(x => x.Nombre)
-            .NotEmpty().WithMessage("El nombre de la empresa es requerido.")
+            .NotEmpty().WithMessage("Company name is required.")
             .MaximumLength(200);
 
         _ = When(x => x.RUC is not null, () =>
             RuleFor(x => x.RUC)
-                .Length(11).WithMessage("El RUC debe tener exactamente 11 dígitos.")
-                .Matches("^[0-9]{11}$").WithMessage("El RUC debe contener solo dígitos."));
+                .Length(11).WithMessage("RUC must be exactly 11 digits.")
+                .Matches("^[0-9]{11}$").WithMessage("RUC must contain only digits."));
     }
 }
 

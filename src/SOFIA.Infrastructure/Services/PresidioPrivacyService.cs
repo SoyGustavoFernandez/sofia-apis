@@ -30,8 +30,8 @@ public class PresidioPrivacyService(HttpClient httpClient, ILogger<PresidioPriva
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error crítico conectando con Microsoft Presidio. Se devolverá texto original.");
-            // En entorno real, esto podría lanzar excepción (Fail-Closed). Por seguridad en desarrollo devolvemos original.
+            _logger.LogError(ex, "Critical error connecting to Microsoft Presidio. Returning original text.");
+            // In production this could throw (Fail-Closed). For dev safety we return the original.
             return rawText;
         }
     }

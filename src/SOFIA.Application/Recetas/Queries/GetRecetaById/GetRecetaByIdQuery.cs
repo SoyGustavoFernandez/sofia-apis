@@ -20,7 +20,7 @@ public class GetRecetaByIdQueryHandler(IApplicationDbContext context) : IRequest
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
-        return entity == null ? Result.Failure<RecetaDto>(Error.NotFound("NotFound", "No se encontró el registro.")) : Result.Success(new RecetaDto(entity.Id));
+        return entity == null ? Result.Failure<RecetaDto>(Error.NotFound("NotFound", "Record not found.")) : Result.Success(new RecetaDto(entity.Id));
     }
 }
 

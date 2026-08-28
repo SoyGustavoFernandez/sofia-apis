@@ -7,10 +7,10 @@ public class LoginCommandValidator : AbstractValidator<LoginCommand>
     public LoginCommandValidator()
     {
         _ = RuleFor(x => x.NombreUsuario)
-            .NotEmpty().WithMessage("El nombre de usuario es obligatorio.")
-            .MaximumLength(50).WithMessage("El nombre de usuario no puede exceder los 50 caracteres.");
+            .NotEmpty().WithMessage("Username is required.")
+            .MaximumLength(50).WithMessage("Username must not exceed 50 characters.");
 
         _ = RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("La contraseña es obligatoria.");
+            .NotEmpty().WithMessage("Password is required.");
     }
 }

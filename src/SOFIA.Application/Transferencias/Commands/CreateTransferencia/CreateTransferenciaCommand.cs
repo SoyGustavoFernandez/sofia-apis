@@ -18,15 +18,15 @@ public class CreateTransferenciaCommandValidator : AbstractValidator<CreateTrans
     public CreateTransferenciaCommandValidator()
     {
         _ = RuleFor(v => v.SucursalDestinoId)
-            .NotEmpty().WithMessage("La sucursal de destino es requerida.");
+            .NotEmpty().WithMessage("Destination branch is required.");
 
         _ = RuleFor(v => v.Detalles)
-            .NotEmpty().WithMessage("La transferencia debe contener al menos un detalle.");
+            .NotEmpty().WithMessage("Transfer must contain at least one detail.");
 
         _ = RuleForEach(v => v.Detalles).ChildRules(detail =>
         {
             _ = detail.RuleFor(d => d.LoteId).NotEmpty().WithMessage("El lote ID es requerido.");
-            _ = detail.RuleFor(d => d.CantidadEnviada).GreaterThan(0).WithMessage("La cantidad enviada debe ser mayor a cero.");
+            _ = detail.RuleFor(d => d.CantidadEnviada).GreaterThan(0).WithMessage("Sent quantity must be greater than zero.");
         });
     }
 }
@@ -45,12 +45,12 @@ public class CreateTransferenciaCommandHandler(
 
         if (!Guid.TryParse(currentUser.SucursalId, out var sucursalOrigenId))
         {
-            return Result.Failure<Guid>(Error.Validation("Transferencia.SucursalOrigen", "ID de sucursal de origen inválido."));
+            return Result.Failure<Guid>(Error.Validation("Transferencia.SucursalOrigen", "Invalid origin branch ID."));
         }
 
         if (!Guid.TryParse(currentUser.Id, out var empleadoEmisorId))
         {
-            return Result.Failure<Guid>(Error.Validation("Transferencia.EmpleadoEmisor", "ID de empleado emisor inválido."));
+            return Result.Failure<Guid>(Error.Validation("Transferencia.EmpleadoEmisor", "Invalid sender employee ID."));
         }
 
         // 2. Validar que origen y destino sean distintos

@@ -27,7 +27,7 @@ public class AssignPermissionToRolCommandHandler(IApplicationDbContext context) 
 
         if (alreadyExists)
         {
-            return Result.Failure<Guid>(Error.Conflict("Permiso.Duplicate", "Este permiso ya está asignado a este rol."));
+            return Result.Failure<Guid>(Error.Conflict("Permiso.Duplicate", "This permission is already assigned to this role."));
         }
 
         var result = PermisoRol.Create(request.RolId, request.ModuloSistema, request.Accion);

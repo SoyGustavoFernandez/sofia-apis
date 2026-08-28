@@ -7,14 +7,14 @@ public class RegisterAccountCommandValidator : AbstractValidator<RegisterAccount
     public RegisterAccountCommandValidator()
     {
         _ = RuleFor(x => x.EmpleadoId)
-            .NotEmpty().WithMessage("El ID del empleado es obligatorio.");
+            .NotEmpty().WithMessage("Employee ID is required.");
 
         _ = RuleFor(x => x.NombreUsuario)
-            .NotEmpty().WithMessage("El nombre de usuario es obligatorio.")
-            .MaximumLength(50).WithMessage("El nombre de usuario no puede exceder los 50 caracteres.");
+            .NotEmpty().WithMessage("Username is required.")
+            .MaximumLength(50).WithMessage("Username must not exceed 50 characters.");
 
         _ = RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("La contraseña es obligatoria.")
-            .MinimumLength(8).WithMessage("La contraseña debe tener al menos 8 caracteres.");
+            .NotEmpty().WithMessage("Password is required.")
+            .MinimumLength(8).WithMessage("Password must be at least 8 characters long.");
     }
 }

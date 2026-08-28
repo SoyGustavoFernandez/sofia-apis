@@ -37,7 +37,7 @@ public class RegisterAccountCommandHandler(
 
         if (usernameTaken)
         {
-            return Result.Failure<Guid>(Error.Conflict("Auth.DuplicateUsername", "El nombre de usuario ya está en uso."), 409);
+            return Result.Failure<Guid>(Error.Conflict("Auth.DuplicateUsername", "Username is already in use."), 409);
         }
 
         var passwordHash = passwordHasher.Hash(request.Password);

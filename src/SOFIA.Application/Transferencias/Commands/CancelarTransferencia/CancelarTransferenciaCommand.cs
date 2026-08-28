@@ -55,12 +55,12 @@ public class CancelarTransferenciaCommandHandler(
     {
         if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId))
         {
-            return Result.Failure(Error.Unauthorized("Transferencia.Auth", "El usuario debe estar autenticado."));
+            return Result.Failure(Error.Unauthorized("Transferencia.Auth", "User must be authenticated."));
         }
 
         if (!Guid.TryParse(currentUser.SucursalId, out var userSucursalId) || userSucursalId != sucursalOrigenId)
         {
-            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Solo personal de la sucursal de origen puede cancelar esta transferencia."));
+            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Only staff from the origin branch can cancel this transfer."));
         }
 
         return Result.Success();

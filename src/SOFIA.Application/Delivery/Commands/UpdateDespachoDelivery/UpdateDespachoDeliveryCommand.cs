@@ -20,7 +20,7 @@ public class UpdateDespachoDeliveryCommandHandler(IApplicationDbContext context)
 
         if (entity == null)
         {
-            return Result.Failure<Guid>(Error.NotFound("NotFound", "No se encontró el registro."));
+            return Result.Failure<Guid>(Error.NotFound("NotFound", "Record not found."));
         }
 
         // TODO: Update properties here

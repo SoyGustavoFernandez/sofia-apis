@@ -23,7 +23,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             Status = StatusCodes.Status500InternalServerError,
             Title = "Error del Servidor",
             Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1",
-            Detail = $"Ocurrió un error inesperado. Por favor, contacte a soporte si el problema persiste. Código de rastreo: {traceId}",
+            Detail = $"An unexpected error occurred. Please contact support if the problem persists. Trace ID: {traceId}",
             Instance = $"{httpContext.Request.Method} {httpContext.Request.Path}"
         };
 

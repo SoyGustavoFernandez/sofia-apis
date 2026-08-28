@@ -20,7 +20,7 @@ public class GetTransferenciaByIdQueryHandler(
 
         if (!Guid.TryParse(currentUser.SucursalId, out var userSucursalId))
         {
-            return Result.Failure<TransferenciaDto>(Error.Validation("Transferencia.Auth", "ID de sucursal de usuario inválido."));
+            return Result.Failure<TransferenciaDto>(Error.Validation("Transferencia.Auth", "Invalid user branch ID."));
         }
 
         var entity = await context.Transferencias

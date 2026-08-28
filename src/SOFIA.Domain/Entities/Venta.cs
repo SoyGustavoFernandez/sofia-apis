@@ -18,7 +18,7 @@ public sealed class Venta : BaseEntity
     public EstadoVenta Estado { get; private set; }
     public string? MotivoAnulacion { get; private set; }
 
-    // Propiedades de navegación
+    // Navigation properties
     public Sucursal? Sucursal { get; }
     public Empleado? Empleado { get; }
     public PacienteCliente? Cliente { get; }
@@ -79,17 +79,17 @@ public sealed class Venta : BaseEntity
     {
         if (Estado == EstadoVenta.Anulada)
         {
-            return Result.Failure(Error.Validation("Venta.Anular", "La venta ya está anulada."));
+            return Result.Failure(Error.Validation("Venta.Anular", "The sale is already cancelled."));
         }
 
         if (Estado == EstadoVenta.Devuelta)
         {
-            return Result.Failure(Error.Validation("Venta.Anular", "No se puede anular una venta que tiene devoluciones. Use el módulo de devoluciones."));
+            return Result.Failure(Error.Validation("Venta.Anular", "Cannot cancel a sale with returns. Use the returns module."));
         }
 
         if (string.IsNullOrWhiteSpace(motivo))
         {
-            return Result.Failure(Error.Validation("Venta.MotivoAnulacion", "Debe proporcionar un motivo para la anulación."));
+            return Result.Failure(Error.Validation("Venta.MotivoAnulacion", "A reason for cancellation must be provided."));
         }
 
         Estado = EstadoVenta.Anulada;

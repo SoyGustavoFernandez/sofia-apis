@@ -30,7 +30,7 @@ public sealed class PermissionAuthorizationHandler(
         }
 
         // Admin role bypasses all permission checks
-        if (roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
+        if (roles.Exists(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
         {
             context.Succeed(requirement);
             return;

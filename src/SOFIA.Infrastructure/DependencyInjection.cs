@@ -34,7 +34,9 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException("JWT configuration is missing.");
 
         if (string.IsNullOrEmpty(jwtOptions.SecretKey))
+        {
             throw new InvalidOperationException("CRITICAL: JWT SecretKey is not configured. Provide Jwt:SecretKey via environment secrets.");
+        }
 
         _ = services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>

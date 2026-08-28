@@ -4,9 +4,9 @@ using SOFIA.Domain.Entities;
 
 namespace SOFIA.Infrastructure.Persistence.Configurations;
 
-public sealed class DIGEMIDInventarioCuarentenaConfiguration : IEntityTypeConfiguration<DIGEMIDInventarioCuarentena>
+public sealed class DigemidInventarioCuarentenaConfiguration : IEntityTypeConfiguration<DigemidInventarioCuarentena>
 {
-    public void Configure(EntityTypeBuilder<DIGEMIDInventarioCuarentena> builder)
+    public void Configure(EntityTypeBuilder<DigemidInventarioCuarentena> builder)
     {
         _ = builder.ToTable("DIGEMID_Inventario_Cuarentena");
 

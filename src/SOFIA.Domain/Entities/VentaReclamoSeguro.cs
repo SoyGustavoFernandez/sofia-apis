@@ -14,8 +14,8 @@ public sealed class VentaReclamoSeguro : BaseEntity
     public string? CodigoAutorizacion { get; private set; }
 
     // Navigation Properties
-    public DetalleVenta? DetalleVenta { get; private set; }
-    public AseguradoraMedica? Aseguradora { get; private set; }
+    public DetalleVenta? DetalleVenta { get; }
+    public AseguradoraMedica? Aseguradora { get; }
 
     public static Result<VentaReclamoSeguro> Create(
         Guid detalleVentaId,
@@ -23,30 +23,53 @@ public sealed class VentaReclamoSeguro : BaseEntity
         decimal montoCubierto,
         decimal montoCopagoPaciente,
         string estadoReclamo,
-        string? codigoAutorizacion) =>
-        detalleVentaId == Guid.Empty
-            ? Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.DetalleVentaId", "Detalle Venta ID is required."))
-            : aseguradoraId == Guid.Empty
-            ? Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.AseguradoraId", "Aseguradora ID is required."))
-            : montoCubierto < 0
-            ? Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.MontoCubierto", "Monto cubierto cannot be negative."))
-            : montoCopagoPaciente < 0
-            ? Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.MontoCopagoPaciente", "Monto copago paciente cannot be negative."))
-            : string.IsNullOrWhiteSpace(estadoReclamo)
-            ? Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.EstadoReclamo", "Estado reclamo is required."))
-            : estadoReclamo.Length > 50
-            ? Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.EstadoReclamo", "Estado reclamo must not exceed 50 characters."))
-            : codigoAutorizacion != null && codigoAutorizacion.Length > 100
-            ? Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.CodigoAutorizacion", "Código autorización must not exceed 100 characters."))
-            : Result.Success(new VentaReclamoSeguro
-            {
-                DetalleVentaId = detalleVentaId,
-                AseguradoraId = aseguradoraId,
-                MontoCubierto = montoCubierto,
-                MontoCopagoPaciente = montoCopagoPaciente,
-                EstadoReclamo = estadoReclamo,
-                CodigoAutorizacion = codigoAutorizacion
-            });
+        string? codigoAutorizacion)
+    {
+        if (detalleVentaId == Guid.Empty)
+        {
+            return Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.DetalleVentaId", "Detalle Venta ID is required."));
+        }
+
+        if (aseguradoraId == Guid.Empty)
+        {
+            return Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.AseguradoraId", "Aseguradora ID is required."));
+        }
+
+        if (montoCubierto < 0)
+        {
+            return Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.MontoCubierto", "Monto cubierto cannot be negative."));
+        }
+
+        if (montoCopagoPaciente < 0)
+        {
+            return Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.MontoCopagoPaciente", "Monto copago paciente cannot be negative."));
+        }
+
+        if (string.IsNullOrWhiteSpace(estadoReclamo))
+        {
+            return Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.EstadoReclamo", "Estado reclamo is required."));
+        }
+
+        if (estadoReclamo.Length > 50)
+        {
+            return Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.EstadoReclamo", "Estado reclamo must not exceed 50 characters."));
+        }
+
+        if (codigoAutorizacion != null && codigoAutorizacion.Length > 100)
+        {
+            return Result.Failure<VentaReclamoSeguro>(Error.Validation("VentaReclamoSeguro.CodigoAutorizacion", "Código autorización must not exceed 100 characters."));
+        }
+
+        return Result.Success(new VentaReclamoSeguro
+        {
+            DetalleVentaId = detalleVentaId,
+            AseguradoraId = aseguradoraId,
+            MontoCubierto = montoCubierto,
+            MontoCopagoPaciente = montoCopagoPaciente,
+            EstadoReclamo = estadoReclamo,
+            CodigoAutorizacion = codigoAutorizacion
+        });
+    }
 
     public Result Update(
         Guid detalleVentaId,

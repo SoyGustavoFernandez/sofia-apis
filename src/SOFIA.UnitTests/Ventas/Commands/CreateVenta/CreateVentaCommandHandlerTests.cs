@@ -80,12 +80,12 @@ public class CreateVentaCommandHandlerTests
     public async Task Handle_ShouldReturnError_WhenLoteIsInCuarentena()
     {
         // Arrange
-        var sesionCajaResult = POSSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
-        var sesiones = new List<POSSesionCaja> { sesionCajaResult.Value! };
+        var sesionCajaResult = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
+        var sesiones = new List<PosSesionCaja> { sesionCajaResult.Value! };
         sesiones[0].SetId(_sesionId);
 
-        var cuarentenaResult = DIGEMIDInventarioCuarentena.Create(_sucursalId, _loteId, null, 10, "Observación", "Retenido", _empleadoId);
-        var cuarentenas = new List<DIGEMIDInventarioCuarentena> { cuarentenaResult.Value! };
+        var cuarentenaResult = DigemidInventarioCuarentena.Create(_sucursalId, _loteId, null, 10, "Observación", "Retenido", _empleadoId);
+        var cuarentenas = new List<DigemidInventarioCuarentena> { cuarentenaResult.Value! };
 
         SetupMocks(sesionesCaja: sesiones, cuarentenas: cuarentenas);
 
@@ -106,8 +106,8 @@ public class CreateVentaCommandHandlerTests
     public async Task Handle_ShouldReturnError_WhenLoteDoesNotExistInSucursal()
     {
         // Arrange
-        var sesionCajaResult = POSSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
-        var sesiones = new List<POSSesionCaja> { sesionCajaResult.Value! };
+        var sesionCajaResult = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
+        var sesiones = new List<PosSesionCaja> { sesionCajaResult.Value! };
         sesiones[0].SetId(_sesionId);
 
         SetupMocks(sesionesCaja: sesiones, inventario: []); // Empty inventory
@@ -129,8 +129,8 @@ public class CreateVentaCommandHandlerTests
     public async Task Handle_ShouldReturnError_WhenStockIsInsufficient()
     {
         // Arrange
-        var sesionCajaResult = POSSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
-        var sesiones = new List<POSSesionCaja> { sesionCajaResult.Value! };
+        var sesionCajaResult = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
+        var sesiones = new List<PosSesionCaja> { sesionCajaResult.Value! };
         sesiones[0].SetId(_sesionId);
 
         var inventarioItemResult = InventarioSucursal.Create(_sucursalId, _loteId, 5); // Only 5 in stock
@@ -156,8 +156,8 @@ public class CreateVentaCommandHandlerTests
     public async Task Handle_ShouldCreateVenta_Successfully()
     {
         // Arrange
-        var sesionCajaResult = POSSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
-        var sesiones = new List<POSSesionCaja> { sesionCajaResult.Value! };
+        var sesionCajaResult = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
+        var sesiones = new List<PosSesionCaja> { sesionCajaResult.Value! };
         sesiones[0].SetId(_sesionId);
 
         var inventarioItemResult = InventarioSucursal.Create(_sucursalId, _loteId, 20);
@@ -187,10 +187,10 @@ public class CreateVentaCommandHandlerTests
     }
 
     private void SetupMocks(
-        List<POSSesionCaja>? sesionesCaja = null,
-        List<DIGEMIDInventarioCuarentena>? cuarentenas = null,
+        List<PosSesionCaja>? sesionesCaja = null,
+        List<DigemidInventarioCuarentena>? cuarentenas = null,
         List<InventarioSucursal>? inventario = null,
-        List<SUNATSerieFiscal>? series = null)
+        List<SunatSerieFiscal>? series = null)
     {
         sesionesCaja ??= [];
         cuarentenas ??= [];
@@ -198,7 +198,7 @@ public class CreateVentaCommandHandlerTests
         series ??= [];
 
         _ = _dbContextMock.Setup(c => c.POSSesionesCaja).Returns(sesionesCaja.BuildMockDbSet().Object);
-        _ = _dbContextMock.Setup(c => c.DIGEMIDInventarioCuarentena).Returns(cuarentenas.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.DigemidInventarioCuarentena).Returns(cuarentenas.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.LotesEnSucursal).Returns(inventario.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.SUNATSeriesFiscales).Returns(series.BuildMockDbSet().Object);
 
@@ -209,9 +209,9 @@ public class CreateVentaCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.Ventas).Returns(ventasDbSetMock.Object);
 
         // Setup Add for Comprobantes
-        var comprobantesList = new List<SUNATComprobanteEmitido>();
+        var comprobantesList = new List<SunatComprobanteEmitido>();
         var comprobantesDbSetMock = comprobantesList.BuildMockDbSet();
-        _ = comprobantesDbSetMock.Setup(d => d.Add(It.IsAny<SUNATComprobanteEmitido>())).Callback<SUNATComprobanteEmitido>(comprobantesList.Add);
+        _ = comprobantesDbSetMock.Setup(d => d.Add(It.IsAny<SunatComprobanteEmitido>())).Callback<SunatComprobanteEmitido>(comprobantesList.Add);
         _ = _dbContextMock.Setup(c => c.SUNATComprobantesEmitidos).Returns(comprobantesDbSetMock.Object);
 
         // Setup Add for Reclamos

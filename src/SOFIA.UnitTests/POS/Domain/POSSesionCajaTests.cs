@@ -4,19 +4,19 @@ using SOFIA.Domain.Enums;
 
 namespace SOFIA.UnitTests.POS.Domain;
 
-public class POSSesionCajaTests
+public class PosSesionCajaTests
 {
     private static readonly DateTime Apertura = new(2026, 1, 15, 8, 0, 0, DateTimeKind.Utc);
 
-    private static POSSesionCaja CreateAbierta() =>
-        POSSesionCaja.Create(Guid.NewGuid(), Guid.NewGuid(), Apertura, 500m).Value!;
+    private static PosSesionCaja CreateAbierta() =>
+        PosSesionCaja.Create(Guid.NewGuid(), Guid.NewGuid(), Apertura, 500m).Value!;
 
     // ── Create ───────────────────────────────────────────────────────────────
 
     [Fact]
     public void Create_ShouldSucceed_WhenAllFieldsAreValid()
     {
-        var result = POSSesionCaja.Create(Guid.NewGuid(), Guid.NewGuid(), Apertura, 500m);
+        var result = PosSesionCaja.Create(Guid.NewGuid(), Guid.NewGuid(), Apertura, 500m);
 
         _ = result.IsSuccess.Should().BeTrue();
         _ = result.Value!.EstadoSesion.Should().Be(EstadoSesion.Abierta);
@@ -25,7 +25,7 @@ public class POSSesionCajaTests
     [Fact]
     public void Create_ShouldSucceed_WhenMontoAperturaIsZero()
     {
-        var result = POSSesionCaja.Create(Guid.NewGuid(), Guid.NewGuid(), Apertura, 0m);
+        var result = PosSesionCaja.Create(Guid.NewGuid(), Guid.NewGuid(), Apertura, 0m);
 
         _ = result.IsSuccess.Should().BeTrue();
     }
@@ -33,28 +33,28 @@ public class POSSesionCajaTests
     [Fact]
     public void Create_ShouldFail_WhenSucursalIdIsEmpty()
     {
-        var result = POSSesionCaja.Create(Guid.Empty, Guid.NewGuid(), Apertura, 100m);
+        var result = PosSesionCaja.Create(Guid.Empty, Guid.NewGuid(), Apertura, 100m);
 
         _ = result.IsFailure.Should().BeTrue();
-        _ = result.Error.Code.Should().Be("POSSesionCaja.SucursalId");
+        _ = result.Error.Code.Should().Be("PosSesionCaja.SucursalId");
     }
 
     [Fact]
     public void Create_ShouldFail_WhenEmpleadoIdIsEmpty()
     {
-        var result = POSSesionCaja.Create(Guid.NewGuid(), Guid.Empty, Apertura, 100m);
+        var result = PosSesionCaja.Create(Guid.NewGuid(), Guid.Empty, Apertura, 100m);
 
         _ = result.IsFailure.Should().BeTrue();
-        _ = result.Error.Code.Should().Be("POSSesionCaja.EmpleadoId");
+        _ = result.Error.Code.Should().Be("PosSesionCaja.EmpleadoId");
     }
 
     [Fact]
     public void Create_ShouldFail_WhenMontoAperturaIsNegative()
     {
-        var result = POSSesionCaja.Create(Guid.NewGuid(), Guid.NewGuid(), Apertura, -1m);
+        var result = PosSesionCaja.Create(Guid.NewGuid(), Guid.NewGuid(), Apertura, -1m);
 
         _ = result.IsFailure.Should().BeTrue();
-        _ = result.Error.Code.Should().Be("POSSesionCaja.MontoAperturaEfectivo");
+        _ = result.Error.Code.Should().Be("PosSesionCaja.MontoAperturaEfectivo");
     }
 
     // ── Cerrar ───────────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ public class POSSesionCajaTests
         var result = sesion.Cerrar(cierre.AddHours(1), 800m, 800m);
 
         _ = result.IsFailure.Should().BeTrue();
-        _ = result.Error.Code.Should().Be("POSSesionCaja.Cerrar");
+        _ = result.Error.Code.Should().Be("PosSesionCaja.Cerrar");
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public class POSSesionCajaTests
         var result = sesion.Cerrar(Apertura.AddSeconds(-1), 800m, 800m);
 
         _ = result.IsFailure.Should().BeTrue();
-        _ = result.Error.Code.Should().Be("POSSesionCaja.FechaHoraCierre");
+        _ = result.Error.Code.Should().Be("PosSesionCaja.FechaHoraCierre");
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class POSSesionCajaTests
         var result = sesion.Cerrar(Apertura.AddHours(8), montoDeclarado: -1m, montoCalculado: 800m);
 
         _ = result.IsFailure.Should().BeTrue();
-        _ = result.Error.Code.Should().Be("POSSesionCaja.MontoCierreDeclarado");
+        _ = result.Error.Code.Should().Be("PosSesionCaja.MontoCierreDeclarado");
     }
 
     [Fact]
@@ -139,6 +139,6 @@ public class POSSesionCajaTests
         var result = sesion.Cerrar(Apertura.AddHours(8), montoDeclarado: 800m, montoCalculado: -1m);
 
         _ = result.IsFailure.Should().BeTrue();
-        _ = result.Error.Code.Should().Be("POSSesionCaja.MontoCierreCalculado");
+        _ = result.Error.Code.Should().Be("PosSesionCaja.MontoCierreCalculado");
     }
 }

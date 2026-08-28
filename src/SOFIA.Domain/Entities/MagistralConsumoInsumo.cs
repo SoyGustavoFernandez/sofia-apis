@@ -12,8 +12,8 @@ public sealed class MagistralConsumoInsumo : BaseEntity
     public string UnidadMedida { get; private set; } = string.Empty;
 
     // Navigation Properties
-    public MagistralOrdenProduccion? OrdenProduccion { get; private set; }
-    public LoteInventario? LoteMateriaPrima { get; private set; }
+    public MagistralOrdenProduccion? OrdenProduccion { get; }
+    public LoteInventario? LoteMateriaPrima { get; }
 
     public static Result<MagistralConsumoInsumo> Create(
         Guid ordenProduccionId,

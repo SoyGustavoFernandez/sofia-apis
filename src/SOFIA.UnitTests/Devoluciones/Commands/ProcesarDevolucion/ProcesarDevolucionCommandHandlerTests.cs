@@ -22,7 +22,7 @@ public class ProcesarDevolucionCommandHandlerTests
     private void SetupDbContext(
         List<Venta> ventas,
         List<InventarioSucursal> inventarios,
-        List<SUNATSerieFiscal> series)
+        List<SunatSerieFiscal> series)
     {
         var ventasMock = ventas.BuildMockDbSet();
         _ = _dbContextMock.Setup(x => x.Ventas).Returns(ventasMock.Object);
@@ -36,7 +36,7 @@ public class ProcesarDevolucionCommandHandlerTests
         var devolucionesMock = new List<DevolucionCabecera>().BuildMockDbSet();
         _ = _dbContextMock.Setup(x => x.Devoluciones).Returns(devolucionesMock.Object);
 
-        var comprobantesMock = new List<SUNATComprobanteEmitido>().BuildMockDbSet();
+        var comprobantesMock = new List<SunatComprobanteEmitido>().BuildMockDbSet();
         _ = _dbContextMock.Setup(x => x.SUNATComprobantesEmitidos).Returns(comprobantesMock.Object);
     }
 
@@ -132,7 +132,7 @@ public class ProcesarDevolucionCommandHandlerTests
         var inventario1 = InventarioSucursal.Create(sucursalId, loteId1, 50m).Value!;
         var inventario2 = InventarioSucursal.Create(sucursalId, loteId2, 20m).Value!;
 
-        var serie = SUNATSerieFiscal.Create(sucursalId, TipoComprobante.NotaCredito, "FN01", 100, "Activa").Value!;
+        var serie = SunatSerieFiscal.Create(sucursalId, TipoComprobante.NotaCredito, "FN01", 100, "Activa").Value!;
 
         SetupDbContext(
             [venta],
@@ -164,7 +164,7 @@ public class ProcesarDevolucionCommandHandlerTests
         _dbContextMock.Verify(x => x.Devoluciones.Add(It.IsAny<DevolucionCabecera>()), Times.Once);
         _dbContextMock.Verify(x => x.LotesEnSucursal.Update(inventario1), Times.Once);
         _dbContextMock.Verify(x => x.SUNATSeriesFiscales.Update(serie), Times.Once);
-        _dbContextMock.Verify(x => x.SUNATComprobantesEmitidos.Add(It.IsAny<SUNATComprobanteEmitido>()), Times.Once);
+        _dbContextMock.Verify(x => x.SUNATComprobantesEmitidos.Add(It.IsAny<SunatComprobanteEmitido>()), Times.Once);
         _dbContextMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
 
         // Serie should be incremented
@@ -203,8 +203,8 @@ public class ProcesarDevolucionCommandHandlerTests
         _ = result.IsSuccess.Should().BeTrue();
 
         _dbContextMock.Verify(x => x.Devoluciones.Add(It.IsAny<DevolucionCabecera>()), Times.Once);
-        _dbContextMock.Verify(x => x.SUNATSeriesFiscales.Update(It.IsAny<SUNATSerieFiscal>()), Times.Never);
-        _dbContextMock.Verify(x => x.SUNATComprobantesEmitidos.Add(It.IsAny<SUNATComprobanteEmitido>()), Times.Never);
+        _dbContextMock.Verify(x => x.SUNATSeriesFiscales.Update(It.IsAny<SunatSerieFiscal>()), Times.Never);
+        _dbContextMock.Verify(x => x.SUNATComprobantesEmitidos.Add(It.IsAny<SunatComprobanteEmitido>()), Times.Never);
         _dbContextMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }

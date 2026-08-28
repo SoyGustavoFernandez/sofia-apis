@@ -10,14 +10,14 @@ public class AislarLoteCuarentenaCommandHandler(IApplicationDbContext dbContext)
 {
     public async Task<Result<Guid>> Handle(AislarLoteCuarentenaCommand request, CancellationToken cancellationToken)
     {
-        var createResult = Domain.Entities.DIGEMIDInventarioCuarentena.Create(request.SucursalId, request.LoteId, request.DetalleDevId, request.CantidadAislada, request.MotivoAislamiento, request.EstadoResolucion, request.EmpleadoRegistraId, request.FechaIngresoCuarentena);
+        var createResult = Domain.Entities.DigemidInventarioCuarentena.Create(request.SucursalId, request.LoteId, request.DetalleDevId, request.CantidadAislada, request.MotivoAislamiento, request.EstadoResolucion, request.EmpleadoRegistraId, request.FechaIngresoCuarentena);
         if (createResult.IsFailure)
         {
             return Result.Failure<Guid>(createResult.Error);
         }
 
         var entity = createResult.Value!;
-        _ = dbContext.DIGEMIDInventarioCuarentena.Add(entity);
+        _ = dbContext.DigemidInventarioCuarentena.Add(entity);
         _ = await dbContext.SaveChangesAsync(cancellationToken);
 
         return Result.Success(entity.Id);

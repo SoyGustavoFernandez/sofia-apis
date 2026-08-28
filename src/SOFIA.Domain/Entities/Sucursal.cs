@@ -7,7 +7,7 @@ public class Sucursal : BaseEntity
     private Sucursal() { } // Required for EF Core
 
     public Guid? EmpresaId { get; private set; }
-    public virtual Empresa? Empresa { get; private set; }
+    public virtual Empresa? Empresa { get; }
 
     public string Nombre { get; private set; } = string.Empty;
     public string Direccion_Fisica { get; private set; } = string.Empty;
@@ -15,7 +15,7 @@ public class Sucursal : BaseEntity
 
     // Relación con el Gerente (Empleado)
     public Guid? Gerente_ID { get; private set; }
-    public virtual Empleado? Gerente { get; private set; }
+    public virtual Empleado? Gerente { get; }
 
     // Colección de empleados base en esta sucursal
     public virtual ICollection<Empleado> Empleados { get; private set; } = [];

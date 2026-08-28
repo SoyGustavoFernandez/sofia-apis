@@ -15,7 +15,6 @@ public class CancelarTransferenciaCommandHandler(
 {
     public async Task<Result> Handle(CancelarTransferenciaCommand request, CancellationToken cancellationToken)
     {
-        // 1. Obtener transferencia con detalles
         var transferencia = await context.Transferencias
             .Include(t => t.Detalles)
             .FirstOrDefaultAsync(t => t.Id == request.Id && !t.IsDeleted, cancellationToken);
@@ -25,53 +24,70 @@ public class CancelarTransferenciaCommandHandler(
             return Result.Failure(Error.NotFound("Transferencia.NotFound", $"La transferencia con ID {request.Id} no existe."));
         }
 
-        // 2. Verificar autorización (debe pertenecer a la sucursal de origen)
-        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId))
+        var authResult = ValidateBranchAuthorization(transferencia.SucursalOrigenId);
+        if (authResult.IsFailure)
         {
-            return Result.Failure(Error.Unauthorized("Transferencia.Auth", "El usuario debe estar autenticado."));
-        }
-
-        if (!Guid.TryParse(currentUser.SucursalId, out var userSucursalId) || userSucursalId != transferencia.SucursalOrigenId)
-        {
-            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Solo personal de la sucursal de origen puede cancelar esta transferencia."));
+            return authResult;
         }
 
         var estadoAnterior = transferencia.EstadoLogistico;
 
-        // 3. Modificar estado
         var cancelResult = transferencia.Cancelar();
         if (cancelResult.IsFailure)
         {
             return cancelResult;
         }
 
-        // 4. Si el estado anterior era En_Transito, devolver stock a la sucursal de origen
         if (estadoAnterior == EstadoLogistico.En_Transito)
         {
-            foreach (var detalle in transferencia.Detalles)
+            var stockResult = await RestoreOriginInventoryAsync(transferencia, cancellationToken);
+            if (stockResult.IsFailure)
             {
-                var inventario = await context.LotesEnSucursal
-                    .FirstOrDefaultAsync(x => x.LoteId == detalle.LoteId && x.SucursalId == transferencia.SucursalOrigenId, cancellationToken);
-
-                if (inventario != null)
-                {
-                    inventario.AddStock(detalle.CantidadEnviada);
-                }
-                else
-                {
-                    // For consistency: recreate if missing (e.g., erroneous manual deletion)
-                    var newInventarioResult = InventarioSucursal.Create(transferencia.SucursalOrigenId, detalle.LoteId, detalle.CantidadEnviada);
-                    if (newInventarioResult.IsFailure)
-                    {
-                        return Result.Failure(newInventarioResult.Error);
-                    }
-
-                    _ = context.LotesEnSucursal.Add(newInventarioResult.Value!);
-                }
+                return stockResult;
             }
         }
 
         _ = await context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
+    private Result ValidateBranchAuthorization(Guid sucursalOrigenId)
+    {
+        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId))
+        {
+            return Result.Failure(Error.Unauthorized("Transferencia.Auth", "El usuario debe estar autenticado."));
+        }
+
+        if (!Guid.TryParse(currentUser.SucursalId, out var userSucursalId) || userSucursalId != sucursalOrigenId)
+        {
+            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Solo personal de la sucursal de origen puede cancelar esta transferencia."));
+        }
+
+        return Result.Success();
+    }
+
+    private async Task<Result> RestoreOriginInventoryAsync(Transferencia transferencia, CancellationToken cancellationToken)
+    {
+        foreach (var detalle in transferencia.Detalles)
+        {
+            var inventario = await context.LotesEnSucursal
+                .FirstOrDefaultAsync(x => x.LoteId == detalle.LoteId && x.SucursalId == transferencia.SucursalOrigenId, cancellationToken);
+
+            if (inventario != null)
+            {
+                inventario.AddStock(detalle.CantidadEnviada);
+                continue;
+            }
+
+            var newInventarioResult = InventarioSucursal.Create(transferencia.SucursalOrigenId, detalle.LoteId, detalle.CantidadEnviada);
+            if (newInventarioResult.IsFailure)
+            {
+                return Result.Failure(newInventarioResult.Error);
+            }
+
+            _ = context.LotesEnSucursal.Add(newInventarioResult.Value!);
+        }
+
         return Result.Success();
     }
 }

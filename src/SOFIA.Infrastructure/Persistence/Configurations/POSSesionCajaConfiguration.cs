@@ -6,9 +6,9 @@ using SOFIA.Domain.Entities;
 
 namespace SOFIA.Infrastructure.Persistence.Configurations;
 
-public class POSSesionCajaConfiguration : IEntityTypeConfiguration<POSSesionCaja>
+public class PosSesionCajaConfiguration : IEntityTypeConfiguration<PosSesionCaja>
 {
-    public void Configure(EntityTypeBuilder<POSSesionCaja> builder)
+    public void Configure(EntityTypeBuilder<PosSesionCaja> builder)
     {
         _ = builder.ToTable("POS_Sesiones_Caja");
 

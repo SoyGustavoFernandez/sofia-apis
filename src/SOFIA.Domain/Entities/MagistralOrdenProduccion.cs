@@ -18,10 +18,10 @@ public sealed class MagistralOrdenProduccion : BaseEntity
     public string EstadoProduccion { get; private set; } = string.Empty;
 
     // Navigation Properties
-    public Sucursal? Sucursal { get; private set; }
-    public Medicamento? ProductoResultante { get; private set; }
-    public LoteInventario? LoteGenerado { get; private set; }
-    public Empleado? QuimicoPreparador { get; private set; }
+    public Sucursal? Sucursal { get; }
+    public Medicamento? ProductoResultante { get; }
+    public LoteInventario? LoteGenerado { get; }
+    public Empleado? QuimicoPreparador { get; }
     public IReadOnlyCollection<MagistralConsumoInsumo> Consumos => _consumos.AsReadOnly();
 
     public static Result<MagistralOrdenProduccion> Create(

@@ -15,4 +15,5 @@
                       PrivateAssets="all"
                       IncludeAssets="analyzers" />
   </ItemGroup>
+
 </Project>

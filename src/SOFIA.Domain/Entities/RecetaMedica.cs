@@ -13,33 +13,50 @@ public sealed class RecetaMedica : BaseEntity
     public string? IndicacionesUso { get; private set; }
 
     // Navigation Properties
-    public PacienteCliente? Cliente { get; private set; }
-    public ProfesionalSalud? Medico { get; private set; }
+    public PacienteCliente? Cliente { get; }
+    public ProfesionalSalud? Medico { get; }
 
     public static Result<RecetaMedica> Create(
         Guid clienteId,
         Guid medicoId,
         DateOnly fechaExpedicion,
         int repeticionesMax = 0,
-        string? indicacionesUso = null) =>
-        clienteId == Guid.Empty
-            ? Result.Failure<RecetaMedica>(Error.Validation("RecetaMedica.ClienteId", "Cliente ID is required."))
-            : medicoId == Guid.Empty
-            ? Result.Failure<RecetaMedica>(Error.Validation("RecetaMedica.MedicoId", "Medico ID is required."))
-            : fechaExpedicion == default
-            ? Result.Failure<RecetaMedica>(Error.Validation("RecetaMedica.FechaExpedicion", "Fecha de Expedición is required."))
-            : fechaExpedicion > DateOnly.FromDateTime(DateTime.UtcNow)
-            ? Result.Failure<RecetaMedica>(Error.Validation("RecetaMedica.FechaExpedicion", "Fecha de Expedición cannot be in the future."))
-            : repeticionesMax < 0
-            ? Result.Failure<RecetaMedica>(Error.Validation("RecetaMedica.RepeticionesMax", "Repeticiones Máximas must be greater than or equal to 0."))
-            : Result.Success(new RecetaMedica
-            {
-                ClienteId = clienteId,
-                MedicoId = medicoId,
-                FechaExpedicion = fechaExpedicion,
-                RepeticionesMax = repeticionesMax,
-                IndicacionesUso = indicacionesUso
-            });
+        string? indicacionesUso = null)
+    {
+        if (clienteId == Guid.Empty)
+        {
+            return Result.Failure<RecetaMedica>(Error.Validation("RecetaMedica.ClienteId", "Cliente ID is required."));
+        }
+
+        if (medicoId == Guid.Empty)
+        {
+            return Result.Failure<RecetaMedica>(Error.Validation("RecetaMedica.MedicoId", "Medico ID is required."));
+        }
+
+        if (fechaExpedicion == default)
+        {
+            return Result.Failure<RecetaMedica>(Error.Validation("RecetaMedica.FechaExpedicion", "Fecha de Expedición is required."));
+        }
+
+        if (fechaExpedicion > DateOnly.FromDateTime(DateTime.UtcNow))
+        {
+            return Result.Failure<RecetaMedica>(Error.Validation("RecetaMedica.FechaExpedicion", "Fecha de Expedición cannot be in the future."));
+        }
+
+        if (repeticionesMax < 0)
+        {
+            return Result.Failure<RecetaMedica>(Error.Validation("RecetaMedica.RepeticionesMax", "Repeticiones Máximas must be greater than or equal to 0."));
+        }
+
+        return Result.Success(new RecetaMedica
+        {
+            ClienteId = clienteId,
+            MedicoId = medicoId,
+            FechaExpedicion = fechaExpedicion,
+            RepeticionesMax = repeticionesMax,
+            IndicacionesUso = indicacionesUso
+        });
+    }
 
     public Result Update(
         Guid clienteId,

@@ -2,9 +2,9 @@ using SOFIA.Domain.Common;
 
 namespace SOFIA.Domain.Entities;
 
-public sealed class POSSesionCaja : BaseEntity
+public sealed class PosSesionCaja : BaseEntity
 {
-    private POSSesionCaja() { } // Required for EF Core
+    private PosSesionCaja() { } // Required for EF Core
 
     public Guid SucursalId { get; private set; }
     public Guid EmpleadoId { get; private set; }
@@ -17,30 +17,44 @@ public sealed class POSSesionCaja : BaseEntity
     public Enums.EstadoSesion EstadoSesion { get; private set; } = Enums.EstadoSesion.Abierta;
 
     // Navigation Properties
-    public Sucursal? Sucursal { get; private set; }
-    public Empleado? Empleado { get; private set; }
+    public Sucursal? Sucursal { get; }
+    public Empleado? Empleado { get; }
 
-    public static Result<POSSesionCaja> Create(
+    public static Result<PosSesionCaja> Create(
         Guid sucursalId,
         Guid empleadoId,
         DateTime fechaHoraApertura,
-        decimal montoAperturaEfectivo) =>
-        sucursalId == Guid.Empty
-            ? Result.Failure<POSSesionCaja>(Error.Validation("POSSesionCaja.SucursalId", "Sucursal ID is required."))
-            : empleadoId == Guid.Empty
-            ? Result.Failure<POSSesionCaja>(Error.Validation("POSSesionCaja.EmpleadoId", "Empleado ID is required."))
-            : fechaHoraApertura == default
-            ? Result.Failure<POSSesionCaja>(Error.Validation("POSSesionCaja.FechaHoraApertura", "Fecha de Apertura is required."))
-            : montoAperturaEfectivo < 0.0m
-            ? Result.Failure<POSSesionCaja>(Error.Validation("POSSesionCaja.MontoAperturaEfectivo", "Monto de Apertura must be greater than or equal to 0."))
-            : Result.Success(new POSSesionCaja
-            {
-                SucursalId = sucursalId,
-                EmpleadoId = empleadoId,
-                FechaHoraApertura = fechaHoraApertura,
-                MontoAperturaEfectivo = montoAperturaEfectivo,
-                EstadoSesion = Enums.EstadoSesion.Abierta
-            });
+        decimal montoAperturaEfectivo)
+    {
+        if (sucursalId == Guid.Empty)
+        {
+            return Result.Failure<PosSesionCaja>(Error.Validation("PosSesionCaja.SucursalId", "Sucursal ID is required."));
+        }
+
+        if (empleadoId == Guid.Empty)
+        {
+            return Result.Failure<PosSesionCaja>(Error.Validation("PosSesionCaja.EmpleadoId", "Empleado ID is required."));
+        }
+
+        if (fechaHoraApertura == default)
+        {
+            return Result.Failure<PosSesionCaja>(Error.Validation("PosSesionCaja.FechaHoraApertura", "Fecha de Apertura is required."));
+        }
+
+        if (montoAperturaEfectivo < 0.0m)
+        {
+            return Result.Failure<PosSesionCaja>(Error.Validation("PosSesionCaja.MontoAperturaEfectivo", "Monto de Apertura must be greater than or equal to 0."));
+        }
+
+        return Result.Success(new PosSesionCaja
+        {
+            SucursalId = sucursalId,
+            EmpleadoId = empleadoId,
+            FechaHoraApertura = fechaHoraApertura,
+            MontoAperturaEfectivo = montoAperturaEfectivo,
+            EstadoSesion = Enums.EstadoSesion.Abierta
+        });
+    }
 
     public Result Update(
         Guid sucursalId,
@@ -55,37 +69,37 @@ public sealed class POSSesionCaja : BaseEntity
     {
         if (sucursalId == Guid.Empty)
         {
-            return Result.Failure(Error.Validation("POSSesionCaja.SucursalId", "Sucursal ID is required."));
+            return Result.Failure(Error.Validation("PosSesionCaja.SucursalId", "Sucursal ID is required."));
         }
 
         if (empleadoId == Guid.Empty)
         {
-            return Result.Failure(Error.Validation("POSSesionCaja.EmpleadoId", "Empleado ID is required."));
+            return Result.Failure(Error.Validation("PosSesionCaja.EmpleadoId", "Empleado ID is required."));
         }
 
         if (fechaHoraApertura == default)
         {
-            return Result.Failure(Error.Validation("POSSesionCaja.FechaHoraApertura", "Fecha de Apertura is required."));
+            return Result.Failure(Error.Validation("PosSesionCaja.FechaHoraApertura", "Fecha de Apertura is required."));
         }
 
         if (montoAperturaEfectivo < 0.0m)
         {
-            return Result.Failure(Error.Validation("POSSesionCaja.MontoAperturaEfectivo", "Monto de Apertura must be greater than or equal to 0."));
+            return Result.Failure(Error.Validation("PosSesionCaja.MontoAperturaEfectivo", "Monto de Apertura must be greater than or equal to 0."));
         }
 
         if (montoCierreCalculado.HasValue && montoCierreCalculado.Value < 0.0m)
         {
-            return Result.Failure(Error.Validation("POSSesionCaja.MontoCierreCalculado", "Monto de Cierre Calculado cannot be negative."));
+            return Result.Failure(Error.Validation("PosSesionCaja.MontoCierreCalculado", "Monto de Cierre Calculado cannot be negative."));
         }
 
         if (montoCierreDeclarado.HasValue && montoCierreDeclarado.Value < 0.0m)
         {
-            return Result.Failure(Error.Validation("POSSesionCaja.MontoCierreDeclarado", "Monto de Cierre Declarado cannot be negative."));
+            return Result.Failure(Error.Validation("PosSesionCaja.MontoCierreDeclarado", "Monto de Cierre Declarado cannot be negative."));
         }
 
         if (fechaHoraCierre.HasValue && fechaHoraCierre.Value < fechaHoraApertura)
         {
-            return Result.Failure(Error.Validation("POSSesionCaja.FechaHoraCierre", "Fecha de Cierre cannot be earlier than Fecha de Apertura."));
+            return Result.Failure(Error.Validation("PosSesionCaja.FechaHoraCierre", "Fecha de Cierre cannot be earlier than Fecha de Apertura."));
         }
 
         SucursalId = sucursalId;
@@ -105,22 +119,22 @@ public sealed class POSSesionCaja : BaseEntity
     {
         if (EstadoSesion != Enums.EstadoSesion.Abierta)
         {
-            return Result.Failure(Error.Validation("POSSesionCaja.Cerrar", "Only open sessions can be closed."));
+            return Result.Failure(Error.Validation("PosSesionCaja.Cerrar", "Only open sessions can be closed."));
         }
 
         if (fechaHoraCierre < FechaHoraApertura)
         {
-            return Result.Failure(Error.Validation("POSSesionCaja.FechaHoraCierre", "Closing date/time cannot be before opening date/time."));
+            return Result.Failure(Error.Validation("PosSesionCaja.FechaHoraCierre", "Closing date/time cannot be before opening date/time."));
         }
 
         if (montoDeclarado < 0.0m)
         {
-            return Result.Failure(Error.Validation("POSSesionCaja.MontoCierreDeclarado", "Declared closing cash cannot be negative."));
+            return Result.Failure(Error.Validation("PosSesionCaja.MontoCierreDeclarado", "Declared closing cash cannot be negative."));
         }
 
         if (montoCalculado < 0.0m)
         {
-            return Result.Failure(Error.Validation("POSSesionCaja.MontoCierreCalculado", "Calculated closing cash cannot be negative."));
+            return Result.Failure(Error.Validation("PosSesionCaja.MontoCierreCalculado", "Calculated closing cash cannot be negative."));
         }
 
         FechaHoraCierre = fechaHoraCierre;

@@ -6,9 +6,9 @@ using SOFIA.Domain.Entities;
 
 namespace SOFIA.Infrastructure.Persistence.Configurations;
 
-public sealed class SUNATSerieFiscalConfiguration : IEntityTypeConfiguration<SUNATSerieFiscal>
+public sealed class SunatSerieFiscalConfiguration : IEntityTypeConfiguration<SunatSerieFiscal>
 {
-    public void Configure(EntityTypeBuilder<SUNATSerieFiscal> builder)
+    public void Configure(EntityTypeBuilder<SunatSerieFiscal> builder)
     {
         _ = builder.ToTable("SUNAT_Series_Fiscales");
 

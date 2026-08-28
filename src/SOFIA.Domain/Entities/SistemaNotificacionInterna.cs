@@ -16,9 +16,9 @@ public sealed class SistemaNotificacionInterna : BaseEntity
     public DateTime? FechaLectura { get; private set; }
 
     // Navigation Properties
-    public Empleado? EmpleadoOrigen { get; private set; }
-    public Empleado? EmpleadoDestino { get; private set; }
-    public Sucursal? SucursalDestino { get; private set; }
+    public Empleado? EmpleadoOrigen { get; }
+    public Empleado? EmpleadoDestino { get; }
+    public Sucursal? SucursalDestino { get; }
 
     public static Result<SistemaNotificacionInterna> Create(
         Guid empleadoOrigenId,

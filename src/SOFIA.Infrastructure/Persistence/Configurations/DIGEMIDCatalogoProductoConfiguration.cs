@@ -4,9 +4,9 @@ using SOFIA.Domain.Entities;
 
 namespace SOFIA.Infrastructure.Persistence.Configurations;
 
-public class DIGEMIDCatalogoProductoConfiguration : IEntityTypeConfiguration<DIGEMIDCatalogoProducto>
+public class DigemidCatalogoProductoConfiguration : IEntityTypeConfiguration<DigemidCatalogoProducto>
 {
-    public void Configure(EntityTypeBuilder<DIGEMIDCatalogoProducto> builder)
+    public void Configure(EntityTypeBuilder<DigemidCatalogoProducto> builder)
     {
         _ = builder.ToTable("DIGEMID_Catalogo_Productos");
 

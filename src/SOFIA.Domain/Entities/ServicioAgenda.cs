@@ -13,31 +13,45 @@ public sealed class ServicioAgenda : BaseEntity
     public string EstadoCita { get; private set; } = "Programada";
 
     // Navigation Properties
-    public Medicamento? Producto { get; private set; }
-    public Venta? Venta { get; private set; }
+    public Medicamento? Producto { get; }
+    public Venta? Venta { get; }
 
     public static Result<ServicioAgenda> Create(
         Guid clienteId,
         Guid productoId,
         Guid? ventaId,
         DateTime fechaHoraProgramada,
-        string estadoCita = "Programada") =>
-        clienteId == Guid.Empty
-            ? Result.Failure<ServicioAgenda>(Error.Validation("ServicioAgenda.ClienteId", "Cliente ID is required."))
-            : productoId == Guid.Empty
-            ? Result.Failure<ServicioAgenda>(Error.Validation("ServicioAgenda.ProductoId", "Producto ID is required."))
-            : string.IsNullOrWhiteSpace(estadoCita)
-            ? Result.Failure<ServicioAgenda>(Error.Validation("ServicioAgenda.EstadoCita", "Estado de cita is required."))
-            : estadoCita.Length > 20
-            ? Result.Failure<ServicioAgenda>(Error.Validation("ServicioAgenda.EstadoCita", "Estado de cita must not exceed 20 characters."))
-            : Result.Success(new ServicioAgenda
-            {
-                ClienteId = clienteId,
-                ProductoId = productoId,
-                VentaId = ventaId == Guid.Empty ? null : ventaId,
-                FechaHoraProgramada = fechaHoraProgramada,
-                EstadoCita = estadoCita
-            });
+        string estadoCita = "Programada")
+    {
+        if (clienteId == Guid.Empty)
+        {
+            return Result.Failure<ServicioAgenda>(Error.Validation("ServicioAgenda.ClienteId", "Cliente ID is required."));
+        }
+
+        if (productoId == Guid.Empty)
+        {
+            return Result.Failure<ServicioAgenda>(Error.Validation("ServicioAgenda.ProductoId", "Producto ID is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(estadoCita))
+        {
+            return Result.Failure<ServicioAgenda>(Error.Validation("ServicioAgenda.EstadoCita", "Estado de cita is required."));
+        }
+
+        if (estadoCita.Length > 20)
+        {
+            return Result.Failure<ServicioAgenda>(Error.Validation("ServicioAgenda.EstadoCita", "Estado de cita must not exceed 20 characters."));
+        }
+
+        return Result.Success(new ServicioAgenda
+        {
+            ClienteId = clienteId,
+            ProductoId = productoId,
+            VentaId = ventaId == Guid.Empty ? null : ventaId,
+            FechaHoraProgramada = fechaHoraProgramada,
+            EstadoCita = estadoCita
+        });
+    }
 
     public Result Update(
         Guid clienteId,

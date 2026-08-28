@@ -10,8 +10,8 @@ public sealed class CuentaRol
     public string? AssignedBy { get; private set; }
 
     // Navigation Properties
-    public Cuenta? Cuenta { get; private set; }
-    public Rol? Rol { get; private set; }
+    public Cuenta? Cuenta { get; }
+    public Rol? Rol { get; }
 
     public static CuentaRol Create(Guid cuentaId, Guid rolId, string? assignedBy = null) => new()
     {

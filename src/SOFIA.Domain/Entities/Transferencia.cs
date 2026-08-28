@@ -18,10 +18,10 @@ public sealed class Transferencia : BaseEntity
     public DateTime? FechaRecepcion { get; private set; }
 
     // Navigation Properties
-    public Sucursal? SucursalOrigen { get; private set; }
-    public Sucursal? SucursalDestino { get; private set; }
-    public Empleado? EmpleadoEmisor { get; private set; }
-    public Empleado? EmpleadoReceptor { get; private set; }
+    public Sucursal? SucursalOrigen { get; }
+    public Sucursal? SucursalDestino { get; }
+    public Empleado? EmpleadoEmisor { get; }
+    public Empleado? EmpleadoReceptor { get; }
 
     public IReadOnlyCollection<DetalleTransferencia> Detalles => _detalles.AsReadOnly();
 
@@ -116,7 +116,7 @@ public sealed class Transferencia : BaseEntity
 
         foreach (var (loteId, cantidadRecibida) in recepciones)
         {
-            var detalle = _detalles.FirstOrDefault(d => d.LoteId == loteId);
+            var detalle = _detalles.Find(d => d.LoteId == loteId);
             if (detalle == null)
             {
                 return Result.Failure(Error.Validation("Transferencia.Recepcion", $"El lote {loteId} no pertenece a esta transferencia."));

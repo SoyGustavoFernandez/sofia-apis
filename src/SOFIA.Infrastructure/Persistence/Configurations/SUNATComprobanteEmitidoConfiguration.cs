@@ -4,9 +4,9 @@ using SOFIA.Domain.Entities;
 
 namespace SOFIA.Infrastructure.Persistence.Configurations;
 
-public sealed class SUNATComprobanteEmitidoConfiguration : IEntityTypeConfiguration<SUNATComprobanteEmitido>
+public sealed class SunatComprobanteEmitidoConfiguration : IEntityTypeConfiguration<SunatComprobanteEmitido>
 {
-    public void Configure(EntityTypeBuilder<SUNATComprobanteEmitido> builder)
+    public void Configure(EntityTypeBuilder<SunatComprobanteEmitido> builder)
     {
         _ = builder.ToTable("SUNAT_Comprobantes_Emitidos");
 

@@ -18,7 +18,7 @@ public sealed class Cuenta : BaseEntity
     public DateTimeOffset? RecoveryTokenExpiry { get; private set; }
 
     // Navigation Properties
-    public Empleado? Empleado { get; private set; }
+    public Empleado? Empleado { get; }
     public ICollection<Rol> Roles { get; private set; } = [];
     public ICollection<CuentaRol> CuentasRoles { get; private set; } = [];
 

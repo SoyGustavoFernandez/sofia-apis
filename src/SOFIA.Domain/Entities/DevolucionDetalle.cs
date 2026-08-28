@@ -12,23 +12,31 @@ public sealed class DevolucionDetalle : BaseEntity
     public Enums.DestinoDevolucion DestinoFisicoLogico { get; private set; }
 
     // Navigation Properties
-    public DevolucionCabecera? Devolucion { get; private set; }
-    public DetalleVenta? DetalleVenta { get; private set; }
+    public DevolucionCabecera? Devolucion { get; }
+    public DetalleVenta? DetalleVenta { get; }
 
     public static Result<DevolucionDetalle> Create(
         Guid detalleVentaId,
         decimal cantidadDevuelta,
-        Enums.DestinoDevolucion destinoFisicoLogico) =>
-        detalleVentaId == Guid.Empty
-            ? Result.Failure<DevolucionDetalle>(Error.Validation("DevolucionDetalle.DetalleVentaId", "Detalle Venta ID is required."))
-            : cantidadDevuelta <= 0
-            ? Result.Failure<DevolucionDetalle>(Error.Validation("DevolucionDetalle.CantidadDevuelta", "Cantidad devuelta must be greater than zero."))
-            : Result.Success(new DevolucionDetalle
-            {
-                DetalleVentaId = detalleVentaId,
-                CantidadDevuelta = cantidadDevuelta,
-                DestinoFisicoLogico = destinoFisicoLogico
-            });
+        Enums.DestinoDevolucion destinoFisicoLogico)
+    {
+        if (detalleVentaId == Guid.Empty)
+        {
+            return Result.Failure<DevolucionDetalle>(Error.Validation("DevolucionDetalle.DetalleVentaId", "Detalle Venta ID is required."));
+        }
+
+        if (cantidadDevuelta <= 0)
+        {
+            return Result.Failure<DevolucionDetalle>(Error.Validation("DevolucionDetalle.CantidadDevuelta", "Cantidad devuelta must be greater than zero."));
+        }
+
+        return Result.Success(new DevolucionDetalle
+        {
+            DetalleVentaId = detalleVentaId,
+            CantidadDevuelta = cantidadDevuelta,
+            DestinoFisicoLogico = destinoFisicoLogico
+        });
+    }
 
     public Result Update(
         Guid detalleVentaId,

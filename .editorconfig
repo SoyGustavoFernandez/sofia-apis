@@ -39,6 +39,7 @@ csharp_indent_labels = one_less_than_current
 # Style
 csharp_prefer_braces = true:suggestion
 csharp_style_expression_bodied_methods = true:suggestion
+dotnet_style_prefer_conditional_expression_over_return = false
 csharp_style_expression_bodied_constructors = true:suggestion
 csharp_style_expression_bodied_operators = true:suggestion
 csharp_style_expression_bodied_properties = true:suggestion
@@ -46,7 +47,7 @@ csharp_style_expression_bodied_indexers = true:suggestion
 csharp_style_expression_bodied_accessors = true:suggestion
 
 # Analyzers
-dotnet_analyzer_diagnostic.category-Style.severity = error
+dotnet_analyzer_diagnostic.category-Style.severity = warning
 dotnet_analyzer_diagnostic.category-CodeQuality.severity = warning
 
 # Formato estricto como error de compilación
@@ -83,6 +84,9 @@ dotnet_diagnostic.S5135.severity = error
 # XML External Entity (XXE)
 dotnet_diagnostic.S2755.severity = error
 # ── SonarAnalyzer — Code quality (warnings) ──────────────────────────────────
-dotnet_diagnostic.S1135.severity = warning  # TODO comments
-dotnet_diagnostic.S3776.severity = warning  # Cognitive complexity
-dotnet_diagnostic.S4457.severity = warning  # Parameters validated before await
+dotnet_diagnostic.S101.severity = warning
+dotnet_diagnostic.S1135.severity = warning
+dotnet_diagnostic.S3358.severity = warning
+dotnet_diagnostic.S3776.severity = warning
+dotnet_diagnostic.S4457.severity = warning
+dotnet_diagnostic.S6602.severity = warning

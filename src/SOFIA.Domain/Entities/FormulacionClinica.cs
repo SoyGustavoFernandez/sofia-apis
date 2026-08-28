@@ -13,31 +13,45 @@ public sealed class FormulacionClinica : BaseEntity
     public string? CodigoTeOrange { get; private set; }
 
     // Navigation Properties
-    public Medicamento? Producto { get; private set; }
-    public IngredienteActivo? Ingrediente { get; private set; }
+    public Medicamento? Producto { get; }
+    public IngredienteActivo? Ingrediente { get; }
 
     public static Result<FormulacionClinica> Create(
         Guid productoId,
         Guid ingredienteId,
         decimal concentracionDosis,
         string unidadDosisClinica,
-        string? codigoTeOrange) =>
-        productoId == Guid.Empty
-            ? Result.Failure<FormulacionClinica>(Error.Validation("Formulacion.ProductoId", "Producto ID is required."))
-            : ingredienteId == Guid.Empty
-            ? Result.Failure<FormulacionClinica>(Error.Validation("Formulacion.IngredienteId", "Ingrediente ID is required."))
-            : concentracionDosis <= 0
-            ? Result.Failure<FormulacionClinica>(Error.Validation("Formulacion.Concentracion", "Concentracion must be greater than zero."))
-            : string.IsNullOrWhiteSpace(unidadDosisClinica)
-            ? Result.Failure<FormulacionClinica>(Error.Validation("Formulacion.UnidadDosis", "Unidad Dosis Clinica is required."))
-            : Result.Success(new FormulacionClinica
-            {
-                ProductoId = productoId,
-                IngredienteId = ingredienteId,
-                ConcentracionDosis = concentracionDosis,
-                UnidadDosisClinica = unidadDosisClinica,
-                CodigoTeOrange = codigoTeOrange
-            });
+        string? codigoTeOrange)
+    {
+        if (productoId == Guid.Empty)
+        {
+            return Result.Failure<FormulacionClinica>(Error.Validation("Formulacion.ProductoId", "Producto ID is required."));
+        }
+
+        if (ingredienteId == Guid.Empty)
+        {
+            return Result.Failure<FormulacionClinica>(Error.Validation("Formulacion.IngredienteId", "Ingrediente ID is required."));
+        }
+
+        if (concentracionDosis <= 0)
+        {
+            return Result.Failure<FormulacionClinica>(Error.Validation("Formulacion.Concentracion", "Concentracion must be greater than zero."));
+        }
+
+        if (string.IsNullOrWhiteSpace(unidadDosisClinica))
+        {
+            return Result.Failure<FormulacionClinica>(Error.Validation("Formulacion.UnidadDosis", "Unidad Dosis Clinica is required."));
+        }
+
+        return Result.Success(new FormulacionClinica
+        {
+            ProductoId = productoId,
+            IngredienteId = ingredienteId,
+            ConcentracionDosis = concentracionDosis,
+            UnidadDosisClinica = unidadDosisClinica,
+            CodigoTeOrange = codigoTeOrange
+        });
+    }
 
     public Result Update(
         Guid ingredienteId,

@@ -6,7 +6,7 @@ namespace SOFIA.Api.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class POSController(ISender sender) : ControllerBase
+public class PosController(ISender sender) : ControllerBase
 {
 
     [HasPermission("POS", "AperturarCaja")]

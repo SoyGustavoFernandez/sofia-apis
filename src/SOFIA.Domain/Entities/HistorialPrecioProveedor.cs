@@ -15,8 +15,8 @@ public sealed class HistorialPrecioProveedor : BaseEntity
     public int CantidadMinCompra { get; private set; }
 
     // Navigation Properties
-    public ProveedorDistribuidor? Proveedor { get; private set; }
-    public Medicamento? Producto { get; private set; }
+    public ProveedorDistribuidor? Proveedor { get; }
+    public Medicamento? Producto { get; }
 
     public static Result<HistorialPrecioProveedor> Create(
         Guid proveedorId,
@@ -25,31 +25,54 @@ public sealed class HistorialPrecioProveedor : BaseEntity
         DateTime fechaInicioVigencia,
         DateTime? fechaFinVigencia,
         int leadTimeDias,
-        int cantidadMinCompra = 1) =>
-        proveedorId == Guid.Empty
-            ? Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.ProveedorId", "Proveedor ID is required."))
-            : productoId == Guid.Empty
-            ? Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.ProductoId", "Producto ID is required."))
-            : costoPorUnidadBase < 0.0m
-            ? Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.CostoPorUnidadBase", "Costo por Unidad Base must be greater than or equal to 0."))
-            : fechaInicioVigencia == default
-            ? Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.FechaInicioVigencia", "Fecha de Inicio de Vigencia is required."))
-            : fechaFinVigencia.HasValue && fechaFinVigencia.Value < fechaInicioVigencia
-            ? Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.FechaFinVigencia", "Fecha Fin de Vigencia cannot be earlier than Fecha Inicio de Vigencia."))
-            : leadTimeDias < 0
-            ? Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.LeadTimeDias", "Lead Time Days must be greater than or equal to 0."))
-            : cantidadMinCompra < 1
-            ? Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.CantidadMinCompra", "Cantidad Mínima de Compra must be at least 1."))
-            : Result.Success(new HistorialPrecioProveedor
-            {
-                ProveedorId = proveedorId,
-                ProductoId = productoId,
-                CostoPorUnidadBase = costoPorUnidadBase,
-                FechaInicioVigencia = fechaInicioVigencia,
-                FechaFinVigencia = fechaFinVigencia,
-                LeadTimeDias = leadTimeDias,
-                CantidadMinCompra = cantidadMinCompra
-            });
+        int cantidadMinCompra = 1)
+    {
+        if (proveedorId == Guid.Empty)
+        {
+            return Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.ProveedorId", "Proveedor ID is required."));
+        }
+
+        if (productoId == Guid.Empty)
+        {
+            return Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.ProductoId", "Producto ID is required."));
+        }
+
+        if (costoPorUnidadBase < 0.0m)
+        {
+            return Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.CostoPorUnidadBase", "Costo por Unidad Base must be greater than or equal to 0."));
+        }
+
+        if (fechaInicioVigencia == default)
+        {
+            return Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.FechaInicioVigencia", "Fecha de Inicio de Vigencia is required."));
+        }
+
+        if (fechaFinVigencia.HasValue && fechaFinVigencia.Value < fechaInicioVigencia)
+        {
+            return Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.FechaFinVigencia", "Fecha Fin de Vigencia cannot be earlier than Fecha Inicio de Vigencia."));
+        }
+
+        if (leadTimeDias < 0)
+        {
+            return Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.LeadTimeDias", "Lead Time Days must be greater than or equal to 0."));
+        }
+
+        if (cantidadMinCompra < 1)
+        {
+            return Result.Failure<HistorialPrecioProveedor>(Error.Validation("HistorialPrecioProveedor.CantidadMinCompra", "Cantidad Mínima de Compra must be at least 1."));
+        }
+
+        return Result.Success(new HistorialPrecioProveedor
+        {
+            ProveedorId = proveedorId,
+            ProductoId = productoId,
+            CostoPorUnidadBase = costoPorUnidadBase,
+            FechaInicioVigencia = fechaInicioVigencia,
+            FechaFinVigencia = fechaFinVigencia,
+            LeadTimeDias = leadTimeDias,
+            CantidadMinCompra = cantidadMinCompra
+        });
+    }
 
     public Result Update(
         Guid proveedorId,

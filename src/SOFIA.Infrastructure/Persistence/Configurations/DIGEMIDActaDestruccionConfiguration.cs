@@ -4,9 +4,9 @@ using SOFIA.Domain.Entities;
 
 namespace SOFIA.Infrastructure.Persistence.Configurations;
 
-public sealed class DIGEMIDActaDestruccionConfiguration : IEntityTypeConfiguration<DIGEMIDActaDestruccion>
+public sealed class DigemidActaDestruccionConfiguration : IEntityTypeConfiguration<DigemidActaDestruccion>
 {
-    public void Configure(EntityTypeBuilder<DIGEMIDActaDestruccion> builder)
+    public void Configure(EntityTypeBuilder<DigemidActaDestruccion> builder)
     {
         _ = builder.ToTable("DIGEMID_Actas_Destruccion");
 

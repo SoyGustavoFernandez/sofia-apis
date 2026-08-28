@@ -10,7 +10,7 @@ public class AperturarCajaCommandHandler(IApplicationDbContext dbContext) : IReq
 {
     public async Task<Result<Guid>> Handle(AperturarCajaCommand request, CancellationToken cancellationToken)
     {
-        var createResult = Domain.Entities.POSSesionCaja.Create(request.SucursalId, request.EmpleadoId, request.FechaHoraApertura, request.MontoAperturaEfectivo);
+        var createResult = Domain.Entities.PosSesionCaja.Create(request.SucursalId, request.EmpleadoId, request.FechaHoraApertura, request.MontoAperturaEfectivo);
         if (createResult.IsFailure)
         {
             return Result.Failure<Guid>(createResult.Error);

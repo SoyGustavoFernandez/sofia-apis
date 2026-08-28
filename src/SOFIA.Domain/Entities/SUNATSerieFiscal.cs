@@ -2,9 +2,9 @@ using SOFIA.Domain.Common;
 
 namespace SOFIA.Domain.Entities;
 
-public sealed class SUNATSerieFiscal : BaseEntity
+public sealed class SunatSerieFiscal : BaseEntity
 {
-    private SUNATSerieFiscal() { }
+    private SunatSerieFiscal() { }
 
     public Guid SucursalId { get; private set; }
     public Enums.TipoComprobante TipoComprobante { get; private set; }
@@ -13,9 +13,9 @@ public sealed class SUNATSerieFiscal : BaseEntity
     public string EstadoSerie { get; private set; } = string.Empty;
 
     // Navigation Properties
-    public Sucursal? Sucursal { get; private set; }
+    public Sucursal? Sucursal { get; }
 
-    public static Result<SUNATSerieFiscal> Create(
+    public static Result<SunatSerieFiscal> Create(
         Guid sucursalId,
         Enums.TipoComprobante tipoComprobante,
         string prefijoSerie,
@@ -24,35 +24,35 @@ public sealed class SUNATSerieFiscal : BaseEntity
     {
         if (sucursalId == Guid.Empty)
         {
-            return Result.Failure<SUNATSerieFiscal>(Error.Validation("SUNATSerieFiscal.SucursalId", "Sucursal ID is required."));
+            return Result.Failure<SunatSerieFiscal>(Error.Validation("SunatSerieFiscal.SucursalId", "Sucursal ID is required."));
         }
 
         if (string.IsNullOrWhiteSpace(prefijoSerie))
         {
-            return Result.Failure<SUNATSerieFiscal>(Error.Validation("SUNATSerieFiscal.PrefijoSerie", "Prefijo Serie is required."));
+            return Result.Failure<SunatSerieFiscal>(Error.Validation("SunatSerieFiscal.PrefijoSerie", "Prefijo Serie is required."));
         }
 
         if (prefijoSerie.Length > 4)
         {
-            return Result.Failure<SUNATSerieFiscal>(Error.Validation("SUNATSerieFiscal.PrefijoSerie", "Prefijo Serie must not exceed 4 characters."));
+            return Result.Failure<SunatSerieFiscal>(Error.Validation("SunatSerieFiscal.PrefijoSerie", "Prefijo Serie must not exceed 4 characters."));
         }
 
         if (correlativoActual < 0)
         {
-            return Result.Failure<SUNATSerieFiscal>(Error.Validation("SUNATSerieFiscal.CorrelativoActual", "Correlativo Actual must be greater than or equal to zero."));
+            return Result.Failure<SunatSerieFiscal>(Error.Validation("SunatSerieFiscal.CorrelativoActual", "Correlativo Actual must be greater than or equal to zero."));
         }
 
         if (string.IsNullOrWhiteSpace(estadoSerie))
         {
-            return Result.Failure<SUNATSerieFiscal>(Error.Validation("SUNATSerieFiscal.EstadoSerie", "Estado Serie is required."));
+            return Result.Failure<SunatSerieFiscal>(Error.Validation("SunatSerieFiscal.EstadoSerie", "Estado Serie is required."));
         }
 
         if (estadoSerie.Length > 10)
         {
-            return Result.Failure<SUNATSerieFiscal>(Error.Validation("SUNATSerieFiscal.EstadoSerie", "Estado Serie must not exceed 10 characters."));
+            return Result.Failure<SunatSerieFiscal>(Error.Validation("SunatSerieFiscal.EstadoSerie", "Estado Serie must not exceed 10 characters."));
         }
 
-        return Result.Success(new SUNATSerieFiscal
+        return Result.Success(new SunatSerieFiscal
         {
             SucursalId = sucursalId,
             TipoComprobante = tipoComprobante,
@@ -71,32 +71,32 @@ public sealed class SUNATSerieFiscal : BaseEntity
     {
         if (sucursalId == Guid.Empty)
         {
-            return Result.Failure(Error.Validation("SUNATSerieFiscal.SucursalId", "Sucursal ID is required."));
+            return Result.Failure(Error.Validation("SunatSerieFiscal.SucursalId", "Sucursal ID is required."));
         }
 
         if (string.IsNullOrWhiteSpace(prefijoSerie))
         {
-            return Result.Failure(Error.Validation("SUNATSerieFiscal.PrefijoSerie", "Prefijo Serie is required."));
+            return Result.Failure(Error.Validation("SunatSerieFiscal.PrefijoSerie", "Prefijo Serie is required."));
         }
 
         if (prefijoSerie.Length > 4)
         {
-            return Result.Failure(Error.Validation("SUNATSerieFiscal.PrefijoSerie", "Prefijo Serie must not exceed 4 characters."));
+            return Result.Failure(Error.Validation("SunatSerieFiscal.PrefijoSerie", "Prefijo Serie must not exceed 4 characters."));
         }
 
         if (correlativoActual < 0)
         {
-            return Result.Failure(Error.Validation("SUNATSerieFiscal.CorrelativoActual", "Correlativo Actual must be greater than or equal to zero."));
+            return Result.Failure(Error.Validation("SunatSerieFiscal.CorrelativoActual", "Correlativo Actual must be greater than or equal to zero."));
         }
 
         if (string.IsNullOrWhiteSpace(estadoSerie))
         {
-            return Result.Failure(Error.Validation("SUNATSerieFiscal.EstadoSerie", "Estado Serie is required."));
+            return Result.Failure(Error.Validation("SunatSerieFiscal.EstadoSerie", "Estado Serie is required."));
         }
 
         if (estadoSerie.Length > 10)
         {
-            return Result.Failure(Error.Validation("SUNATSerieFiscal.EstadoSerie", "Estado Serie must not exceed 10 characters."));
+            return Result.Failure(Error.Validation("SunatSerieFiscal.EstadoSerie", "Estado Serie must not exceed 10 characters."));
         }
 
         SucursalId = sucursalId;

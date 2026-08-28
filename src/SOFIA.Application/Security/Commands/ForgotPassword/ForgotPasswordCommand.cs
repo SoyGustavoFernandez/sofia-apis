@@ -5,25 +5,23 @@ using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Security.Commands.ForgotPassword;
 
-public record ForgotPasswordCommand(string NombreUsuario) : ICommand<string>;
+public record ForgotPasswordCommand(string NombreUsuario) : ICommand;
 
-public class ForgotPasswordCommandHandler(IApplicationDbContext context) : IRequestHandler<ForgotPasswordCommand, Result<string>>
+public class ForgotPasswordCommandHandler(IApplicationDbContext context) : IRequestHandler<ForgotPasswordCommand, Result>
 {
-    public async Task<Result<string>> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
     {
         var cuenta = await context.Cuentas
             .FirstOrDefaultAsync(c => c.NombreUsuario == request.NombreUsuario && !c.IsDeleted, cancellationToken);
 
-        if (cuenta is null)
+        if (cuenta is not null)
         {
-            // Standard security practice: avoid account enumeration by returning a generic message.
-            return Result.Failure<string>(Error.NotFound("Auth.CuentaNotFound", "Si el usuario existe, se ha generado un token."));
+            cuenta.GenerateRecoveryToken();
+            _ = await context.SaveChangesAsync(cancellationToken);
+            // TODO: Integrate with IEmailService to send recovery token to user's registered contact.
         }
 
-        cuenta.GenerateRecoveryToken();
-        _ = await context.SaveChangesAsync(cancellationToken);
-
-        // TODO: Integrate with IEmailService to send recovery token to user's registered contact.
-        return Result.Success(cuenta.RecoveryToken!);
+        // Always succeed — never reveal whether the account exists (prevents user enumeration).
+        return Result.Success();
     }
 }

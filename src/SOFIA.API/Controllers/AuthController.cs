@@ -61,10 +61,8 @@ public class AuthController(ISender sender) : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
     {
-        var result = await sender.Send(command);
-        return result.IsSuccess
-            ? Ok(new { Token = result.Value })
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        _ = await sender.Send(command);
+        return Ok(new { Message = "If the account exists, a recovery link will be sent to the registered contact." });
     }
 
     [HttpPost("reset-password")]

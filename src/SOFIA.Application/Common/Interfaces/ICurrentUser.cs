@@ -7,4 +7,5 @@ public interface ICurrentUser
     string? SucursalId { get; }
     string? EmpresaId { get; }
     bool IsAuthenticated { get; }
+    string? ClientIpAddress { get; }
 }

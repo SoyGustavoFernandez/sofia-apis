@@ -18,4 +18,8 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUse
     public string? EmpresaId => httpContextAccessor.HttpContext?.User?.FindFirstValue("empresaId");
 
     public bool IsAuthenticated => httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
+
+    public string? ClientIpAddress =>
+        httpContextAccessor.HttpContext?.Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim()
+        ?? httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
 }

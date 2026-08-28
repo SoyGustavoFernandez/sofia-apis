@@ -16,7 +16,7 @@ public sealed class AuditoriaEventoSeguridad : BaseEntity
     public string? DireccionIp { get; private set; }
 
     // Navigation Properties
-    public Empleado? Empleado { get; private set; }
+    public Empleado? Empleado { get; }
 
     public static Result<AuditoriaEventoSeguridad> Create(
         Guid empleadoId,

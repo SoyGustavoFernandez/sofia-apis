@@ -17,17 +17,25 @@ public sealed class Rol : BaseEntity
     public static Result<Rol> Create(
         string nombreRol,
         string? descripcion,
-        int nivelJerarquia = 0) =>
-        string.IsNullOrWhiteSpace(nombreRol)
-            ? Result.Failure<Rol>(Error.Validation("Rol.Nombre", "Nombre de Rol is required."))
-            : nombreRol.Length > 50
-            ? Result.Failure<Rol>(Error.Validation("Rol.Nombre", "Nombre de Rol must not exceed 50 characters."))
-            : Result.Success(new Rol
-            {
-                NombreRol = nombreRol,
-                Descripcion = descripcion,
-                NivelJerarquia = nivelJerarquia
-            });
+        int nivelJerarquia = 0)
+    {
+        if (string.IsNullOrWhiteSpace(nombreRol))
+        {
+            return Result.Failure<Rol>(Error.Validation("Rol.Nombre", "Nombre de Rol is required."));
+        }
+
+        if (nombreRol.Length > 50)
+        {
+            return Result.Failure<Rol>(Error.Validation("Rol.Nombre", "Nombre de Rol must not exceed 50 characters."));
+        }
+
+        return Result.Success(new Rol
+        {
+            NombreRol = nombreRol,
+            Descripcion = descripcion,
+            NivelJerarquia = nivelJerarquia
+        });
+    }
 
     public void Update(string? descripcion, int nivelJerarquia)
     {

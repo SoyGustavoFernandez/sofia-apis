@@ -52,90 +52,25 @@ public class CreateVentaCommandHandler(
 {
     public async Task<Result<VentaCreadaDto>> Handle(CreateVentaCommand request, CancellationToken cancellationToken)
     {
-        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId) || string.IsNullOrEmpty(currentUser.Id))
+        var contextResult = ValidateUserContext(out var sucursalId, out var empleadoId);
+        if (contextResult.IsFailure)
         {
-            return Result.Failure<VentaCreadaDto>(Error.Unauthorized("Venta.Auth", "User must be authenticated and assigned to a branch."));
+            return Result.Failure<VentaCreadaDto>(contextResult.Error);
         }
 
-        if (!Guid.TryParse(currentUser.SucursalId, out var sucursalId))
+        var sesionResult = await ValidateSesionCajaAsync(request.SesionId, cancellationToken);
+        if (sesionResult.IsFailure)
         {
-            return Result.Failure<VentaCreadaDto>(Error.Validation("Venta.Sucursal", "Invalid Sucursal ID in user context."));
+            return Result.Failure<VentaCreadaDto>(sesionResult.Error);
         }
 
-        if (!Guid.TryParse(currentUser.Id, out var empleadoId))
+        var detallesResult = await BuildVentaDetallesAsync(request.Detalles, sucursalId, cancellationToken);
+        if (detallesResult.IsFailure)
         {
-            return Result.Failure<VentaCreadaDto>(Error.Validation("Venta.Empleado", "Invalid Empleado ID in user context."));
+            return Result.Failure<VentaCreadaDto>(detallesResult.Error);
         }
 
-        // 1. Validar que la Sesión de Caja esté abierta
-        if (request.SesionId == null)
-        {
-            return Result.Failure<VentaCreadaDto>(Error.Validation("Venta.Caja", "La sesión de caja es requerida para procesar la venta."));
-        }
-
-        var sesionCaja = await context.POSSesionesCaja
-            .FirstOrDefaultAsync(x => x.Id == request.SesionId && !x.IsDeleted, cancellationToken);
-
-        if (sesionCaja == null || sesionCaja.EstadoSesion != EstadoSesion.Abierta)
-        {
-            return Result.Failure<VentaCreadaDto>(Error.Validation("Venta.Caja", "La sesión de caja no está abierta o no existe."));
-        }
-
-        List<DetalleVenta> detallesVenta = [];
-
-        // 2. Validar y preparar detalles
-        foreach (var detailDto in request.Detalles)
-        {
-            // Check if the lot is under DIGEMID quarantine
-            var enCuarentena = await context.DIGEMIDInventarioCuarentena
-                .AnyAsync(q => q.LoteId == detailDto.LoteId && q.EstadoResolucion == "Retenido" && !q.IsDeleted, cancellationToken);
-
-            if (enCuarentena)
-            {
-                return Result.Failure<VentaCreadaDto>(Error.Validation("Venta.Cuarentena", $"El lote {detailDto.LoteId} se encuentra retenido en cuarentena y no está permitido venderlo bajo ninguna circunstancia."));
-            }
-
-            // Check lot existence and available stock at the current branch
-            var inventario = await context.LotesEnSucursal
-                .FirstOrDefaultAsync(x => x.LoteId == detailDto.LoteId && x.SucursalId == sucursalId, cancellationToken);
-
-            if (inventario == null)
-            {
-                return Result.Failure<VentaCreadaDto>(Error.NotFound("Venta.Lote", $"El lote {detailDto.LoteId} no existe en esta sucursal."));
-            }
-
-            if (inventario.CantidadFisica < detailDto.Cantidad)
-            {
-                return Result.Failure<VentaCreadaDto>(Error.Validation("Venta.Stock", $"Stock insuficiente para el lote {detailDto.LoteId}. Disponible: {inventario.CantidadFisica}"));
-            }
-
-            var detailResult = DetalleVenta.Create(
-                detailDto.LoteId,
-                detailDto.Cantidad,
-                detailDto.PrecioUnitario,
-                detailDto.CostoHistorico,
-                detailDto.RecetaId);
-
-            if (!detailResult.IsSuccess)
-            {
-                return Result.Failure<VentaCreadaDto>(detailResult.Error);
-            }
-
-            // 3. Descontar stock
-            inventario.UpdateStock(inventario.CantidadFisica - detailDto.Cantidad);
-
-            detallesVenta.Add(detailResult.Value);
-        }
-
-        // 4. Crear la venta
-        var ventaResult = Venta.Create(
-            sucursalId,
-            empleadoId,
-            request.ClienteId,
-            request.SesionId,
-            detallesVenta,
-            request.Estado);
-
+        var ventaResult = Venta.Create(sucursalId, empleadoId, request.ClienteId, request.SesionId, detallesResult.Value!, request.Estado);
         if (!ventaResult.IsSuccess)
         {
             return Result.Failure<VentaCreadaDto>(ventaResult.Error);
@@ -143,16 +78,106 @@ public class CreateVentaCommandHandler(
 
         _ = context.Ventas.Add(ventaResult.Value);
 
-        ComprobanteEmitidoDto? dtoComprobante = null;
+        var dtoComprobante = await GenerateComprobanteAsync(ventaResult.Value, sucursalId, cancellationToken);
 
-        // 5. Generar Comprobante SUNAT
+        if (request.AseguradoraId != null && request.MontoCubiertoSeguro != null && detallesResult.Value!.Count > 0)
+        {
+            ProcessInsurance(detallesResult.Value![0].Id, request, ventaResult.Value.MontoTotalBruto);
+        }
+
+        CreateOutboxEvent(ventaResult.Value.Id, sucursalId);
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(new VentaCreadaDto(ventaResult.Value.Id, dtoComprobante), 201);
+    }
+
+    private Result ValidateUserContext(out Guid sucursalId, out Guid empleadoId)
+    {
+        sucursalId = Guid.Empty;
+        empleadoId = Guid.Empty;
+
+        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId) || string.IsNullOrEmpty(currentUser.Id))
+        {
+            return Result.Failure(Error.Unauthorized("Venta.Auth", "User must be authenticated and assigned to a branch."));
+        }
+
+        if (!Guid.TryParse(currentUser.SucursalId, out sucursalId))
+        {
+            return Result.Failure(Error.Validation("Venta.Sucursal", "Invalid Sucursal ID in user context."));
+        }
+
+        if (!Guid.TryParse(currentUser.Id, out empleadoId))
+        {
+            return Result.Failure(Error.Validation("Venta.Empleado", "Invalid Empleado ID in user context."));
+        }
+
+        return Result.Success();
+    }
+
+    private async Task<Result> ValidateSesionCajaAsync(Guid? sesionId, CancellationToken cancellationToken)
+    {
+        if (sesionId == null)
+        {
+            return Result.Failure(Error.Validation("Venta.Caja", "La sesión de caja es requerida para procesar la venta."));
+        }
+
+        var sesionCaja = await context.POSSesionesCaja
+            .FirstOrDefaultAsync(x => x.Id == sesionId && !x.IsDeleted, cancellationToken);
+
+        return sesionCaja == null || sesionCaja.EstadoSesion != EstadoSesion.Abierta
+            ? Result.Failure(Error.Validation("Venta.Caja", "La sesión de caja no está abierta o no existe."))
+            : Result.Success();
+    }
+
+    private async Task<Result<List<DetalleVenta>>> BuildVentaDetallesAsync(List<CreateVentaDetailDto> dtos, Guid sucursalId, CancellationToken cancellationToken)
+    {
+        var detallesVenta = new List<DetalleVenta>();
+
+        foreach (var detailDto in dtos)
+        {
+            var enCuarentena = await context.DigemidInventarioCuarentena
+                .AnyAsync(q => q.LoteId == detailDto.LoteId && q.EstadoResolucion == "Retenido" && !q.IsDeleted, cancellationToken);
+
+            if (enCuarentena)
+            {
+                return Result.Failure<List<DetalleVenta>>(Error.Validation("Venta.Cuarentena", $"El lote {detailDto.LoteId} se encuentra retenido en cuarentena y no está permitido venderlo bajo ninguna circunstancia."));
+            }
+
+            var inventario = await context.LotesEnSucursal
+                .FirstOrDefaultAsync(x => x.LoteId == detailDto.LoteId && x.SucursalId == sucursalId, cancellationToken);
+
+            if (inventario == null)
+            {
+                return Result.Failure<List<DetalleVenta>>(Error.NotFound("Venta.Lote", $"El lote {detailDto.LoteId} no existe en esta sucursal."));
+            }
+
+            if (inventario.CantidadFisica < detailDto.Cantidad)
+            {
+                return Result.Failure<List<DetalleVenta>>(Error.Validation("Venta.Stock", $"Stock insuficiente para el lote {detailDto.LoteId}. Disponible: {inventario.CantidadFisica}"));
+            }
+
+            var detailResult = DetalleVenta.Create(detailDto.LoteId, detailDto.Cantidad, detailDto.PrecioUnitario, detailDto.CostoHistorico, detailDto.RecetaId);
+            if (!detailResult.IsSuccess)
+            {
+                return Result.Failure<List<DetalleVenta>>(detailResult.Error);
+            }
+
+            inventario.UpdateStock(inventario.CantidadFisica - detailDto.Cantidad);
+            detallesVenta.Add(detailResult.Value);
+        }
+
+        return Result.Success(detallesVenta);
+    }
+
+    private async Task<ComprobanteEmitidoDto?> GenerateComprobanteAsync(Venta venta, Guid sucursalId, CancellationToken cancellationToken)
+    {
         var serie = await context.SUNATSeriesFiscales
             .FirstOrDefaultAsync(s => s.SucursalId == sucursalId && s.TipoComprobante == TipoComprobante.Boleta && s.EstadoSerie == "Activa" && !s.IsDeleted, cancellationToken);
 
         if (serie == null)
         {
-            // Create a default fiscal series if none exists
-            var newSerieResult = SUNATSerieFiscal.Create(sucursalId, TipoComprobante.Boleta, "B001", 0, "Activa");
+            var newSerieResult = SunatSerieFiscal.Create(sucursalId, TipoComprobante.Boleta, "B001", 0, "Activa");
             if (newSerieResult.IsSuccess)
             {
                 serie = newSerieResult.Value;
@@ -160,81 +185,66 @@ public class CreateVentaCommandHandler(
             }
         }
 
-        if (serie != null)
+        if (serie == null)
         {
-            var correlativo = serie.CorrelativoActual + 1;
-            _ = serie.Update(serie.SucursalId, serie.TipoComprobante, serie.PrefijoSerie, correlativo, serie.EstadoSerie);
-
-            var total = ventaResult.Value.MontoTotalBruto;
-            var gravado = total * 0.82m;
-            var igv = total * 0.18m;
-
-            var comprobanteResult = SUNATComprobanteEmitido.Create(
-                ventaResult.Value.Id,
-                serie.Id,
-                correlativo,
-                "1", // DNI
-                "00000000",
-                "CLIENTE EVENTUAL",
-                gravado,
-                0,
-                igv,
-                total,
-                "HASH_SIMULATED_" + Guid.NewGuid().ToString("N")[..8],
-                "Aceptado",
-                $"/comprobantes/XML_{correlativo}.xml",
-                $"/comprobantes/CDR_{correlativo}.xml",
-                $"https://sunat.gob.pe/verificar/{serie.PrefijoSerie}-{correlativo}"
-            );
-
-            if (comprobanteResult.IsSuccess)
-            {
-                _ = context.SUNATComprobantesEmitidos.Add(comprobanteResult.Value);
-                dtoComprobante = new ComprobanteEmitidoDto(
-                    serie.TipoComprobante.ToString(),
-                    $"{serie.PrefijoSerie}-{correlativo:D8}",
-                    "Aceptado",
-                    comprobanteResult.Value.UrlPublicaVerificacion,
-                    comprobanteResult.Value.RutaArchivoXml,
-                    comprobanteResult.Value.RutaArchivoCdr
-                );
-            }
+            return null;
         }
 
-        // 6. Si hay seguro copago, procesar reclamo
-        if (request.AseguradoraId != null && request.MontoCubiertoSeguro != null && detallesVenta.Count > 0)
-        {
-            var reclamoResult = VentaReclamoSeguro.Create(
-                detallesVenta[0].Id,
-                request.AseguradoraId.Value,
-                request.MontoCubiertoSeguro.Value,
-                ventaResult.Value.MontoTotalBruto - request.MontoCubiertoSeguro.Value,
-                "Aprobado",
-                "AUTH_" + Guid.NewGuid().ToString("N")[..8]
-            );
+        var correlativo = serie.CorrelativoActual + 1;
+        _ = serie.Update(serie.SucursalId, serie.TipoComprobante, serie.PrefijoSerie, correlativo, serie.EstadoSerie);
 
-            if (reclamoResult.IsSuccess)
-            {
-                _ = context.VentasReclamosSeguro.Add(reclamoResult.Value);
-            }
+        var total = venta.MontoTotalBruto;
+        var comprobanteResult = SunatComprobanteEmitido.Create(
+            venta.Id, serie.Id, correlativo,
+            "1", "00000000", "CLIENTE EVENTUAL",
+            total * 0.82m, 0, total * 0.18m, total,
+            "HASH_SIMULATED_" + Guid.NewGuid().ToString("N")[..8],
+            "Aceptado",
+            $"/comprobantes/XML_{correlativo}.xml",
+            $"/comprobantes/CDR_{correlativo}.xml",
+            $"https://sunat.gob.pe/verificar/{serie.PrefijoSerie}-{correlativo}");
+
+        if (!comprobanteResult.IsSuccess)
+        {
+            return null;
         }
 
-        // 7. Evento Outbox
+        _ = context.SUNATComprobantesEmitidos.Add(comprobanteResult.Value);
+        return new ComprobanteEmitidoDto(
+            serie.TipoComprobante.ToString(),
+            $"{serie.PrefijoSerie}-{correlativo:D8}",
+            "Aceptado",
+            comprobanteResult.Value.UrlPublicaVerificacion,
+            comprobanteResult.Value.RutaArchivoXml,
+            comprobanteResult.Value.RutaArchivoCdr);
+    }
+
+    private void ProcessInsurance(Guid primerDetalleId, CreateVentaCommand request, decimal montoTotalBruto)
+    {
+        var reclamoResult = VentaReclamoSeguro.Create(
+            primerDetalleId,
+            request.AseguradoraId!.Value,
+            request.MontoCubiertoSeguro!.Value,
+            montoTotalBruto - request.MontoCubiertoSeguro.Value,
+            "Aprobado",
+            "AUTH_" + Guid.NewGuid().ToString("N")[..8]);
+
+        if (reclamoResult.IsSuccess)
+        {
+            _ = context.VentasReclamosSeguro.Add(reclamoResult.Value);
+        }
+    }
+
+    private void CreateOutboxEvent(Guid ventaId, Guid sucursalId)
+    {
         var outboxResult = SistemaOutboxEvento.Create(
             "VentaCompletada",
-            JsonSerializer.Serialize(new { VentaId = ventaResult.Value.Id, SucursalId = sucursalId }),
-            false,
-            null,
-            null);
+            JsonSerializer.Serialize(new { VentaId = ventaId, SucursalId = sucursalId }),
+            false, null, null);
 
         if (outboxResult.IsSuccess)
         {
             _ = context.SistemaOutboxEventos.Add(outboxResult.Value);
         }
-
-        // 8. Guardar todo en una única transacción atómica
-        _ = await context.SaveChangesAsync(cancellationToken);
-
-        return Result.Success(new VentaCreadaDto(ventaResult.Value.Id, dtoComprobante), 201);
     }
 }

@@ -7,7 +7,7 @@ public class Empleado : BaseEntity
     private Empleado() { } // Required for EF Core
 
     public Guid Sucursal_Base_ID { get; private set; }
-    public virtual Sucursal? Sucursal_Base { get; private set; }
+    public virtual Sucursal? Sucursal_Base { get; }
 
     public string Nombres { get; private set; } = string.Empty;
     public string Apellido_Paterno { get; private set; } = string.Empty;
@@ -20,7 +20,7 @@ public class Empleado : BaseEntity
     public byte[]? Huella_Biometrica { get; private set; }
 
     // Set if the employee manages a branch
-    public virtual Sucursal? Sucursal_Gerenciada { get; private set; }
+    public virtual Sucursal? Sucursal_Gerenciada { get; }
 
     public static Result<Empleado> Create(
         Guid sucursalBaseId,

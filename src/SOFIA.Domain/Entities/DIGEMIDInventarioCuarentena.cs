@@ -2,9 +2,9 @@ using SOFIA.Domain.Common;
 
 namespace SOFIA.Domain.Entities;
 
-public sealed class DIGEMIDInventarioCuarentena : BaseEntity
+public sealed class DigemidInventarioCuarentena : BaseEntity
 {
-    private DIGEMIDInventarioCuarentena() { }
+    private DigemidInventarioCuarentena() { }
 
     public Guid SucursalId { get; private set; }
     public Guid LoteId { get; private set; }
@@ -16,11 +16,11 @@ public sealed class DIGEMIDInventarioCuarentena : BaseEntity
     public Guid EmpleadoRegistraId { get; private set; }
 
     // Navigation Properties
-    public Sucursal? Sucursal { get; private set; }
-    public LoteInventario? Lote { get; private set; }
-    public Empleado? EmpleadoRegistra { get; private set; }
+    public Sucursal? Sucursal { get; }
+    public LoteInventario? Lote { get; }
+    public Empleado? EmpleadoRegistra { get; }
 
-    public static Result<DIGEMIDInventarioCuarentena> Create(
+    public static Result<DigemidInventarioCuarentena> Create(
         Guid sucursalId,
         Guid loteId,
         Guid? detalleDevId,
@@ -32,45 +32,45 @@ public sealed class DIGEMIDInventarioCuarentena : BaseEntity
     {
         if (sucursalId == Guid.Empty)
         {
-            return Result.Failure<DIGEMIDInventarioCuarentena>(Error.Validation("DIGEMIDInventarioCuarentena.SucursalId", "Sucursal ID is required."));
+            return Result.Failure<DigemidInventarioCuarentena>(Error.Validation("DigemidInventarioCuarentena.SucursalId", "Sucursal ID is required."));
         }
 
         if (loteId == Guid.Empty)
         {
-            return Result.Failure<DIGEMIDInventarioCuarentena>(Error.Validation("DIGEMIDInventarioCuarentena.LoteId", "Lote ID is required."));
+            return Result.Failure<DigemidInventarioCuarentena>(Error.Validation("DigemidInventarioCuarentena.LoteId", "Lote ID is required."));
         }
 
         if (empleadoRegistraId == Guid.Empty)
         {
-            return Result.Failure<DIGEMIDInventarioCuarentena>(Error.Validation("DIGEMIDInventarioCuarentena.EmpleadoRegistraId", "Empleado Registra ID is required."));
+            return Result.Failure<DigemidInventarioCuarentena>(Error.Validation("DigemidInventarioCuarentena.EmpleadoRegistraId", "Empleado Registra ID is required."));
         }
 
         if (cantidadAislada <= 0)
         {
-            return Result.Failure<DIGEMIDInventarioCuarentena>(Error.Validation("DIGEMIDInventarioCuarentena.CantidadAislada", "Cantidad Aislada must be greater than zero."));
+            return Result.Failure<DigemidInventarioCuarentena>(Error.Validation("DigemidInventarioCuarentena.CantidadAislada", "Cantidad Aislada must be greater than zero."));
         }
 
         if (string.IsNullOrWhiteSpace(motivoAislamiento))
         {
-            return Result.Failure<DIGEMIDInventarioCuarentena>(Error.Validation("DIGEMIDInventarioCuarentena.MotivoAislamiento", "Motivo Aislamiento is required."));
+            return Result.Failure<DigemidInventarioCuarentena>(Error.Validation("DigemidInventarioCuarentena.MotivoAislamiento", "Motivo Aislamiento is required."));
         }
 
         if (motivoAislamiento.Length > 50)
         {
-            return Result.Failure<DIGEMIDInventarioCuarentena>(Error.Validation("DIGEMIDInventarioCuarentena.MotivoAislamiento", "Motivo Aislamiento must not exceed 50 characters."));
+            return Result.Failure<DigemidInventarioCuarentena>(Error.Validation("DigemidInventarioCuarentena.MotivoAislamiento", "Motivo Aislamiento must not exceed 50 characters."));
         }
 
         if (string.IsNullOrWhiteSpace(estadoResolucion))
         {
-            return Result.Failure<DIGEMIDInventarioCuarentena>(Error.Validation("DIGEMIDInventarioCuarentena.EstadoResolucion", "Estado Resolucion is required."));
+            return Result.Failure<DigemidInventarioCuarentena>(Error.Validation("DigemidInventarioCuarentena.EstadoResolucion", "Estado Resolucion is required."));
         }
 
         if (estadoResolucion.Length > 20)
         {
-            return Result.Failure<DIGEMIDInventarioCuarentena>(Error.Validation("DIGEMIDInventarioCuarentena.EstadoResolucion", "Estado Resolucion must not exceed 20 characters."));
+            return Result.Failure<DigemidInventarioCuarentena>(Error.Validation("DigemidInventarioCuarentena.EstadoResolucion", "Estado Resolucion must not exceed 20 characters."));
         }
 
-        return Result.Success(new DIGEMIDInventarioCuarentena
+        return Result.Success(new DigemidInventarioCuarentena
         {
             SucursalId = sucursalId,
             LoteId = loteId,
@@ -94,42 +94,42 @@ public sealed class DIGEMIDInventarioCuarentena : BaseEntity
     {
         if (sucursalId == Guid.Empty)
         {
-            return Result.Failure(Error.Validation("DIGEMIDInventarioCuarentena.SucursalId", "Sucursal ID is required."));
+            return Result.Failure(Error.Validation("DigemidInventarioCuarentena.SucursalId", "Sucursal ID is required."));
         }
 
         if (loteId == Guid.Empty)
         {
-            return Result.Failure(Error.Validation("DIGEMIDInventarioCuarentena.LoteId", "Lote ID is required."));
+            return Result.Failure(Error.Validation("DigemidInventarioCuarentena.LoteId", "Lote ID is required."));
         }
 
         if (empleadoRegistraId == Guid.Empty)
         {
-            return Result.Failure(Error.Validation("DIGEMIDInventarioCuarentena.EmpleadoRegistraId", "Empleado Registra ID is required."));
+            return Result.Failure(Error.Validation("DigemidInventarioCuarentena.EmpleadoRegistraId", "Empleado Registra ID is required."));
         }
 
         if (cantidadAislada <= 0)
         {
-            return Result.Failure(Error.Validation("DIGEMIDInventarioCuarentena.CantidadAislada", "Cantidad Aislada must be greater than zero."));
+            return Result.Failure(Error.Validation("DigemidInventarioCuarentena.CantidadAislada", "Cantidad Aislada must be greater than zero."));
         }
 
         if (string.IsNullOrWhiteSpace(motivoAislamiento))
         {
-            return Result.Failure(Error.Validation("DIGEMIDInventarioCuarentena.MotivoAislamiento", "Motivo Aislamiento is required."));
+            return Result.Failure(Error.Validation("DigemidInventarioCuarentena.MotivoAislamiento", "Motivo Aislamiento is required."));
         }
 
         if (motivoAislamiento.Length > 50)
         {
-            return Result.Failure(Error.Validation("DIGEMIDInventarioCuarentena.MotivoAislamiento", "Motivo Aislamiento must not exceed 50 characters."));
+            return Result.Failure(Error.Validation("DigemidInventarioCuarentena.MotivoAislamiento", "Motivo Aislamiento must not exceed 50 characters."));
         }
 
         if (string.IsNullOrWhiteSpace(estadoResolucion))
         {
-            return Result.Failure(Error.Validation("DIGEMIDInventarioCuarentena.EstadoResolucion", "Estado Resolucion is required."));
+            return Result.Failure(Error.Validation("DigemidInventarioCuarentena.EstadoResolucion", "Estado Resolucion is required."));
         }
 
         if (estadoResolucion.Length > 20)
         {
-            return Result.Failure(Error.Validation("DIGEMIDInventarioCuarentena.EstadoResolucion", "Estado Resolucion must not exceed 20 characters."));
+            return Result.Failure(Error.Validation("DigemidInventarioCuarentena.EstadoResolucion", "Estado Resolucion must not exceed 20 characters."));
         }
 
         SucursalId = sucursalId;

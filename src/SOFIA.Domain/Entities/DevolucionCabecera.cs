@@ -16,7 +16,7 @@ public sealed class DevolucionCabecera : BaseEntity
     public DateTime FechaDevolucion { get; private set; }
 
     // Navigation Properties
-    public Empleado? EmpleadoAutoriza { get; private set; }
+    public Empleado? EmpleadoAutoriza { get; }
     public IReadOnlyCollection<DevolucionDetalle> Detalles => _detalles.AsReadOnly();
 
     public static Result<DevolucionCabecera> Create(

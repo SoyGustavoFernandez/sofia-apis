@@ -6,7 +6,7 @@ namespace SOFIA.Api.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class DIGEMIDController(ISender sender) : ControllerBase
+public class DigemidController(ISender sender) : ControllerBase
 {
 
     [HasPermission("DIGEMID", "AislarLoteCuarentena")]

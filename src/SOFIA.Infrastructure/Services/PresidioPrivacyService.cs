@@ -36,7 +36,7 @@ public class PresidioPrivacyService(HttpClient httpClient, ILogger<PresidioPriva
         }
     }
 
-    private class PresidioAnonymizerResponse
+    private sealed class PresidioAnonymizerResponse
     {
         [JsonPropertyName("TextoLimpio")]
         public string? TextoLimpio { get; set; }

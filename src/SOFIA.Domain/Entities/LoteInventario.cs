@@ -12,32 +12,52 @@ public sealed class LoteInventario : BaseEntity
     public DateTimeOffset FechaCaducidad { get; private set; }
 
     // Navigation Property
-    public Medicamento? Producto { get; private set; }
+    public Medicamento? Producto { get; }
 
     public static Result<LoteInventario> Create(
         Guid productoId,
         string numeroLoteMfr,
         DateTimeOffset? fechaFabricacion,
-        DateTimeOffset fechaCaducidad) =>
-        productoId == Guid.Empty
-            ? Result.Failure<LoteInventario>(Error.Validation("LoteInventario.ProductoId", "Producto ID is required."))
-            : string.IsNullOrWhiteSpace(numeroLoteMfr)
-            ? Result.Failure<LoteInventario>(Error.Validation("LoteInventario.NumeroLoteMfr", "Batch Number (Mfr) is required."))
-            : numeroLoteMfr.Length > 100
-            ? Result.Failure<LoteInventario>(Error.Validation("LoteInventario.NumeroLoteMfr", "Batch Number must not exceed 100 characters."))
-            : fechaCaducidad <= DateTimeOffset.UtcNow
-            ? Result.Failure<LoteInventario>(Error.Validation("LoteInventario.FechaCaducidad", "Expiration date must be in the future."))
-            : fechaFabricacion.HasValue && fechaFabricacion.Value > DateTimeOffset.UtcNow
-            ? Result.Failure<LoteInventario>(Error.Validation("LoteInventario.FechaFabricacion", "Manufacture date cannot be in the future."))
-            : fechaFabricacion.HasValue && fechaFabricacion.Value > fechaCaducidad
-            ? Result.Failure<LoteInventario>(Error.Validation("LoteInventario.FechaFabricacion", "Manufacture date cannot be after expiration date."))
-            : Result.Success(new LoteInventario
-            {
-                ProductoId = productoId,
-                NumeroLoteMfr = numeroLoteMfr,
-                FechaFabricacion = fechaFabricacion,
-                FechaCaducidad = fechaCaducidad
-            });
+        DateTimeOffset fechaCaducidad)
+    {
+        if (productoId == Guid.Empty)
+        {
+            return Result.Failure<LoteInventario>(Error.Validation("LoteInventario.ProductoId", "Producto ID is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(numeroLoteMfr))
+        {
+            return Result.Failure<LoteInventario>(Error.Validation("LoteInventario.NumeroLoteMfr", "Batch Number (Mfr) is required."));
+        }
+
+        if (numeroLoteMfr.Length > 100)
+        {
+            return Result.Failure<LoteInventario>(Error.Validation("LoteInventario.NumeroLoteMfr", "Batch Number must not exceed 100 characters."));
+        }
+
+        if (fechaCaducidad <= DateTimeOffset.UtcNow)
+        {
+            return Result.Failure<LoteInventario>(Error.Validation("LoteInventario.FechaCaducidad", "Expiration date must be in the future."));
+        }
+
+        if (fechaFabricacion.HasValue && fechaFabricacion.Value > DateTimeOffset.UtcNow)
+        {
+            return Result.Failure<LoteInventario>(Error.Validation("LoteInventario.FechaFabricacion", "Manufacture date cannot be in the future."));
+        }
+
+        if (fechaFabricacion.HasValue && fechaFabricacion.Value > fechaCaducidad)
+        {
+            return Result.Failure<LoteInventario>(Error.Validation("LoteInventario.FechaFabricacion", "Manufacture date cannot be after expiration date."));
+        }
+
+        return Result.Success(new LoteInventario
+        {
+            ProductoId = productoId,
+            NumeroLoteMfr = numeroLoteMfr,
+            FechaFabricacion = fechaFabricacion,
+            FechaCaducidad = fechaCaducidad
+        });
+    }
 
     public Result Update(
         string numeroLoteMfr,

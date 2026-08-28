@@ -118,4 +118,4 @@ public class RolesController(ISender sender) : ControllerBase
     }
 }
 
-public record UpdateRolRequest(string? Descripcion, int NivelJerarquia);
+public record UpdateRolRequest(string? Descripcion, [property: System.Text.Json.Serialization.JsonRequired] int NivelJerarquia);

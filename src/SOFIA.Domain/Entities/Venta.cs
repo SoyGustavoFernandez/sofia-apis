@@ -19,10 +19,10 @@ public sealed class Venta : BaseEntity
     public string? MotivoAnulacion { get; private set; }
 
     // Propiedades de navegación
-    public Sucursal? Sucursal { get; private set; }
-    public Empleado? Empleado { get; private set; }
-    public PacienteCliente? Cliente { get; private set; }
-    public POSSesionCaja? Sesion { get; private set; }
+    public Sucursal? Sucursal { get; }
+    public Empleado? Empleado { get; }
+    public PacienteCliente? Cliente { get; }
+    public PosSesionCaja? Sesion { get; }
 
     public IReadOnlyCollection<DetalleVenta> Detalles => _detalles.AsReadOnly();
 
@@ -32,14 +32,25 @@ public sealed class Venta : BaseEntity
         Guid? clienteId,
         Guid? sesionId,
         List<DetalleVenta> detalles,
-        EstadoVenta estado = EstadoVenta.Completada) =>
-        sucursalId == Guid.Empty
-            ? Result.Failure<Venta>(Error.Validation("Venta.SucursalId", "Sucursal ID is required."))
-            : empleadoId == Guid.Empty
-                ? Result.Failure<Venta>(Error.Validation("Venta.EmpleadoId", "Empleado ID is required."))
-                : detalles == null || detalles.Count == 0
-                    ? Result.Failure<Venta>(Error.Validation("Venta.Detalles", "A sale must have at least one detail."))
-                    : SuccessVenta(sucursalId, empleadoId, clienteId, sesionId, detalles, estado);
+        EstadoVenta estado = EstadoVenta.Completada)
+    {
+        if (sucursalId == Guid.Empty)
+        {
+            return Result.Failure<Venta>(Error.Validation("Venta.SucursalId", "Sucursal ID is required."));
+        }
+
+        if (empleadoId == Guid.Empty)
+        {
+            return Result.Failure<Venta>(Error.Validation("Venta.EmpleadoId", "Empleado ID is required."));
+        }
+
+        if (detalles == null || detalles.Count == 0)
+        {
+            return Result.Failure<Venta>(Error.Validation("Venta.Detalles", "A sale must have at least one detail."));
+        }
+
+        return SuccessVenta(sucursalId, empleadoId, clienteId, sesionId, detalles, estado);
+    }
 
     private static Result<Venta> SuccessVenta(Guid sucursalId, Guid empleadoId, Guid? clienteId, Guid? sesionId, List<DetalleVenta> detalles, EstadoVenta estado)
     {

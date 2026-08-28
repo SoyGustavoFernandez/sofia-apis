@@ -15,8 +15,8 @@ public sealed class Medicamento : BaseEntity
     public Enums.CondicionVenta CondicionVenta { get; private set; }
 
     // Navigation Properties
-    public Laboratorio? Laboratorio { get; private set; }
-    public UnidadMedida? UnidadBase { get; private set; }
+    public Laboratorio? Laboratorio { get; }
+    public UnidadMedida? UnidadBase { get; }
 
     public const int CodigoNacionalMaxLength = 50;
     public const int NombreComercialMaxLength = 150;

@@ -31,7 +31,7 @@ public interface IApplicationDbContext
     DbSet<PacienteCliente> Pacientes { get; }
     DbSet<ProfesionalSalud> ProfesionalesSalud { get; }
     DbSet<RecetaMedica> Recetas { get; }
-    DbSet<POSSesionCaja> POSSesionesCaja { get; }
+    DbSet<PosSesionCaja> POSSesionesCaja { get; }
     DbSet<VentaPago> VentasPagos { get; }
     DbSet<AseguradoraMedica> Aseguradoras { get; }
     DbSet<VentaReclamoSeguro> VentasReclamosSeguro { get; }
@@ -40,14 +40,14 @@ public interface IApplicationDbContext
     DbSet<ServicioAgenda> ServiciosAgenda { get; }
     DbSet<DevolucionCabecera> Devoluciones { get; }
     DbSet<DevolucionDetalle> DetallesDevolucion { get; }
-    DbSet<DIGEMIDCatalogoProducto> DIGEMIDCatalogoProductos { get; }
-    DbSet<DIGEMIDInventarioCuarentena> DIGEMIDInventarioCuarentena { get; }
-    DbSet<DIGEMIDActaDestruccion> DIGEMIDActasDestruccion { get; }
-    DbSet<DIGEMIDActaDetalle> DIGEMIDActasDetalle { get; }
+    DbSet<DigemidCatalogoProducto> DigemidCatalogoProductos { get; }
+    DbSet<DigemidInventarioCuarentena> DigemidInventarioCuarentena { get; }
+    DbSet<DigemidActaDestruccion> DIGEMIDActasDestruccion { get; }
+    DbSet<DigemidActaDetalle> DIGEMIDActasDetalle { get; }
     DbSet<MagistralOrdenProduccion> MagistralesOrdenesProduccion { get; }
     DbSet<MagistralConsumoInsumo> MagistralesConsumosInsumo { get; }
-    DbSet<SUNATSerieFiscal> SUNATSeriesFiscales { get; }
-    DbSet<SUNATComprobanteEmitido> SUNATComprobantesEmitidos { get; }
+    DbSet<SunatSerieFiscal> SUNATSeriesFiscales { get; }
+    DbSet<SunatComprobanteEmitido> SUNATComprobantesEmitidos { get; }
     DbSet<AuditoriaEventoSeguridad> AuditoriasEventosSeguridad { get; }
     DbSet<SistemaOutboxEvento> SistemaOutboxEventos { get; }
     DbSet<RegistroPrivacidadPresidio> RegistrosPrivacidadPresidio { get; }

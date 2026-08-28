@@ -12,21 +12,29 @@ public sealed class DetalleTransferencia : BaseEntity
     public decimal? CantidadRecibida { get; private set; }
 
     // Navigation Properties
-    public Transferencia? Transferencia { get; private set; }
-    public LoteInventario? Lote { get; private set; }
+    public Transferencia? Transferencia { get; }
+    public LoteInventario? Lote { get; }
 
     public static Result<DetalleTransferencia> Create(
         Guid loteId,
-        decimal cantidadEnviada) =>
-        loteId == Guid.Empty
-            ? Result.Failure<DetalleTransferencia>(Error.Validation("DetalleTransferencia.LoteId", "Lote ID is required."))
-            : cantidadEnviada <= 0
-                ? Result.Failure<DetalleTransferencia>(Error.Validation("DetalleTransferencia.CantidadEnviada", "Sent quantity must be greater than zero."))
-                : Result.Success(new DetalleTransferencia
-                {
-                    LoteId = loteId,
-                    CantidadEnviada = cantidadEnviada
-                });
+        decimal cantidadEnviada)
+    {
+        if (loteId == Guid.Empty)
+        {
+            return Result.Failure<DetalleTransferencia>(Error.Validation("DetalleTransferencia.LoteId", "Lote ID is required."));
+        }
+
+        if (cantidadEnviada <= 0)
+        {
+            return Result.Failure<DetalleTransferencia>(Error.Validation("DetalleTransferencia.CantidadEnviada", "Sent quantity must be greater than zero."));
+        }
+
+        return Result.Success(new DetalleTransferencia
+        {
+            LoteId = loteId,
+            CantidadEnviada = cantidadEnviada
+        });
+    }
 
     internal void SetTransferenciaId(Guid transferenciaId) => TransferenciaId = transferenciaId;
 

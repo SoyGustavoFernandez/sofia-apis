@@ -9,7 +9,7 @@ public class BuscadorFuzzyService(IApplicationDbContext context) : IBuscadorServ
 {
     private readonly IApplicationDbContext _context = context;
 
-    public async Task<List<DIGEMIDCatalogoProducto>> BuscarEnDigemidAsync(string termino, int top = 5, CancellationToken cancellationToken = default)
+    public async Task<List<DigemidCatalogoProducto>> BuscarEnDigemidAsync(string termino, int top = 5, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(termino))
         {
@@ -23,7 +23,7 @@ public class BuscadorFuzzyService(IApplicationDbContext context) : IBuscadorServ
                            .Select(t => t.ToUpper())
                            .ToList();
 
-        var query = _context.DIGEMIDCatalogoProductos.AsQueryable();
+        var query = _context.DigemidCatalogoProductos.AsQueryable();
 
         foreach (var t in terms)
         {
@@ -36,8 +36,8 @@ public class BuscadorFuzzyService(IApplicationDbContext context) : IBuscadorServ
         // Fallback: If no results with AND logic, use OR logic or just get top 200
         if (!candidatos.Any())
         {
-            candidatos = await _context.DIGEMIDCatalogoProductos
-                .Where(x => x.NomProd.ToUpper().Contains(terms.First()))
+            candidatos = await _context.DigemidCatalogoProductos
+                .Where(x => x.NomProd.ToUpper().Contains(terms[0]))
                 .Take(50)
                 .ToListAsync(cancellationToken);
         }
@@ -69,7 +69,7 @@ public class BuscadorFuzzyService(IApplicationDbContext context) : IBuscadorServ
 
         if (terms.Any())
         {
-            query = query.Where(x => x.NombreComercial.ToUpper().Contains(terms.First()));
+            query = query.Where(x => x.NombreComercial.ToUpper().Contains(terms[0]));
         }
 
         var candidatos = await query.Take(50).ToListAsync(cancellationToken);

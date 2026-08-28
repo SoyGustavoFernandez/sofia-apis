@@ -12,6 +12,7 @@ public class GeminiRecetaAnalyzer(
     IPrivacyService privacyService,
     HttpClient httpClient) : IRecetaAnalyzer
 {
+
     private readonly ILogger<GeminiRecetaAnalyzer> _logger = logger;
     private readonly IConfiguration _configuration = configuration;
     private readonly IPrivacyService _privacyService = privacyService;
@@ -54,15 +55,14 @@ public class GeminiRecetaAnalyzer(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error general en GeminiRecetaAnalyzer.");
-            throw;
+            throw new InvalidOperationException("Failed to analyze prescription image.", ex);
         }
     }
 
     private async Task<string> ExtractTextFromImageAsync(string base64Image, string apiKey, CancellationToken cancellationToken)
     {
         var model = _configuration["GeminiApi:OcrModel"] ?? "gemini-flash-latest";
-        var baseUrl = _configuration["GeminiApi:BaseUrl"] ?? "https://generativelanguage.googleapis.com/v1beta/models/";
+        var baseUrl = _configuration["GeminiApi:BaseUrl"] ?? throw new InvalidOperationException("GeminiApi:BaseUrl is missing.");
         var url = $"{baseUrl}{model}:generateContent?key={apiKey}";
 
         var payload = new
@@ -96,7 +96,7 @@ public class GeminiRecetaAnalyzer(
     private async Task<List<MedicamentoInterpretadoDto>> AnalyzeTextWithGeminiAsync(string textoAnomizado, string? especialidadContexto, string apiKey, CancellationToken cancellationToken)
     {
         var model = _configuration["GeminiApi:OcrModel"] ?? "gemini-flash-latest";
-        var baseUrl = _configuration["GeminiApi:BaseUrl"] ?? "https://generativelanguage.googleapis.com/v1beta/models/";
+        var baseUrl = _configuration["GeminiApi:BaseUrl"] ?? throw new InvalidOperationException("GeminiApi:BaseUrl is missing.");
         var url = $"{baseUrl}{model}:generateContent?key={apiKey}";
 
         var promptSistema = @"

@@ -22,79 +22,68 @@ public class AnalizarRecetaQueryHandler(IRecetaAnalyzer recetaAnalyzer, IBuscado
 
         foreach (var itemIA in medicamentosInterpretados)
         {
-            var concentracion = itemIA.ConcentracionDetectada;
-            if (string.Equals(concentracion, "null", StringComparison.OrdinalIgnoreCase))
-            {
-                concentracion = null;
-            }
-
-            var terminoOriginalIA = string.Join(" ", new[] { itemIA.NombreDetectado, concentracion }.Where(s => !string.IsNullOrWhiteSpace(s))).Trim();
-
-            // 1. Cruzar con DIGEMID
-            var candidatosDigemid = await _buscadorService.BuscarEnDigemidAsync(itemIA.NombreDetectado, 5, cancellationToken);
-            var terminoParaBusquedaInterna = terminoOriginalIA;
-            var encontradoEnDigemid = false;
-            string? nombreDigemidOficial = null;
-            var similarityScore = 1.0;
-
-            if (candidatosDigemid.Any())
-            {
-                // BuscadorService already returns results sorted by similarity (Levenshtein)
-                var mejorCoincidencia = candidatosDigemid.First();
-
-                nombreDigemidOficial = mejorCoincidencia.NomProd;
-                terminoParaBusquedaInterna = $"{mejorCoincidencia.NomProd} {mejorCoincidencia.Concent}".Trim();
-                encontradoEnDigemid = true;
-
-                // Simple local similarity score
-                similarityScore = 0.9; // High base: already filtered by Levenshtein in the search service
-            }
-
-            // 2. Calcular confianza final
-            var confianzaFinal = (itemIA.NivelConfianza * 0.6) + (similarityScore * 0.4);
-
-            // 3. Buscar en Inventario Interno con el término
-            var productoDb = await _buscadorService.BuscarMejorCoincidenciaAsync(terminoParaBusquedaInterna, cancellationToken);
-
-            // If not found by DIGEMID name, fall back to the original AI-provided name
-            if (productoDb == null && encontradoEnDigemid)
-            {
-                productoDb = await _buscadorService.BuscarMejorCoincidenciaAsync(terminoOriginalIA, cancellationToken);
-            }
-
-            AgregarResultado(
-                resultadosFinales,
-                productoDb,
-                nombreDigemidOficial ?? terminoOriginalIA,
-                confianzaFinal,
-                "Receta",
-                encontradoEnDigemid ? $"Validado por DIGEMID ({nombreDigemidOficial})" : "Detectado en receta",
-                encontradoEnDigemid
-            );
-
-            // Cross-selling suggestions
-            if (itemIA.Sugerencias != null)
-            {
-                foreach (var sugerencia in itemIA.Sugerencias)
-                {
-                    var productoSugeridoDb = await _buscadorService.BuscarMejorCoincidenciaAsync(sugerencia, cancellationToken);
-                    if (productoSugeridoDb != null)
-                    {
-                        AgregarResultado(
-                            resultadosFinales,
-                            productoSugeridoDb,
-                            sugerencia,
-                            0.70,
-                            "Recomendacion",
-                            $"Sugerido por compra de {itemIA.NombreDetectado}",
-                            false
-                        );
-                    }
-                }
-            }
+            await ProcessMedicamentoAsync(itemIA, resultadosFinales, cancellationToken);
         }
 
         return Result.Success(resultadosFinales);
+    }
+
+    private async Task ProcessMedicamentoAsync(MedicamentoInterpretadoDto itemIA, List<ItemSugeridoDto> resultados, CancellationToken cancellationToken)
+    {
+        var concentracion = itemIA.ConcentracionDetectada;
+        if (string.Equals(concentracion, "null", StringComparison.OrdinalIgnoreCase))
+        {
+            concentracion = null;
+        }
+
+        var terminoOriginalIA = string.Join(" ", new[] { itemIA.NombreDetectado, concentracion }.Where(s => !string.IsNullOrWhiteSpace(s))).Trim();
+
+        var candidatosDigemid = await _buscadorService.BuscarEnDigemidAsync(itemIA.NombreDetectado, 5, cancellationToken);
+        var terminoParaBusquedaInterna = terminoOriginalIA;
+        var encontradoEnDigemid = false;
+        string? nombreDigemidOficial = null;
+        var similarityScore = 1.0;
+
+        if (candidatosDigemid.Count != 0)
+        {
+            var mejorCoincidencia = candidatosDigemid[0];
+            nombreDigemidOficial = mejorCoincidencia.NomProd;
+            terminoParaBusquedaInterna = $"{mejorCoincidencia.NomProd} {mejorCoincidencia.Concent}".Trim();
+            encontradoEnDigemid = true;
+            similarityScore = 0.9;
+        }
+
+        var confianzaFinal = (itemIA.NivelConfianza * 0.6) + (similarityScore * 0.4);
+
+        var productoDb = await _buscadorService.BuscarMejorCoincidenciaAsync(terminoParaBusquedaInterna, cancellationToken);
+
+        if (productoDb == null && encontradoEnDigemid)
+        {
+            productoDb = await _buscadorService.BuscarMejorCoincidenciaAsync(terminoOriginalIA, cancellationToken);
+        }
+
+        AgregarResultado(resultados, productoDb, nombreDigemidOficial ?? terminoOriginalIA, confianzaFinal, "Receta",
+            encontradoEnDigemid ? $"Validado por DIGEMID ({nombreDigemidOficial})" : "Detectado en receta", encontradoEnDigemid);
+
+        await AddSugerenciasAsync(itemIA, resultados, cancellationToken);
+    }
+
+    private async Task AddSugerenciasAsync(MedicamentoInterpretadoDto itemIA, List<ItemSugeridoDto> resultados, CancellationToken cancellationToken)
+    {
+        if (itemIA.Sugerencias == null)
+        {
+            return;
+        }
+
+        foreach (var sugerencia in itemIA.Sugerencias)
+        {
+            var productoSugeridoDb = await _buscadorService.BuscarMejorCoincidenciaAsync(sugerencia, cancellationToken);
+            if (productoSugeridoDb != null)
+            {
+                AgregarResultado(resultados, productoSugeridoDb, sugerencia, 0.70, "Recomendacion",
+                    $"Sugerido por compra de {itemIA.NombreDetectado}", false);
+            }
+        }
     }
 
     private static void AgregarResultado(

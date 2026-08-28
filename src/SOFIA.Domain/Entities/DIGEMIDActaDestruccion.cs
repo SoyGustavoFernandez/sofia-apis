@@ -2,11 +2,11 @@ using SOFIA.Domain.Common;
 
 namespace SOFIA.Domain.Entities;
 
-public sealed class DIGEMIDActaDestruccion : BaseEntity
+public sealed class DigemidActaDestruccion : BaseEntity
 {
-    private readonly List<DIGEMIDActaDetalle> _detalles = [];
+    private readonly List<DigemidActaDetalle> _detalles = [];
 
-    private DIGEMIDActaDestruccion() { }
+    private DigemidActaDestruccion() { }
 
     public string NumeroResolucionInterna { get; private set; } = string.Empty;
     public string EmpresaResiduosBiocontaminados { get; private set; } = string.Empty;
@@ -16,10 +16,10 @@ public sealed class DIGEMIDActaDestruccion : BaseEntity
     public string? RutaActaFirmadaPdf { get; private set; }
 
     // Navigation Properties
-    public Empleado? RegenteResponsable { get; private set; }
-    public IReadOnlyCollection<DIGEMIDActaDetalle> Detalles => _detalles.AsReadOnly();
+    public Empleado? RegenteResponsable { get; }
+    public IReadOnlyCollection<DigemidActaDetalle> Detalles => _detalles.AsReadOnly();
 
-    public static Result<DIGEMIDActaDestruccion> Create(
+    public static Result<DigemidActaDestruccion> Create(
         string numeroResolucionInterna,
         string empresaResiduosBiocontaminados,
         string? manifiestoTransporteDoc,
@@ -29,40 +29,40 @@ public sealed class DIGEMIDActaDestruccion : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(numeroResolucionInterna))
         {
-            return Result.Failure<DIGEMIDActaDestruccion>(Error.Validation("DIGEMIDActaDestruccion.NumeroResolucionInterna", "Número de Resolución Interna is required."));
+            return Result.Failure<DigemidActaDestruccion>(Error.Validation("DigemidActaDestruccion.NumeroResolucionInterna", "Número de Resolución Interna is required."));
         }
 
         if (numeroResolucionInterna.Length > 50)
         {
-            return Result.Failure<DIGEMIDActaDestruccion>(Error.Validation("DIGEMIDActaDestruccion.NumeroResolucionInterna", "Número de Resolución Interna must not exceed 50 characters."));
+            return Result.Failure<DigemidActaDestruccion>(Error.Validation("DigemidActaDestruccion.NumeroResolucionInterna", "Número de Resolución Interna must not exceed 50 characters."));
         }
 
         if (string.IsNullOrWhiteSpace(empresaResiduosBiocontaminados))
         {
-            return Result.Failure<DIGEMIDActaDestruccion>(Error.Validation("DIGEMIDActaDestruccion.EmpresaResiduosBiocontaminados", "Empresa de Residuos Biocontaminados is required."));
+            return Result.Failure<DigemidActaDestruccion>(Error.Validation("DigemidActaDestruccion.EmpresaResiduosBiocontaminados", "Empresa de Residuos Biocontaminados is required."));
         }
 
         if (empresaResiduosBiocontaminados.Length > 150)
         {
-            return Result.Failure<DIGEMIDActaDestruccion>(Error.Validation("DIGEMIDActaDestruccion.EmpresaResiduosBiocontaminados", "Empresa must not exceed 150 characters."));
+            return Result.Failure<DigemidActaDestruccion>(Error.Validation("DigemidActaDestruccion.EmpresaResiduosBiocontaminados", "Empresa must not exceed 150 characters."));
         }
 
         if (manifiestoTransporteDoc != null && manifiestoTransporteDoc.Length > 50)
         {
-            return Result.Failure<DIGEMIDActaDestruccion>(Error.Validation("DIGEMIDActaDestruccion.ManifiestoTransporteDoc", "Manifiesto de Transporte Doc must not exceed 50 characters."));
+            return Result.Failure<DigemidActaDestruccion>(Error.Validation("DigemidActaDestruccion.ManifiestoTransporteDoc", "Manifiesto de Transporte Doc must not exceed 50 characters."));
         }
 
         if (regenteResponsableId == Guid.Empty)
         {
-            return Result.Failure<DIGEMIDActaDestruccion>(Error.Validation("DIGEMIDActaDestruccion.RegenteResponsableId", "Regente Responsable ID is required."));
+            return Result.Failure<DigemidActaDestruccion>(Error.Validation("DigemidActaDestruccion.RegenteResponsableId", "Regente Responsable ID is required."));
         }
 
         if (rutaActaFirmadaPdf != null && rutaActaFirmadaPdf.Length > 500)
         {
-            return Result.Failure<DIGEMIDActaDestruccion>(Error.Validation("DIGEMIDActaDestruccion.RutaActaFirmadaPdf", "Ruta de Acta Firmada PDF must not exceed 500 characters."));
+            return Result.Failure<DigemidActaDestruccion>(Error.Validation("DigemidActaDestruccion.RutaActaFirmadaPdf", "Ruta de Acta Firmada PDF must not exceed 500 characters."));
         }
 
-        return Result.Success(new DIGEMIDActaDestruccion
+        return Result.Success(new DigemidActaDestruccion
         {
             NumeroResolucionInterna = numeroResolucionInterna,
             EmpresaResiduosBiocontaminados = empresaResiduosBiocontaminados,
@@ -83,37 +83,37 @@ public sealed class DIGEMIDActaDestruccion : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(numeroResolucionInterna))
         {
-            return Result.Failure(Error.Validation("DIGEMIDActaDestruccion.NumeroResolucionInterna", "Número de Resolución Interna is required."));
+            return Result.Failure(Error.Validation("DigemidActaDestruccion.NumeroResolucionInterna", "Número de Resolución Interna is required."));
         }
 
         if (numeroResolucionInterna.Length > 50)
         {
-            return Result.Failure(Error.Validation("DIGEMIDActaDestruccion.NumeroResolucionInterna", "Número de Resolución Interna must not exceed 50 characters."));
+            return Result.Failure(Error.Validation("DigemidActaDestruccion.NumeroResolucionInterna", "Número de Resolución Interna must not exceed 50 characters."));
         }
 
         if (string.IsNullOrWhiteSpace(empresaResiduosBiocontaminados))
         {
-            return Result.Failure(Error.Validation("DIGEMIDActaDestruccion.EmpresaResiduosBiocontaminados", "Empresa de Residuos Biocontaminados is required."));
+            return Result.Failure(Error.Validation("DigemidActaDestruccion.EmpresaResiduosBiocontaminados", "Empresa de Residuos Biocontaminados is required."));
         }
 
         if (empresaResiduosBiocontaminados.Length > 150)
         {
-            return Result.Failure(Error.Validation("DIGEMIDActaDestruccion.EmpresaResiduosBiocontaminados", "Empresa must not exceed 150 characters."));
+            return Result.Failure(Error.Validation("DigemidActaDestruccion.EmpresaResiduosBiocontaminados", "Empresa must not exceed 150 characters."));
         }
 
         if (manifiestoTransporteDoc != null && manifiestoTransporteDoc.Length > 50)
         {
-            return Result.Failure(Error.Validation("DIGEMIDActaDestruccion.ManifiestoTransporteDoc", "Manifiesto de Transporte Doc must not exceed 50 characters."));
+            return Result.Failure(Error.Validation("DigemidActaDestruccion.ManifiestoTransporteDoc", "Manifiesto de Transporte Doc must not exceed 50 characters."));
         }
 
         if (regenteResponsableId == Guid.Empty)
         {
-            return Result.Failure(Error.Validation("DIGEMIDActaDestruccion.RegenteResponsableId", "Regente Responsable ID is required."));
+            return Result.Failure(Error.Validation("DigemidActaDestruccion.RegenteResponsableId", "Regente Responsable ID is required."));
         }
 
         if (rutaActaFirmadaPdf != null && rutaActaFirmadaPdf.Length > 500)
         {
-            return Result.Failure(Error.Validation("DIGEMIDActaDestruccion.RutaActaFirmadaPdf", "Ruta de Acta Firmada PDF must not exceed 500 characters."));
+            return Result.Failure(Error.Validation("DigemidActaDestruccion.RutaActaFirmadaPdf", "Ruta de Acta Firmada PDF must not exceed 500 characters."));
         }
 
         NumeroResolucionInterna = numeroResolucionInterna;

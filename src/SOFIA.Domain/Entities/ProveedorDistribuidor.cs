@@ -17,29 +17,52 @@ public sealed class ProveedorDistribuidor : BaseEntity
         string taxId,
         string? terminosFinancieros,
         decimal? calificacionEsg,
-        decimal tasaCumplimiento = 100.00m) =>
-        string.IsNullOrWhiteSpace(razonSocial)
-            ? Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.RazonSocial", "Razón Social is required."))
-            : razonSocial.Length > 200
-            ? Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.RazonSocial", "Razón Social must not exceed 200 characters."))
-            : string.IsNullOrWhiteSpace(taxId)
-            ? Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.TaxId", "Tax ID is required."))
-            : taxId.Length > 50
-            ? Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.TaxId", "Tax ID must not exceed 50 characters."))
-            : terminosFinancieros != null && terminosFinancieros.Length > 100
-            ? Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.TerminosFinancieros", "Financial Terms must not exceed 100 characters."))
-            : calificacionEsg.HasValue && (calificacionEsg.Value < 0.0m || calificacionEsg.Value > 100.00m)
-            ? Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.CalificacionEsg", "ESG Rating must be between 0 and 100."))
-            : tasaCumplimiento < 0.0m || tasaCumplimiento > 100.00m
-            ? Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.TasaCumplimiento", "Compliance Rate must be between 0 and 100."))
-            : Result.Success(new ProveedorDistribuidor
-            {
-                RazonSocial = razonSocial,
-                TaxId = taxId,
-                TerminosFinancieros = terminosFinancieros,
-                CalificacionEsg = calificacionEsg,
-                TasaCumplimiento = tasaCumplimiento
-            });
+        decimal tasaCumplimiento = 100.00m)
+    {
+        if (string.IsNullOrWhiteSpace(razonSocial))
+        {
+            return Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.RazonSocial", "Razón Social is required."));
+        }
+
+        if (razonSocial.Length > 200)
+        {
+            return Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.RazonSocial", "Razón Social must not exceed 200 characters."));
+        }
+
+        if (string.IsNullOrWhiteSpace(taxId))
+        {
+            return Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.TaxId", "Tax ID is required."));
+        }
+
+        if (taxId.Length > 50)
+        {
+            return Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.TaxId", "Tax ID must not exceed 50 characters."));
+        }
+
+        if (terminosFinancieros != null && terminosFinancieros.Length > 100)
+        {
+            return Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.TerminosFinancieros", "Financial Terms must not exceed 100 characters."));
+        }
+
+        if (calificacionEsg.HasValue && (calificacionEsg.Value < 0.0m || calificacionEsg.Value > 100.00m))
+        {
+            return Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.CalificacionEsg", "ESG Rating must be between 0 and 100."));
+        }
+
+        if (tasaCumplimiento < 0.0m || tasaCumplimiento > 100.00m)
+        {
+            return Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.TasaCumplimiento", "Compliance Rate must be between 0 and 100."));
+        }
+
+        return Result.Success(new ProveedorDistribuidor
+        {
+            RazonSocial = razonSocial,
+            TaxId = taxId,
+            TerminosFinancieros = terminosFinancieros,
+            CalificacionEsg = calificacionEsg,
+            TasaCumplimiento = tasaCumplimiento
+        });
+    }
 
     public Result Update(
         string razonSocial,

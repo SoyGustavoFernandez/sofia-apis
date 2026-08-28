@@ -14,7 +14,7 @@ public class GetCuarentenaQueryHandler(IApplicationDbContext dbContext) : IReque
 {
     public async Task<Result<PaginatedList<CuarentenaResumenDto>>> Handle(GetCuarentenaQuery request, CancellationToken cancellationToken)
     {
-        var query = dbContext.DIGEMIDInventarioCuarentena.AsNoTracking().AsQueryable();
+        var query = dbContext.DigemidInventarioCuarentena.AsNoTracking().AsQueryable();
 
         if (request.SucursalId.HasValue && request.SucursalId.Value != Guid.Empty)
         {

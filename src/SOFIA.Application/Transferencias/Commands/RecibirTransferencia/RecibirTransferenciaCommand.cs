@@ -33,7 +33,6 @@ public class RecibirTransferenciaCommandHandler(
 {
     public async Task<Result> Handle(RecibirTransferenciaCommand request, CancellationToken cancellationToken)
     {
-        // 1. Obtener transferencia con detalles
         var transferencia = await context.Transferencias
             .Include(t => t.Detalles)
             .FirstOrDefaultAsync(t => t.Id == request.Id && !t.IsDeleted, cancellationToken);
@@ -43,23 +42,12 @@ public class RecibirTransferenciaCommandHandler(
             return Result.Failure(Error.NotFound("Transferencia.NotFound", $"La transferencia con ID {request.Id} no existe."));
         }
 
-        // 2. Verificar autorización (debe pertenecer a la sucursal de destino)
-        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId) || string.IsNullOrEmpty(currentUser.Id))
+        var authResult = ValidateAndParseUserContext(transferencia.SucursalDestinoId, out var userSucursalId, out var empleadoReceptorId);
+        if (authResult.IsFailure)
         {
-            return Result.Failure(Error.Unauthorized("Transferencia.Auth", "El usuario debe estar autenticado."));
+            return authResult;
         }
 
-        if (!Guid.TryParse(currentUser.SucursalId, out var userSucursalId) || userSucursalId != transferencia.SucursalDestinoId)
-        {
-            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Solo personal de la sucursal de destino puede recibir esta transferencia."));
-        }
-
-        if (!Guid.TryParse(currentUser.Id, out var empleadoReceptorId))
-        {
-            return Result.Failure(Error.Validation("Transferencia.EmpleadoReceptor", "ID de empleado receptor inválido."));
-        }
-
-        // 3. Modificar estado y registrar recepciones en la entidad
         var recepcionesList = request.Recepciones.Select(r => (r.LoteId, r.CantidadRecibida)).ToList();
         var receiveResult = transferencia.Recibir(empleadoReceptorId, recepcionesList);
         if (receiveResult.IsFailure)
@@ -67,34 +55,67 @@ public class RecibirTransferenciaCommandHandler(
             return receiveResult;
         }
 
-        // 4. Aumentar stock de la sucursal de destino
-        foreach (var detalle in transferencia.Detalles)
+        var stockResult = await UpdateDestinationInventoryAsync(transferencia, cancellationToken);
+        if (stockResult.IsFailure)
         {
-            var cantidadARecibir = detalle.CantidadRecibida ?? 0;
-            if (cantidadARecibir > 0)
-            {
-                var inventario = await context.LotesEnSucursal
-                    .FirstOrDefaultAsync(x => x.LoteId == detalle.LoteId && x.SucursalId == transferencia.SucursalDestinoId, cancellationToken);
-
-                if (inventario != null)
-                {
-                    inventario.AddStock(cantidadARecibir);
-                }
-                else
-                {
-                    // Create a new stock record at the destination branch if none existed
-                    var newInventarioResult = InventarioSucursal.Create(transferencia.SucursalDestinoId, detalle.LoteId, cantidadARecibir);
-                    if (newInventarioResult.IsFailure)
-                    {
-                        return Result.Failure(newInventarioResult.Error);
-                    }
-
-                    _ = context.LotesEnSucursal.Add(newInventarioResult.Value!);
-                }
-            }
+            return stockResult;
         }
 
         _ = await context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
+    private Result ValidateAndParseUserContext(Guid sucursalDestinoId, out Guid sucursalId, out Guid empleadoId)
+    {
+        sucursalId = Guid.Empty;
+        empleadoId = Guid.Empty;
+
+        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId) || string.IsNullOrEmpty(currentUser.Id))
+        {
+            return Result.Failure(Error.Unauthorized("Transferencia.Auth", "El usuario debe estar autenticado."));
+        }
+
+        if (!Guid.TryParse(currentUser.SucursalId, out sucursalId) || sucursalId != sucursalDestinoId)
+        {
+            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Solo personal de la sucursal de destino puede recibir esta transferencia."));
+        }
+
+        if (!Guid.TryParse(currentUser.Id, out empleadoId))
+        {
+            return Result.Failure(Error.Validation("Transferencia.EmpleadoReceptor", "ID de empleado receptor inválido."));
+        }
+
+        return Result.Success();
+    }
+
+    private async Task<Result> UpdateDestinationInventoryAsync(Transferencia transferencia, CancellationToken cancellationToken)
+    {
+        foreach (var detalle in transferencia.Detalles)
+        {
+            var cantidadARecibir = detalle.CantidadRecibida ?? 0;
+            if (cantidadARecibir <= 0)
+            {
+                continue;
+            }
+
+            var inventario = await context.LotesEnSucursal
+                .FirstOrDefaultAsync(x => x.LoteId == detalle.LoteId && x.SucursalId == transferencia.SucursalDestinoId, cancellationToken);
+
+            if (inventario != null)
+            {
+                inventario.AddStock(cantidadARecibir);
+                continue;
+            }
+
+            var newInventarioResult = InventarioSucursal.Create(transferencia.SucursalDestinoId, detalle.LoteId, cantidadARecibir);
+            if (newInventarioResult.IsFailure)
+            {
+                return Result.Failure(newInventarioResult.Error);
+            }
+
+            _ = context.LotesEnSucursal.Add(newInventarioResult.Value!);
+        }
+
         return Result.Success();
     }
 }

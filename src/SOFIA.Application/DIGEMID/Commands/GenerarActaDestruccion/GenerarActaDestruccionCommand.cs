@@ -10,7 +10,7 @@ public class GenerarActaDestruccionCommandHandler(IApplicationDbContext dbContex
 {
     public async Task<Result<Guid>> Handle(GenerarActaDestruccionCommand request, CancellationToken cancellationToken)
     {
-        var createResult = Domain.Entities.DIGEMIDActaDestruccion.Create(request.NumeroResolucionInterna, request.EmpresaResiduosBiocontaminados, request.ManifiestoTransporteDoc, request.FechaEjecucion, request.RegenteResponsableId, request.RutaActaFirmadaPdf);
+        var createResult = Domain.Entities.DigemidActaDestruccion.Create(request.NumeroResolucionInterna, request.EmpresaResiduosBiocontaminados, request.ManifiestoTransporteDoc, request.FechaEjecucion, request.RegenteResponsableId, request.RutaActaFirmadaPdf);
         if (createResult.IsFailure)
         {
             return Result.Failure<Guid>(createResult.Error);

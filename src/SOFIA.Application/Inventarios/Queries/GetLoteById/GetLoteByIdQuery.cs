@@ -17,14 +17,18 @@ public class GetLoteByIdQueryHandler(IApplicationDbContext context)
             .Include(x => x.Producto)
             .FirstOrDefaultAsync(x => x.Id == request.Id && !x.IsDeleted, cancellationToken);
 
-        return lote is null
-            ? Result.Failure<LoteInventarioDto>(Error.NotFound("LoteInventario.NotFound", "The specified batch does not exist."))
-            : Result.Success(new LoteInventarioDto(
-                lote.Id,
-                lote.ProductoId,
-                lote.Producto != null ? lote.Producto.NombreComercial : "Unknown",
-                lote.NumeroLoteMfr,
-                lote.FechaFabricacion,
-                lote.FechaCaducidad));
+        if (lote is null)
+        {
+            return Result.Failure<LoteInventarioDto>(Error.NotFound("LoteInventario.NotFound", "The specified batch does not exist."));
+        }
+
+        var nombreProducto = lote.Producto?.NombreComercial ?? "Unknown";
+        return Result.Success(new LoteInventarioDto(
+            lote.Id,
+            lote.ProductoId,
+            nombreProducto,
+            lote.NumeroLoteMfr,
+            lote.FechaFabricacion,
+            lote.FechaCaducidad));
     }
 }

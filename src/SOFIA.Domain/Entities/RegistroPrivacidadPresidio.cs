@@ -14,7 +14,7 @@ public sealed class RegistroPrivacidadPresidio : BaseEntity
     public DateTime FechaAuditoria { get; private set; }
 
     // Navigation Properties
-    public RecetaDigitalizadaIA? Procesamiento { get; private set; }
+    public RecetaDigitalizadaIA? Procesamiento { get; }
 
     public static Result<RegistroPrivacidadPresidio> Create(
         Guid procesamientoId,

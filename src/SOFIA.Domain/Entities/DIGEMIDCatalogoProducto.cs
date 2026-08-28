@@ -2,7 +2,7 @@ using SOFIA.Domain.Common;
 
 namespace SOFIA.Domain.Entities;
 
-public class DIGEMIDCatalogoProducto : BaseEntity
+public class DigemidCatalogoProducto : BaseEntity
 {
     public string CodProd { get; private set; } = null!;
     public string NomProd { get; private set; } = null!;
@@ -13,9 +13,9 @@ public class DIGEMIDCatalogoProducto : BaseEntity
     public string? Titular { get; private set; }
     public string Estado { get; private set; } = null!;
 
-    private DIGEMIDCatalogoProducto() { } // EF Core
+    private DigemidCatalogoProducto() { } // EF Core
 
-    public static Result<DIGEMIDCatalogoProducto> Create(
+    public static Result<DigemidCatalogoProducto> Create(
         string codProd,
         string nomProd,
         string? concent,
@@ -27,15 +27,15 @@ public class DIGEMIDCatalogoProducto : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(codProd))
         {
-            return Result.Failure<DIGEMIDCatalogoProducto>(Error.Validation("DIGEMID.CodProd", "CodProd is required."));
+            return Result.Failure<DigemidCatalogoProducto>(Error.Validation("DIGEMID.CodProd", "CodProd is required."));
         }
 
         if (string.IsNullOrWhiteSpace(nomProd))
         {
-            return Result.Failure<DIGEMIDCatalogoProducto>(Error.Validation("DIGEMID.NomProd", "NomProd is required."));
+            return Result.Failure<DigemidCatalogoProducto>(Error.Validation("DIGEMID.NomProd", "NomProd is required."));
         }
 
-        return Result.Success(new DIGEMIDCatalogoProducto
+        return Result.Success(new DigemidCatalogoProducto
         {
             CodProd = codProd,
             NomProd = nomProd,

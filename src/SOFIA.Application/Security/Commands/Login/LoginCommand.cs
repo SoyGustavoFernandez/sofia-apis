@@ -24,7 +24,7 @@ public class LoginCommandHandler(
 
         var cuenta = await context.Cuentas
             .Include(c => c.Roles)
-            .Include(c => c.Empleado).ThenInclude(e => e!.Sucursal_Base)
+            .Include(c => c.Empleado).ThenInclude(e => e!.Sucursal_Base).ThenInclude(s => s!.Empresa)
             .FirstOrDefaultAsync(c => c.NombreUsuario == request.NombreUsuario && !c.IsDeleted, cancellationToken);
 
         if (cuenta is null || !cuenta.CuentaActiva)

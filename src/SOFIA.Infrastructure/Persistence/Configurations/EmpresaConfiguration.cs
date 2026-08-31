@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SOFIA.Domain.Entities;
+using SOFIA.Domain.ValueObjects;
 
 namespace SOFIA.Infrastructure.Persistence.Configurations;
 
@@ -23,7 +24,10 @@ public class EmpresaConfiguration : IEntityTypeConfiguration<Empresa>
         _ = builder.Property(x => x.RUC)
             .HasMaxLength(11)
             .IsFixedLength()
-            .IsRequired(false);
+            .IsRequired(false)
+            .HasConversion(
+                r => r != null ? r.Value : null,
+                v => v != null ? Ruc.From(v) : null);
 
         _ = builder.Property(x => x.Estado)
             .HasConversion<int>()

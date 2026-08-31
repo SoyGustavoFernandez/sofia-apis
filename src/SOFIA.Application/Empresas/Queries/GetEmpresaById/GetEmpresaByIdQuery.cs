@@ -22,7 +22,7 @@ public class GetEmpresaByIdQueryHandler(IApplicationDbContext context)
             : Result.Success(new EmpresaDto(
                 empresa.Id,
                 empresa.Nombre,
-                empresa.RUC,
+                empresa.RUC?.Value,
                 empresa.Estado,
                 empresa.FechaInicioTrial,
                 empresa.FechaVencimiento,

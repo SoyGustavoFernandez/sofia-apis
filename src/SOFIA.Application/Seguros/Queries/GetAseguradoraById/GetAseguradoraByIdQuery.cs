@@ -1,14 +1,11 @@
-using SOFIA.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
-using SOFIA.Application.Common.Models;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Linq;
+using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Seguros.Queries.GetAseguradoraById;
+
+public record AseguradoraDto(Guid Id, string NombreComercial, string CodigoIdentificadorNacional);
 
 public record GetAseguradoraByIdQuery(Guid Id) : IRequest<Result<AseguradoraDto>>;
 
@@ -18,10 +15,18 @@ public class GetAseguradoraByIdQueryHandler(IApplicationDbContext context) : IRe
     {
         var entity = await context.Aseguradoras
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == request.Id && !x.IsDeleted, cancellationToken);
 
-        return entity == null ? Result.Failure<AseguradoraDto>(Error.NotFound("NotFound", "Record not found.")) : Result.Success(new AseguradoraDto(entity.Id));
+        if (entity == null)
+        {
+            return Result.Failure<AseguradoraDto>(Error.NotFound("Aseguradora.NotFound", $"Aseguradora with ID {request.Id} was not found."), 404);
+        }
+
+        var dto = new AseguradoraDto(
+            entity.Id,
+            entity.NombreComercial,
+            entity.CodigoIdentificadorNacional);
+
+        return Result.Success(dto);
     }
 }
-
-public record AseguradoraDto(Guid Id);

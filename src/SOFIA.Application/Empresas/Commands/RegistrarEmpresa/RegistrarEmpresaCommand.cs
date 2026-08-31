@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
+using SOFIA.Domain.ValueObjects;
 
 namespace SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 
@@ -57,8 +58,9 @@ public class RegistrarEmpresaCommandHandler(
     {
         if (request.RUC is not null)
         {
+            var rucVo = Ruc.Create(request.RUC).Value!;
             var rucTomado = await context.Empresas
-                .AnyAsync(e => e.RUC == request.RUC && !e.IsDeleted, cancellationToken);
+                .AnyAsync(e => e.RUC == rucVo && !e.IsDeleted, cancellationToken);
             if (rucTomado)
             {
                 return Result.Failure<string>(Error.Conflict("Empresa.RUC.Duplicado", "Ya existe una empresa registrada con este RUC."), 409);
@@ -117,9 +119,9 @@ public class RegistrarEmpresaCommandHandler(
 
         var sucursal = sucursalResult.Value!;
 
-        var adminNombres = string.IsNullOrWhiteSpace(request.AdminNombres) ? "Administrador" : request.AdminNombres;
-        var adminApPat = string.IsNullOrWhiteSpace(request.AdminApellidoPaterno) ? request.NombreEmpresa[..Math.Min(request.NombreEmpresa.Length, 50)] : request.AdminApellidoPaterno;
-        var adminApMat = string.IsNullOrWhiteSpace(request.AdminApellidoMaterno) ? "Sistema" : request.AdminApellidoMaterno;
+        var adminNombres = string.IsNullOrWhiteSpace(request.AdminNombres) ? request.Usuario : request.AdminNombres;
+        var adminApPat = string.IsNullOrWhiteSpace(request.AdminApellidoPaterno) ? "-" : request.AdminApellidoPaterno;
+        var adminApMat = string.IsNullOrWhiteSpace(request.AdminApellidoMaterno) ? "-" : request.AdminApellidoMaterno;
 
         var empleadoResult = Empleado.Create(sucursal.Id, adminNombres, adminApPat, adminApMat, tenantId: empresa.Id);
         if (empleadoResult.IsFailure)

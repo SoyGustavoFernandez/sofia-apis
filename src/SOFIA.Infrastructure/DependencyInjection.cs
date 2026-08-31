@@ -6,8 +6,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using SOFIA.Application.Common.Excel;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Infrastructure.Authentication;
+using SOFIA.Infrastructure.Excel;
 using SOFIA.Infrastructure.Persistence;
 using SOFIA.Infrastructure.Services;
 
@@ -24,6 +26,9 @@ public static class DependencyInjection
         });
 
         _ = services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+
+        // Excel
+        _ = services.AddScoped<IExcelReaderService, ExcelReaderService>();
 
         // Sanitization
         _ = services.AddSingleton<ISanitizer, HtmlSanitizerService>();

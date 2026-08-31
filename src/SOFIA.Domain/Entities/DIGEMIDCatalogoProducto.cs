@@ -47,4 +47,21 @@ public class DigemidCatalogoProducto : BaseEntity
             Estado = estado
         });
     }
+
+    public Result Update(string codProd, string nomProd, string? concent, string? formaFarmaceutica, string? fraccion, string? registroSanitario, string? titular, string estado)
+    {
+        if (string.IsNullOrWhiteSpace(codProd))
+        {
+            return Result.Failure(Error.Validation("DIGEMID.CodProd", "CodProd is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(nomProd))
+        {
+            return Result.Failure(Error.Validation("DIGEMID.NomProd", "NomProd is required."));
+        }
+
+        CodProd = codProd; NomProd = nomProd; Concent = concent; FormaFarmaceutica = formaFarmaceutica;
+        Fraccion = fraccion; RegistroSanitario = registroSanitario; Titular = titular; Estado = estado;
+        return Result.Success();
+    }
 }

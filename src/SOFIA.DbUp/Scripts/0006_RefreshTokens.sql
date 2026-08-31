@@ -16,7 +16,7 @@ CREATE TABLE [dbo].[RefreshTokens] (
     [DeletedBy]       NVARCHAR(256)    NULL,
     CONSTRAINT [PK_RefreshTokens] PRIMARY KEY ([Id]),
     CONSTRAINT [FK_RefreshTokens_Cuentas] FOREIGN KEY ([CuentaId])
-        REFERENCES [dbo].[Cuentas]([Id]) ON DELETE CASCADE
+        REFERENCES [dbo].[Seguridad_Cuentas]([Cuenta_ID]) ON DELETE CASCADE
 );
 
 CREATE UNIQUE INDEX [IX_RefreshTokens_TokenHash] ON [dbo].[RefreshTokens] ([TokenHash]);

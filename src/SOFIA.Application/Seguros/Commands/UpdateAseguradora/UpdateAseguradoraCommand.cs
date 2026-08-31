@@ -1,31 +1,32 @@
-using SOFIA.Domain.Common;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
-using SOFIA.Application.Common.Models;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Seguros.Commands.UpdateAseguradora;
 
-public record UpdateAseguradoraCommand(Guid Id) : ICommand<Guid>; // TODO: Add properties manually
+public record UpdateAseguradoraCommand(Guid Id, string NombreComercial, string CodigoIdentificadorNacional) : ICommand;
 
-public class UpdateAseguradoraCommandHandler(IApplicationDbContext context) : IRequestHandler<UpdateAseguradoraCommand, Result<Guid>>
+public class UpdateAseguradoraCommandHandler(IApplicationDbContext context) : IRequestHandler<UpdateAseguradoraCommand, Result>
 {
-    public async Task<Result<Guid>> Handle(UpdateAseguradoraCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(UpdateAseguradoraCommand request, CancellationToken cancellationToken)
     {
         var entity = await context.Aseguradoras
-            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
+            .FindAsync([request.Id], cancellationToken);
 
         if (entity == null)
         {
-            return Result.Failure<Guid>(Error.NotFound("NotFound", "Record not found."));
+            return Result.Failure(Error.NotFound("Aseguradora.NotFound", $"Aseguradora with ID {request.Id} was not found."), 404);
         }
 
-        // TODO: Update properties here
+        var result = entity.Update(request.NombreComercial, request.CodigoIdentificadorNacional);
+
+        if (!result.IsSuccess)
+        {
+            return result;
+        }
 
         _ = await context.SaveChangesAsync(cancellationToken);
-        return Result.Success(entity.Id);
+
+        return Result.Success();
     }
 }

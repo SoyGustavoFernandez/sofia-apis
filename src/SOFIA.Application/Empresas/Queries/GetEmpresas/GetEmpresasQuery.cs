@@ -28,7 +28,7 @@ public class GetEmpresasQueryHandler(IApplicationDbContext context)
         IReadOnlyList<EmpresaDto> dtos = [.. empresas.Select(e => new EmpresaDto(
             e.Id,
             e.Nombre,
-            e.RUC,
+            e.RUC?.Value,
             e.Estado,
             e.FechaInicioTrial,
             e.FechaVencimiento,

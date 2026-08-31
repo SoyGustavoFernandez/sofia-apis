@@ -1,4 +1,5 @@
 using SOFIA.Domain.Common;
+using SOFIA.Domain.ValueObjects;
 
 namespace SOFIA.Domain.Entities;
 
@@ -15,7 +16,7 @@ public sealed class Empresa : BaseEntity
     private Empresa() { }
 
     public string Nombre { get; private set; } = string.Empty;
-    public string? RUC { get; private set; }
+    public Ruc? RUC { get; private set; }
     public EstadoEmpresa Estado { get; private set; }
     public DateTimeOffset FechaInicioTrial { get; private set; }
     public DateTimeOffset FechaVencimiento { get; private set; }
@@ -35,16 +36,22 @@ public sealed class Empresa : BaseEntity
             return Result.Failure<Empresa>(Error.Validation("Empresa.Nombre", "Nombre is required."));
         }
 
-        if (ruc is not null && (ruc.Length != 11 || !ruc.All(char.IsDigit)))
+        Ruc? rucVo = null;
+        if (ruc is not null)
         {
-            return Result.Failure<Empresa>(Error.Validation("Empresa.RUC", "RUC must be 11 numeric digits."));
+            var rucResult = Ruc.Create(ruc);
+            if (rucResult.IsFailure)
+            {
+                return Result.Failure<Empresa>(rucResult.Error);
+            }
+            rucVo = rucResult.Value;
         }
 
         var ahora = DateTimeOffset.UtcNow;
         var empresa = new Empresa
         {
             Nombre = nombre,
-            RUC = ruc,
+            RUC = rucVo,
             Estado = EstadoEmpresa.TrialActivo,
             FechaInicioTrial = ahora,
             FechaVencimiento = ahora.AddDays(DiasTrial)
@@ -60,13 +67,19 @@ public sealed class Empresa : BaseEntity
             return Result.Failure(Error.Validation("Empresa.Nombre", "Nombre is required."));
         }
 
-        if (ruc is not null && (ruc.Length != 11 || !ruc.All(char.IsDigit)))
+        Ruc? rucVo = null;
+        if (ruc is not null)
         {
-            return Result.Failure(Error.Validation("Empresa.RUC", "RUC must be 11 numeric digits."));
+            var rucResult = Ruc.Create(ruc);
+            if (rucResult.IsFailure)
+            {
+                return Result.Failure(rucResult.Error);
+            }
+            rucVo = rucResult.Value;
         }
 
         Nombre = nombre;
-        RUC = ruc;
+        RUC = rucVo;
         return Result.Success();
     }
 

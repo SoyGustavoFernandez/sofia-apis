@@ -10,22 +10,3 @@ using System.Threading.Tasks;
 namespace SOFIA.Application.Servicios.Commands.UpdateServicio;
 
 public record UpdateServicioCommand(Guid Id) : ICommand<Guid>; // TODO: Add properties manually
-
-public class UpdateServicioCommandHandler(IApplicationDbContext context) : IRequestHandler<UpdateServicioCommand, Result<Guid>>
-{
-    public async Task<Result<Guid>> Handle(UpdateServicioCommand request, CancellationToken cancellationToken)
-    {
-        var entity = await context.ServiciosAgenda
-            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
-
-        if (entity == null)
-        {
-            return Result.Failure<Guid>(Error.NotFound("NotFound", "Record not found."));
-        }
-
-        // TODO: Update properties here
-
-        _ = await context.SaveChangesAsync(cancellationToken);
-        return Result.Success(entity.Id);
-    }
-}

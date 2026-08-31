@@ -147,7 +147,7 @@ _ = app.MapControllers();
 
 // Health Check Endpoint
 var version = (System.Reflection.AssemblyInformationalVersionAttribute?)
-    System.Attribute.GetCustomAttribute(
+    Attribute.GetCustomAttribute(
         typeof(Program).Assembly,
         typeof(System.Reflection.AssemblyInformationalVersionAttribute))
     is { } attr ? attr.InformationalVersion : "unknown";

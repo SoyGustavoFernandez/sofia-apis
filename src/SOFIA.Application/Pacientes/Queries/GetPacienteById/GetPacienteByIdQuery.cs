@@ -1,14 +1,11 @@
-using SOFIA.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
-using SOFIA.Application.Common.Models;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Linq;
+using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Pacientes.Queries.GetPacienteById;
+
+public record PacienteDto(Guid Id, string DocIdentidadGub, string NombreApellidos, DateOnly FechaNacimiento, string? ContactoPrimario);
 
 public record GetPacienteByIdQuery(Guid Id) : IRequest<Result<PacienteDto>>;
 
@@ -18,10 +15,20 @@ public class GetPacienteByIdQueryHandler(IApplicationDbContext context) : IReque
     {
         var entity = await context.Pacientes
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == request.Id && !x.IsDeleted, cancellationToken);
 
-        return entity == null ? Result.Failure<PacienteDto>(Error.NotFound("NotFound", "Record not found.")) : Result.Success(new PacienteDto(entity.Id));
+        if (entity == null)
+        {
+            return Result.Failure<PacienteDto>(Error.NotFound("Paciente.NotFound", $"Paciente with ID {request.Id} was not found."), 404);
+        }
+
+        var dto = new PacienteDto(
+            entity.Id,
+            entity.DocIdentidadGub,
+            entity.NombreApellidos,
+            entity.FechaNacimiento,
+            entity.ContactoPrimario);
+
+        return Result.Success(dto);
     }
 }
-
-public record PacienteDto(Guid Id);

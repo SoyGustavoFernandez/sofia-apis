@@ -44,9 +44,10 @@ _ = builder.Services.AddCors(options =>
     {
         if (builder.Environment.IsDevelopment())
         {
-            _ = policy.AllowAnyOrigin()
+            _ = policy.WithOrigins("http://localhost:4200", "https://localhost:4200")
                       .AllowAnyMethod()
-                      .AllowAnyHeader();
+                      .AllowAnyHeader()
+                      .AllowCredentials();
         }
         else
         {
@@ -145,10 +146,16 @@ _ = app.UseRateLimiter();
 _ = app.MapControllers();
 
 // Health Check Endpoint
+var version = (System.Reflection.AssemblyInformationalVersionAttribute?)
+    System.Attribute.GetCustomAttribute(
+        typeof(Program).Assembly,
+        typeof(System.Reflection.AssemblyInformationalVersionAttribute))
+    is { } attr ? attr.InformationalVersion : "unknown";
+
 _ = app.MapGet("/health", () => Results.Ok(new
 {
     Status = "Healthy",
-    Version = "1.0.0",
+    Version = version,
     Timestamp = DateTimeOffset.UtcNow,
     Environment = app.Environment.EnvironmentName
 }))

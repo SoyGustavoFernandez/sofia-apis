@@ -1,31 +1,33 @@
-using SOFIA.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
-using SOFIA.Application.Common.Models;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Pacientes.Commands.UpdatePaciente;
 
-public record UpdatePacienteCommand(Guid Id) : ICommand<Guid>; // TODO: Add properties manually
+public record UpdatePacienteCommand(Guid Id, string DocIdentidadGub, string NombreApellidos, DateOnly FechaNacimiento, string? ContactoPrimario) : ICommand;
 
-public class UpdatePacienteCommandHandler(IApplicationDbContext context) : IRequestHandler<UpdatePacienteCommand, Result<Guid>>
+public class UpdatePacienteCommandHandler(IApplicationDbContext context) : IRequestHandler<UpdatePacienteCommand, Result>
 {
-    public async Task<Result<Guid>> Handle(UpdatePacienteCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(UpdatePacienteCommand request, CancellationToken cancellationToken)
     {
         var entity = await context.Pacientes
-            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
+            .FindAsync([request.Id], cancellationToken);
 
         if (entity == null)
         {
-            return Result.Failure<Guid>(Error.NotFound("NotFound", "Record not found."));
+            return Result.Failure(Error.NotFound("Paciente.NotFound", $"Paciente with ID {request.Id} was not found."), 404);
         }
 
-        // TODO: Update properties here
+        var result = entity.Update(request.DocIdentidadGub, request.NombreApellidos, request.FechaNacimiento, request.ContactoPrimario);
+
+        if (!result.IsSuccess)
+        {
+            return result;
+        }
 
         _ = await context.SaveChangesAsync(cancellationToken);
-        return Result.Success(entity.Id);
+
+        return Result.Success();
     }
 }

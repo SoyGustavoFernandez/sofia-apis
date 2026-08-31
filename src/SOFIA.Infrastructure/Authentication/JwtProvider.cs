@@ -21,6 +21,8 @@ public class JwtProvider(IOptions<JwtOptions> options) : IJwtProvider
         {
             new(JwtRegisteredClaimNames.Sub, cuenta.Id.ToString()),
             new(JwtRegisteredClaimNames.UniqueName, cuenta.NombreUsuario),
+            new("fullName", cuenta.Empleado?.Nombre_Completo ?? string.Empty),
+            new("nombreEmpresa", cuenta.Empleado?.Sucursal_Base?.Empresa?.Nombre ?? string.Empty),
             new("empleadoId", cuenta.EmpleadoId.ToString()),
             new("sucursalId", resolvedSucursalId?.ToString() ?? string.Empty),
             new("securityStamp", cuenta.SecurityStamp.ToString())

@@ -1,0 +1,31 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
+using SOFIA.Domain.Common;
+
+namespace SOFIA.Application.Pacientes.Queries.GetPacientes;
+
+public class GetPacientesQueryHandler(IApplicationDbContext context) : IRequestHandler<GetPacientesQuery, Result<PaginatedList<PacienteDto>>>
+{
+    public async Task<Result<PaginatedList<PacienteDto>>> Handle(GetPacientesQuery request, CancellationToken cancellationToken)
+    {
+        var query = context.Pacientes
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var searchTerm = request.SearchTerm.ToLower();
+            query = query.Where(x => x.DocIdentidadGub.ToLower().Contains(searchTerm) ||
+                                     x.NombreApellidos.ToLower().Contains(searchTerm));
+        }
+
+        var paginatedList = await PaginatedList<PacienteDto>.CreateAsync(
+            query.Select(x => new PacienteDto(x.Id, x.DocIdentidadGub, x.NombreApellidos, x.FechaNacimiento, x.ContactoPrimario)),
+            request.PageNumber,
+            request.PageSize);
+
+        return Result.Success(paginatedList);
+    }
+}

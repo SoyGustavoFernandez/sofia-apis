@@ -23,7 +23,7 @@ public class EmpresaTests
         var result = Empresa.Create("Farmacia Salud", "12345678901");
 
         _ = result.IsSuccess.Should().BeTrue();
-        _ = result.Value!.RUC.Should().Be("12345678901");
+        _ = result.Value!.RUC!.Value.Should().Be("12345678901");
     }
 
     [Theory]
@@ -48,7 +48,7 @@ public class EmpresaTests
         var result = Empresa.Create("Farmacia", ruc);
 
         _ = result.IsFailure.Should().BeTrue();
-        _ = result.Error.Code.Should().Be("Empresa.RUC");
+        _ = result.Error.Code.Should().StartWith("Ruc.");
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public class EmpresaTests
 
         _ = result.IsSuccess.Should().BeTrue();
         _ = empresa.Nombre.Should().Be("Farmacia Nueva");
-        _ = empresa.RUC.Should().Be("98765432100");
+        _ = empresa.RUC!.Value.Should().Be("98765432100");
     }
 
     [Fact]

@@ -10,7 +10,8 @@ public record ProfesionalSaludDto(Guid Id, string NumeroRegistro, string NombreP
 
 public record GetProfesionalesSaludQuery : IRequest<Result<PaginatedList<ProfesionalSaludDto>>>
 {
-    public string? SearchTerm { get; init; }
+    public string? NumeroRegistro { get; init; }
+    public string? NombrePrescriptor { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
 }

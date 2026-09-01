@@ -14,11 +14,14 @@ public class GetAseguradorasQueryHandler(IApplicationDbContext context) : IReque
             .AsNoTracking()
             .Where(x => !x.IsDeleted);
 
-        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        if (!string.IsNullOrWhiteSpace(request.NombreComercial))
         {
-            var searchTerm = request.SearchTerm.ToLower();
-            query = query.Where(x => x.NombreComercial.ToLower().Contains(searchTerm) ||
-                                     x.CodigoIdentificadorNacional.ToLower().Contains(searchTerm));
+            query = query.Where(x => x.NombreComercial.ToLower().Contains(request.NombreComercial.ToLower()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.CodigoIdentificadorNacional))
+        {
+            query = query.Where(x => x.CodigoIdentificadorNacional.ToLower().Contains(request.CodigoIdentificadorNacional.ToLower()));
         }
 
         var paginatedList = await PaginatedList<AseguradoraDto>.CreateAsync(

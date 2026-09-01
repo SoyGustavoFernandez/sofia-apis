@@ -45,7 +45,7 @@ public class ExcelReaderService : IExcelReaderService
                     cellValue = string.IsNullOrEmpty(raw) ? null : raw;
                 }
 
-                values[col.ToLowerInvariant()] = cellValue;
+                values[char.ToLowerInvariant(col[0]) + col[1..]] = cellValue;
                 if (cellValue != null)
                 {
                     hasAnyValue = true;

@@ -14,11 +14,14 @@ public class GetUnidadesMedidaQueryHandler(IApplicationDbContext context) : IReq
             .AsNoTracking()
             .Where(x => !x.IsDeleted);
 
-        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        if (!string.IsNullOrWhiteSpace(request.Codigo))
         {
-            var searchTerm = request.SearchTerm.ToLower();
-            query = query.Where(x => x.Codigo.ToLower().Contains(searchTerm) ||
-                                     x.Descripcion.ToLower().Contains(searchTerm));
+            query = query.Where(x => x.Codigo.ToLower().Contains(request.Codigo.ToLower()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Descripcion))
+        {
+            query = query.Where(x => x.Descripcion.ToLower().Contains(request.Descripcion.ToLower()));
         }
 
         var paginatedList = await PaginatedList<UnidadMedidaDto>.CreateAsync(

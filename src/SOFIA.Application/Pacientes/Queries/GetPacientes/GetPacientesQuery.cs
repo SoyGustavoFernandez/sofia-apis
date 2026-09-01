@@ -10,7 +10,10 @@ public record PacienteDto(Guid Id, string DocIdentidadGub, string NombreApellido
 
 public record GetPacientesQuery : IRequest<Result<PaginatedList<PacienteDto>>>
 {
-    public string? SearchTerm { get; init; }
+    public string? DocIdentidadGub { get; init; }
+    public string? NombreApellidos { get; init; }
+    public DateOnly? FechaNacimientoDesde { get; init; }
+    public DateOnly? FechaNacimientoHasta { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
 }

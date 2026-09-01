@@ -14,7 +14,7 @@
 | Architecture Tests (2 tests) | ✅ 2/2 passed |
 | Integration Tests | ⚠️ Requieren Docker Desktop corriendo |
 
-> **Nota SUNAT:** La integración con SUNAT es simulada (alcance de tesis). Los campos de hash, URL y CDR en el comprobante son placeholders. La integración real requiere un OSE/PSE homologado y firma digital con certificado.
+> **Nota SUNAT:** La integración con SUNAT es simulada (más adelante se implementará). Los campos de hash, URL y CDR en el comprobante son placeholders. La integración real requiere un OSE/PSE homologado y firma digital con certificado.
 
 ---
 
@@ -212,10 +212,10 @@ Alcances válidos: domain, app, infra, api, ia, db
 
 | Capa | Tecnología |
 |---|---|
-| Runtime | .NET 10, C# 14 |
+| Runtime | .NET 10 LTS, C# 13 |
 | ORM | Entity Framework Core 10 |
 | Base de datos | SQL Server 2022 |
-| Mediador / CQRS | MediatR 12 |
+| Mediador / CQRS | MediatR 14 |
 | Validación | FluentValidation |
 | Autenticación | JWT Bearer + SecurityStamp |
 | Logging | Serilog (CompactJSON, rotación diaria) |

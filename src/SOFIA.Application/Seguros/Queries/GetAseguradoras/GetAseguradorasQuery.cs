@@ -10,7 +10,8 @@ public record AseguradoraDto(Guid Id, string NombreComercial, string CodigoIdent
 
 public record GetAseguradorasQuery : IRequest<Result<PaginatedList<AseguradoraDto>>>
 {
-    public string? SearchTerm { get; init; }
+    public string? NombreComercial { get; init; }
+    public string? CodigoIdentificadorNacional { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
 }

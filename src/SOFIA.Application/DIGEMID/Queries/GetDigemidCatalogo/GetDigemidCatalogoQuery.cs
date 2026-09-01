@@ -10,7 +10,8 @@ public record DigemidProductoDto(Guid Id, string CodProd, string NomProd, string
 
 public record GetDigemidCatalogoQuery : IRequest<Result<PaginatedList<DigemidProductoDto>>>
 {
-    public string? SearchTerm { get; init; }
+    public string? CodProd { get; init; }
+    public string? NomProd { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
 }

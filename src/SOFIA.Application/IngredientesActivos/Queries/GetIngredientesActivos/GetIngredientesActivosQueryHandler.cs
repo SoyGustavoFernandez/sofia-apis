@@ -14,11 +14,14 @@ public class GetIngredientesActivosQueryHandler(IApplicationDbContext context) :
             .AsNoTracking()
             .Where(x => !x.IsDeleted);
 
-        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        if (!string.IsNullOrWhiteSpace(request.DenominacionDci))
         {
-            var searchTerm = request.SearchTerm.ToLower();
-            query = query.Where(x => x.DenominacionDci.ToLower().Contains(searchTerm) ||
-                                     x.CodigoAtc.ToLower().Contains(searchTerm));
+            query = query.Where(x => x.DenominacionDci.ToLower().Contains(request.DenominacionDci.ToLower()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.CodigoAtc))
+        {
+            query = query.Where(x => x.CodigoAtc.ToLower().Contains(request.CodigoAtc.ToLower()));
         }
 
         var paginatedList = await PaginatedList<IngredienteActivoDto>.CreateAsync(

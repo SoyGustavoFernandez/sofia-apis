@@ -1,26 +1,43 @@
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
-using SOFIA.Application.Security;
+using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Security.Queries.Roles.GetRoles;
 
-public class GetRolesQueryHandler(IApplicationDbContext context) : IRequestHandler<GetRolesQuery, Result<IReadOnlyList<RolResponse>>>
+public class GetRolesQueryHandler(IApplicationDbContext context) : IRequestHandler<GetRolesQuery, Result<PaginatedList<RolResponse>>>
 {
-    public async Task<Result<IReadOnlyList<RolResponse>>> Handle(GetRolesQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PaginatedList<RolResponse>>> Handle(GetRolesQuery request, CancellationToken cancellationToken)
     {
-        var roles = await context.Roles
-            .Where(r => !r.IsDeleted)
-            .OrderByDescending(r => r.NivelJerarquia)
-            .Select(r => new RolResponse(
-                r.Id,
-                r.NombreRol,
-                r.Descripcion,
-                r.NivelJerarquia,
-                r.CreatedAt))
-            .ToListAsync(cancellationToken);
+        var query = context.Roles
+            .Where(r => !r.IsDeleted);
 
-        return Result.Success<IReadOnlyList<RolResponse>>(roles);
+        if (!string.IsNullOrWhiteSpace(request.NombreRol))
+        {
+            query = query.Where(r => r.NombreRol.Contains(request.NombreRol));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Descripcion))
+        {
+            query = query.Where(r => r.Descripcion != null && r.Descripcion.Contains(request.Descripcion));
+        }
+
+        if (request.NivelJerarquiaDesde.HasValue)
+        {
+            query = query.Where(r => r.NivelJerarquia >= request.NivelJerarquiaDesde.Value);
+        }
+
+        if (request.NivelJerarquiaHasta.HasValue)
+        {
+            query = query.Where(r => r.NivelJerarquia <= request.NivelJerarquiaHasta.Value);
+        }
+
+        var projected = query
+            .OrderByDescending(r => r.NivelJerarquia)
+            .Select(r => new RolResponse(r.Id, r.NombreRol, r.Descripcion, r.NivelJerarquia, r.CreatedAt));
+
+        var paginated = await PaginatedList<RolResponse>.CreateAsync(projected, request.PageNumber, request.PageSize);
+
+        return Result.Success(paginated);
     }
 }

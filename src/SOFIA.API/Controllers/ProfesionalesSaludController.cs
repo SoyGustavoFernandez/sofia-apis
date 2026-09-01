@@ -1,12 +1,11 @@
-using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Excel;
-using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Profesionales.Commands.CargaMasivaProfesionalesSalud;
 using SOFIA.Application.Profesionales.Commands.CreateProfesionalSalud;
 using SOFIA.Application.Profesionales.Commands.DeleteProfesionalSalud;
 using SOFIA.Application.Profesionales.Commands.UpdateProfesionalSalud;
 using SOFIA.Application.Profesionales.Queries.GetProfesionalSaludById;
 using SOFIA.Application.Profesionales.Queries.GetProfesionalesSalud;
-using SOFIA.Domain.Entities;
+using SOFIA.Application.Profesionales.Queries.PreviewImportProfesionalesSalud;
 using SOFIA.Infrastructure.Excel;
 
 namespace SOFIA.API.Controllers;
@@ -14,7 +13,7 @@ namespace SOFIA.API.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/profesionalessalud")]
-public class ProfesionalesSaludController(ISender sender, IApplicationDbContext context, IExcelReaderService excelReader) : ControllerBase
+public class ProfesionalesSaludController(ISender sender, IExcelReaderService excelReader) : ControllerBase
 {
     [HasPermission("ProfesionalesSalud", "Leer")]
     [HttpGet]
@@ -78,96 +77,44 @@ public class ProfesionalesSaludController(ISender sender, IApplicationDbContext 
         var columns = new[] { "NumeroRegistro", "NombrePrescriptor", "DireccionClinica" };
         using var stream = file.OpenReadStream();
         var rows = excelReader.ReadRows(stream, columns);
-
-        var existingRegistros = await context.ProfesionalesSalud
-            .Select(p => p.NumeroRegistro.ToLower())
-            .ToListAsync(cancellationToken);
-        var existingSet = new HashSet<string>(existingRegistros);
-
-        var seenRegistros = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in rows)
-        {
-            var reg = row.Values.GetValueOrDefault("NumeroRegistro");
-            if (!string.IsNullOrWhiteSpace(reg))
-            {
-                if (!seenRegistros.ContainsKey(reg))
-                {
-                    seenRegistros[reg] = [];
-                }
-
-                seenRegistros[reg].Add(row.RowNumber);
-            }
-        }
-
-        var result = new PreviewResult
-        {
-            Rows = [.. rows.Select(row =>
-            {
-                var errors = new List<ValidationError>();
-                var reg = row.Values.GetValueOrDefault("NumeroRegistro");
-                var nombre = row.Values.GetValueOrDefault("NombrePrescriptor");
-                var direccion = row.Values.GetValueOrDefault("DireccionClinica");
-
-                if (string.IsNullOrWhiteSpace(reg))
-                {
-                    errors.Add(new ValidationError("required", "numeroRegistro"));
-                }
-                else
-                {
-                    if (reg.Length > 50)
-                    {
-                        errors.Add(new ValidationError("max-length", "numeroRegistro", new() { ["max"] = 50 }));
-                    }
-
-                    if (existingSet.Contains(reg.ToLower()))
-                    {
-                        errors.Add(new ValidationError("duplicate", "numeroRegistro", new() { ["value"] = reg }));
-                    }
-
-                    if (seenRegistros.TryGetValue(reg, out var rowsWithSame) && rowsWithSame.Count > 1)
-                    {
-                        errors.Add(new ValidationError("duplicate-in-file", "numeroRegistro", new() { ["value"] = reg }));
-                    }
-                }
-
-                if (string.IsNullOrWhiteSpace(nombre))
-                {
-                    errors.Add(new ValidationError("required", "nombrePrescriptor"));
-                }
-                else if (nombre.Length > 150)
-                {
-                    errors.Add(new ValidationError("max-length", "nombrePrescriptor", new() { ["max"] = 150 }));
-                }
-
-                if (!string.IsNullOrEmpty(direccion) && direccion.Length > 255)
-                {
-                    errors.Add(new ValidationError("max-length", "direccionClinica", new() { ["max"] = 255 }));
-                }
-
-                return new PreviewRowResult { RowNumber = row.RowNumber, Data = row.Values, Errors = errors };
-            })]
-        };
-
+        var result = await sender.Send(new PreviewImportProfesionalesSaludQuery(rows), cancellationToken);
         return Ok(result);
     }
-
-    public record ProfesionalSaludImportRow(string NumeroRegistro, string NombrePrescriptor, string? DireccionClinica);
 
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<ProfesionalSaludImportRow> rows, CancellationToken cancellationToken)
     {
-        var saved = 0;
-        foreach (var row in rows)
+        var result = await sender.Send(new CargaMasivaProfesionalesSaludCommand(rows), cancellationToken);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+    }
+
+    [HasPermission("ProfesionalesSalud", "Leer")]
+    [HttpPost("exportar")]
+    public async Task<IActionResult> Exportar([FromBody] ProfesionalSaludExportRequest request)
+    {
+        var result = await sender.Send(new GetProfesionalesSaludQuery
         {
-            var result = ProfesionalSalud.Create(row.NumeroRegistro, row.NombrePrescriptor, row.DireccionClinica);
-            if (result.IsSuccess)
-            {
-                _ = context.ProfesionalesSalud.Add(result.Value);
-                saved++;
-            }
+            NumeroRegistro = request.NumeroRegistro,
+            NombrePrescriptor = request.NombrePrescriptor,
+            PageSize = int.MaxValue,
+        });
+        if (!result.IsSuccess)
+        {
+            return Problem(result.Error.Message, statusCode: result.StatusCode);
         }
 
-        _ = await context.SaveChangesAsync(cancellationToken);
-        return Ok(new { savedCount = saved });
+        var rows = result.Value.Items.Select(p => new object?[]
+        {
+            p.NumeroRegistro,
+            p.NombrePrescriptor,
+            p.DireccionClinica,
+        });
+        var bytes = ExcelTemplateGenerator.GenerateReport(request.Headers, rows);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "profesionalessalud.xlsx");
     }
 }
+
+public record ProfesionalSaludExportRequest(
+    string[] Headers,
+    string? NumeroRegistro,
+    string? NombrePrescriptor);

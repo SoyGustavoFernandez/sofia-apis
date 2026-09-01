@@ -1,14 +1,13 @@
-using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Excel;
-using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.DIGEMID.Commands.AislarLoteCuarentena;
+using SOFIA.Application.DIGEMID.Commands.CargaMasivaDigemid;
 using SOFIA.Application.DIGEMID.Commands.CreateDigemidProducto;
 using SOFIA.Application.DIGEMID.Commands.DeleteDigemidProducto;
 using SOFIA.Application.DIGEMID.Commands.GenerarActaDestruccion;
 using SOFIA.Application.DIGEMID.Commands.UpdateDigemidProducto;
 using SOFIA.Application.DIGEMID.Queries.GetDigemidCatalogo;
 using SOFIA.Application.DIGEMID.Queries.GetDigemidCatalogoById;
-using SOFIA.Domain.Entities;
+using SOFIA.Application.DIGEMID.Queries.PreviewImportDigemid;
 using SOFIA.Infrastructure.Excel;
 
 namespace SOFIA.Api.Controllers;
@@ -16,7 +15,7 @@ namespace SOFIA.Api.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class DigemidController(ISender sender, IApplicationDbContext context, IExcelReaderService excelReader) : ControllerBase
+public class DigemidController(ISender sender, IExcelReaderService excelReader) : ControllerBase
 {
     [HasPermission("DIGEMID", "AislarLoteCuarentena")]
     [HttpPost("cuarentena")]
@@ -114,104 +113,43 @@ public class DigemidController(ISender sender, IApplicationDbContext context, IE
         var columns = new[] { "CodProd", "NomProd", "Concent", "FormaFarmaceutica", "Fraccion", "RegistroSanitario", "Titular", "Estado" };
         using var stream = file.OpenReadStream();
         var rows = excelReader.ReadRows(stream, columns);
-
-        var existingCodes = await context.DigemidCatalogoProductos
-            .Select(d => d.CodProd.ToLower())
-            .ToListAsync(cancellationToken);
-        var existingSet = new HashSet<string>(existingCodes);
-
-        var seenCodes = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in rows)
-        {
-            var cod = row.Values.GetValueOrDefault("CodProd");
-            if (!string.IsNullOrWhiteSpace(cod))
-            {
-                if (!seenCodes.ContainsKey(cod))
-                {
-                    seenCodes[cod] = [];
-                }
-
-                seenCodes[cod].Add(row.RowNumber);
-            }
-        }
-
-        var result = new PreviewResult
-        {
-            Rows = [.. rows.Select(row =>
-            {
-                var errors = new List<ValidationError>();
-                var cod = row.Values.GetValueOrDefault("CodProd");
-                var nom = row.Values.GetValueOrDefault("NomProd");
-                var estado = row.Values.GetValueOrDefault("Estado");
-
-                if (string.IsNullOrWhiteSpace(cod))
-                {
-                    errors.Add(new ValidationError("required", "codProd"));
-                }
-                else
-                {
-                    if (existingSet.Contains(cod.ToLower()))
-                    {
-                        errors.Add(new ValidationError("duplicate", "codProd", new() { ["value"] = cod }));
-                    }
-
-                    if (seenCodes.TryGetValue(cod, out var rowsWithSame) && rowsWithSame.Count > 1)
-                    {
-                        errors.Add(new ValidationError("duplicate-in-file", "codProd", new() { ["value"] = cod }));
-                    }
-                }
-
-                if (string.IsNullOrWhiteSpace(nom))
-                {
-                    errors.Add(new ValidationError("required", "nomProd"));
-                }
-
-                if (string.IsNullOrWhiteSpace(estado))
-                {
-                    errors.Add(new ValidationError("required", "estado"));
-                }
-
-                return new PreviewRowResult { RowNumber = row.RowNumber, Data = row.Values, Errors = errors };
-            })]
-        };
-
+        var result = await sender.Send(new PreviewImportDigemidQuery(rows), cancellationToken);
         return Ok(result);
     }
-
-    public record DigemidImportRow(
-        string CodProd,
-        string NomProd,
-        string? Concent,
-        string? FormaFarmaceutica,
-        string? Fraccion,
-        string? RegistroSanitario,
-        string? Titular,
-        string Estado);
 
     [HttpPost("catalogo/carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<DigemidImportRow> rows, CancellationToken cancellationToken)
     {
-        var saved = 0;
-        foreach (var row in rows)
+        var result = await sender.Send(new CargaMasivaDigemidCommand(rows), cancellationToken);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+    }
+
+    [HasPermission("DIGEMID", "Leer")]
+    [HttpPost("catalogo/exportar")]
+    public async Task<IActionResult> ExportarCatalogo([FromBody] DigemidCatalogoExportRequest request)
+    {
+        var result = await sender.Send(new GetDigemidCatalogoQuery
         {
-            var result = DigemidCatalogoProducto.Create(
-                row.CodProd,
-                row.NomProd,
-                row.Concent,
-                row.FormaFarmaceutica,
-                row.Fraccion,
-                row.RegistroSanitario,
-                row.Titular,
-                row.Estado);
+            CodProd = request.CodProd,
+            NomProd = request.NomProd,
+            PageSize = int.MaxValue,
+        });
+        if (!result.IsSuccess)
+            return Problem(result.Error.Message, statusCode: result.StatusCode);
 
-            if (result.IsSuccess)
-            {
-                _ = context.DigemidCatalogoProductos.Add(result.Value);
-                saved++;
-            }
-        }
-
-        _ = await context.SaveChangesAsync(cancellationToken);
-        return Ok(new { savedCount = saved });
+        var rows = result.Value.Items.Select(p => new object?[]
+        {
+            p.CodProd,
+            p.NomProd,
+            p.FormaFarmaceutica,
+            p.Estado,
+        });
+        var bytes = ExcelTemplateGenerator.GenerateReport(request.Headers, rows);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "digemid-catalogo.xlsx");
     }
 }
+
+public record DigemidCatalogoExportRequest(
+    string[] Headers,
+    string? CodProd,
+    string? NomProd);

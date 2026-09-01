@@ -1,8 +1,7 @@
-using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Excel;
-using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Security.Commands.Roles.AssignPermission;
 using SOFIA.Application.Security.Commands.Roles.AssignRol;
+using SOFIA.Application.Security.Commands.Roles.CargaMasivaRoles;
 using SOFIA.Application.Security.Commands.Roles.CreateRol;
 using SOFIA.Application.Security.Commands.Roles.DeleteRol;
 using SOFIA.Application.Security.Commands.Roles.RemoveRol;
@@ -11,7 +10,7 @@ using SOFIA.Application.Security.Commands.Roles.UpdateRol;
 using SOFIA.Application.Security.Queries.Roles.GetPermissions;
 using SOFIA.Application.Security.Queries.Roles.GetRoles;
 using SOFIA.Application.Security.Queries.Roles.GetRolById;
-using SOFIA.Domain.Entities;
+using SOFIA.Application.Security.Queries.Roles.PreviewImportRoles;
 using SOFIA.Infrastructure.Excel;
 
 namespace SOFIA.API.Controllers;
@@ -19,13 +18,27 @@ namespace SOFIA.API.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class RolesController(ISender sender, IApplicationDbContext context, IExcelReaderService excelReader) : ControllerBase
+public class RolesController(ISender sender, IExcelReaderService excelReader) : ControllerBase
 {
     [HasPermission("Seguridad", "Leer")]
     [HttpGet]
-    public async Task<IActionResult> GetRoles()
+    public async Task<IActionResult> GetRoles(
+        [FromQuery] string? nombreRol,
+        [FromQuery] string? descripcion,
+        [FromQuery] int? nivelJerarquiaDesde,
+        [FromQuery] int? nivelJerarquiaHasta,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 25)
     {
-        var result = await sender.Send(new GetRolesQuery());
+        var result = await sender.Send(new GetRolesQuery
+        {
+            NombreRol = nombreRol,
+            Descripcion = descripcion,
+            NivelJerarquiaDesde = nivelJerarquiaDesde,
+            NivelJerarquiaHasta = nivelJerarquiaHasta,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+        });
         return result.IsSuccess
             ? Ok(result.Value)
             : Problem(result.Error.Message, statusCode: result.StatusCode);
@@ -121,6 +134,34 @@ public class RolesController(ISender sender, IApplicationDbContext context, IExc
             : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Seguridad", "Leer")]
+    [HttpPost("exportar")]
+    public async Task<IActionResult> Exportar([FromBody] RolExportRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetRolesQuery
+        {
+            NombreRol = request.NombreRol,
+            Descripcion = request.Descripcion,
+            NivelJerarquiaDesde = request.NivelJerarquiaDesde,
+            NivelJerarquiaHasta = request.NivelJerarquiaHasta,
+            PageSize = int.MaxValue,
+        }, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return Problem(result.Error.Message, statusCode: result.StatusCode);
+        }
+
+        var rows = result.Value.Items.Select(r => new object?[]
+        {
+            r.NombreRol,
+            r.Descripcion,
+            r.NivelJerarquia,
+        });
+
+        var bytes = ExcelTemplateGenerator.GenerateReport(request.Headers, rows);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "roles.xlsx");
+    }
+
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -140,96 +181,18 @@ public class RolesController(ISender sender, IApplicationDbContext context, IExc
         var columns = new[] { "NombreRol", "Descripcion", "NivelJerarquia" };
         using var stream = file.OpenReadStream();
         var rows = excelReader.ReadRows(stream, columns);
-
-        var existingNames = await context.Roles
-            .Select(r => r.NombreRol.ToLower())
-            .ToListAsync(cancellationToken);
-        var existingSet = new HashSet<string>(existingNames);
-
-        var seenNames = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in rows)
-        {
-            var nombre = row.Values.GetValueOrDefault("NombreRol");
-            if (!string.IsNullOrWhiteSpace(nombre))
-            {
-                if (!seenNames.ContainsKey(nombre))
-                {
-                    seenNames[nombre] = [];
-                }
-
-                seenNames[nombre].Add(row.RowNumber);
-            }
-        }
-
-        var result = new PreviewResult
-        {
-            Rows = [.. rows.Select(row =>
-            {
-                var errors = new List<ValidationError>();
-                var nombre = row.Values.GetValueOrDefault("NombreRol");
-                var nivelStr = row.Values.GetValueOrDefault("NivelJerarquia");
-
-                if (string.IsNullOrWhiteSpace(nombre))
-                {
-                    errors.Add(new ValidationError("required", "nombreRol"));
-                }
-                else
-                {
-                    if (nombre.Length > 50)
-                    {
-                        errors.Add(new ValidationError("max-length", "nombreRol", new() { ["max"] = 50 }));
-                    }
-
-                    if (existingSet.Contains(nombre.ToLower()))
-                    {
-                        errors.Add(new ValidationError("duplicate", "nombreRol", new() { ["value"] = nombre }));
-                    }
-
-                    if (seenNames.TryGetValue(nombre, out var rowsWithSame) && rowsWithSame.Count > 1)
-                    {
-                        errors.Add(new ValidationError("duplicate-in-file", "nombreRol", new() { ["value"] = nombre }));
-                    }
-                }
-
-                if (string.IsNullOrWhiteSpace(nivelStr))
-                {
-                    errors.Add(new ValidationError("required", "nivelJerarquia"));
-                }
-                else if (!int.TryParse(nivelStr, out var nivel))
-                {
-                    errors.Add(new ValidationError("invalid-integer", "nivelJerarquia"));
-                }
-                else if (nivel < 1)
-                {
-                    errors.Add(new ValidationError("min-value", "nivelJerarquia", new() { ["min"] = 1 }));
-                }
-
-                return new PreviewRowResult { RowNumber = row.RowNumber, Data = row.Values, Errors = errors };
-            })]
-        };
-
+        var result = await sender.Send(new PreviewImportRolesQuery(rows), cancellationToken);
         return Ok(result);
     }
-
-    public record RolImportRow(string NombreRol, string? Descripcion, int NivelJerarquia);
 
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<RolImportRow> rows, CancellationToken cancellationToken)
     {
-        var saved = 0;
-        foreach (var row in rows)
-        {
-            var result = Rol.Create(row.NombreRol, row.Descripcion, row.NivelJerarquia);
-            if (result.IsSuccess)
-            {
-                _ = context.Roles.Add(result.Value);
-                saved++;
-            }
-        }
-
-        _ = await context.SaveChangesAsync(cancellationToken);
-        return Ok(new { savedCount = saved });
+        var result = await sender.Send(new CargaMasivaRolesCommand(rows), cancellationToken);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 }
 
 public record UpdateRolRequest(string? Descripcion, [property: System.Text.Json.Serialization.JsonRequired] int NivelJerarquia);
+
+public record RolExportRequest(string[] Headers, string? NombreRol, string? Descripcion, int? NivelJerarquiaDesde, int? NivelJerarquiaHasta);

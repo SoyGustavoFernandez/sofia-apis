@@ -1,12 +1,11 @@
-using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Excel;
-using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.IngredientesActivos.Commands.CargaMasivaIngredientesActivos;
 using SOFIA.Application.IngredientesActivos.Commands.CreateIngredienteActivo;
 using SOFIA.Application.IngredientesActivos.Commands.DeleteIngredienteActivo;
 using SOFIA.Application.IngredientesActivos.Commands.UpdateIngredienteActivo;
 using SOFIA.Application.IngredientesActivos.Queries.GetIngredienteActivoById;
 using SOFIA.Application.IngredientesActivos.Queries.GetIngredientesActivos;
-using SOFIA.Domain.Entities;
+using SOFIA.Application.IngredientesActivos.Queries.PreviewImportIngredientesActivos;
 using SOFIA.Infrastructure.Excel;
 
 namespace SOFIA.API.Controllers;
@@ -14,7 +13,7 @@ namespace SOFIA.API.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class IngredientesActivosController(ISender sender, IApplicationDbContext context, IExcelReaderService excelReader) : ControllerBase
+public class IngredientesActivosController(ISender sender, IExcelReaderService excelReader) : ControllerBase
 {
     [HasPermission("IngredientesActivos", "Leer")]
     [HttpGet]
@@ -64,6 +63,31 @@ public class IngredientesActivosController(ISender sender, IApplicationDbContext
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("IngredientesActivos", "Leer")]
+    [HttpPost("exportar")]
+    public async Task<IActionResult> Exportar([FromBody] IngredienteActivoExportRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetIngredientesActivosQuery
+        {
+            DenominacionDci = request.DenominacionDci,
+            CodigoAtc = request.CodigoAtc,
+            PageSize = int.MaxValue,
+        }, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return Problem(result.Error.Message, statusCode: result.StatusCode);
+        }
+
+        var rows = result.Value.Items.Select(i => new object?[]
+        {
+            i.DenominacionDci,
+            i.CodigoAtc,
+        });
+
+        var bytes = ExcelTemplateGenerator.GenerateReport(request.Headers, rows);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ingredientes-activos.xlsx");
+    }
+
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -83,90 +107,16 @@ public class IngredientesActivosController(ISender sender, IApplicationDbContext
         var columns = new[] { "DenominacionDci", "CodigoAtc" };
         using var stream = file.OpenReadStream();
         var rows = excelReader.ReadRows(stream, columns);
-
-        var existingCodes = await context.IngredientesActivos
-            .Select(i => i.CodigoAtc.ToLower())
-            .ToListAsync(cancellationToken);
-        var existingSet = new HashSet<string>(existingCodes);
-
-        var seenCodes = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in rows)
-        {
-            var code = row.Values.GetValueOrDefault("CodigoAtc");
-            if (!string.IsNullOrWhiteSpace(code))
-            {
-                if (!seenCodes.ContainsKey(code))
-                {
-                    seenCodes[code] = [];
-                }
-
-                seenCodes[code].Add(row.RowNumber);
-            }
-        }
-
-        var result = new PreviewResult
-        {
-            Rows = [.. rows.Select(row =>
-            {
-                var errors = new List<ValidationError>();
-                var dci = row.Values.GetValueOrDefault("DenominacionDci");
-                var atc = row.Values.GetValueOrDefault("CodigoAtc");
-
-                if (string.IsNullOrWhiteSpace(dci))
-                {
-                    errors.Add(new ValidationError("required", "denominacionDci"));
-                }
-                else if (dci.Length > 255)
-                {
-                    errors.Add(new ValidationError("max-length", "denominacionDci", new() { ["max"] = 255 }));
-                }
-
-                if (string.IsNullOrWhiteSpace(atc))
-                {
-                    errors.Add(new ValidationError("required", "codigoAtc"));
-                }
-                else
-                {
-                    if (atc.Length > 15)
-                    {
-                        errors.Add(new ValidationError("max-length", "codigoAtc", new() { ["max"] = 15 }));
-                    }
-
-                    if (existingSet.Contains(atc.ToLower()))
-                    {
-                        errors.Add(new ValidationError("duplicate", "codigoAtc", new() { ["value"] = atc }));
-                    }
-
-                    if (seenCodes.TryGetValue(atc, out var rowsWithSame) && rowsWithSame.Count > 1)
-                    {
-                        errors.Add(new ValidationError("duplicate-in-file", "codigoAtc", new() { ["value"] = atc }));
-                    }
-                }
-
-                return new PreviewRowResult { RowNumber = row.RowNumber, Data = row.Values, Errors = errors };
-            })]
-        };
-
+        var result = await sender.Send(new PreviewImportIngredientesActivosQuery(rows), cancellationToken);
         return Ok(result);
     }
-
-    public record IngredienteActivoImportRow(string DenominacionDci, string CodigoAtc);
 
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<IngredienteActivoImportRow> rows, CancellationToken cancellationToken)
     {
-        var saved = 0;
-        foreach (var row in rows)
-        {
-            var result = IngredienteActivo.Create(row.DenominacionDci, row.CodigoAtc);
-            if (result.IsSuccess)
-            {
-                _ = context.IngredientesActivos.Add(result.Value);
-                saved++;
-            }
-        }
-
-        _ = await context.SaveChangesAsync(cancellationToken);
-        return Ok(new { savedCount = saved });
+        var result = await sender.Send(new CargaMasivaIngredientesActivosCommand(rows), cancellationToken);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 }
+
+public record IngredienteActivoExportRequest(string[] Headers, string? DenominacionDci, string? CodigoAtc);

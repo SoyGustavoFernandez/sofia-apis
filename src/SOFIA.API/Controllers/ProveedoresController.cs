@@ -1,13 +1,12 @@
-using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Excel;
-using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Proveedores.Commands.CargaMasivaProveedores;
 using SOFIA.Application.Proveedores.Commands.CreateProveedor;
 using SOFIA.Application.Proveedores.Commands.DeleteProveedor;
 using SOFIA.Application.Proveedores.Commands.RegistrarPrecioProveedor;
 using SOFIA.Application.Proveedores.Commands.UpdateProveedor;
 using SOFIA.Application.Proveedores.Queries.GetProveedorById;
 using SOFIA.Application.Proveedores.Queries.GetProveedores;
-using SOFIA.Domain.Entities;
+using SOFIA.Application.Proveedores.Queries.PreviewImportProveedores;
 using SOFIA.Infrastructure.Excel;
 
 namespace SOFIA.Api.Controllers;
@@ -15,7 +14,7 @@ namespace SOFIA.Api.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class ProveedoresController(ISender sender, IApplicationDbContext context, IExcelReaderService excelReader) : ControllerBase
+public class ProveedoresController(ISender sender, IExcelReaderService excelReader) : ControllerBase
 {
     [HasPermission("Proveedores", "Crear")]
     [HttpPost]
@@ -66,6 +65,33 @@ public class ProveedoresController(ISender sender, IApplicationDbContext context
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Proveedores", "Leer")]
+    [HttpPost("exportar")]
+    public async Task<IActionResult> Exportar([FromBody] ProveedorExportRequest request)
+    {
+        var result = await sender.Send(new GetProveedoresQuery
+        {
+            RazonSocial = request.RazonSocial,
+            TaxId = request.TaxId,
+            TasaCumplimientoDesde = request.TasaCumplimientoDesde,
+            TasaCumplimientoHasta = request.TasaCumplimientoHasta,
+            PageSize = int.MaxValue,
+        });
+        if (!result.IsSuccess)
+        {
+            return Problem(result.Error.Message, statusCode: result.StatusCode);
+        }
+
+        var rows = result.Value.Items.Select(p => new object?[]
+        {
+            p.RazonSocial,
+            p.TaxId,
+            p.TasaCumplimiento,
+        });
+        var bytes = ExcelTemplateGenerator.GenerateReport(request.Headers, rows);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "proveedores.xlsx");
+    }
+
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -85,128 +111,16 @@ public class ProveedoresController(ISender sender, IApplicationDbContext context
         var columns = new[] { "RazonSocial", "TaxId", "TerminosFinancieros", "CalificacionEsg", "TasaCumplimiento" };
         using var stream = file.OpenReadStream();
         var rows = excelReader.ReadRows(stream, columns);
-
-        var existingTaxIds = await context.Proveedores
-            .Select(p => p.TaxId.ToLower())
-            .ToListAsync(cancellationToken);
-        var existingSet = new HashSet<string>(existingTaxIds);
-
-        var seenTaxIds = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in rows)
-        {
-            var taxId = row.Values.GetValueOrDefault("TaxId");
-            if (!string.IsNullOrWhiteSpace(taxId))
-            {
-                if (!seenTaxIds.ContainsKey(taxId))
-                {
-                    seenTaxIds[taxId] = [];
-                }
-
-                seenTaxIds[taxId].Add(row.RowNumber);
-            }
-        }
-
-        var result = new PreviewResult
-        {
-            Rows = [.. rows.Select(row =>
-            {
-                var errors = new List<ValidationError>();
-                var razon = row.Values.GetValueOrDefault("RazonSocial");
-                var taxId = row.Values.GetValueOrDefault("TaxId");
-                var terminos = row.Values.GetValueOrDefault("TerminosFinancieros");
-                var esgStr = row.Values.GetValueOrDefault("CalificacionEsg");
-                var tasaStr = row.Values.GetValueOrDefault("TasaCumplimiento");
-
-                if (string.IsNullOrWhiteSpace(razon))
-                {
-                    errors.Add(new ValidationError("required", "razonSocial"));
-                }
-                else if (razon.Length > 200)
-                {
-                    errors.Add(new ValidationError("max-length", "razonSocial", new() { ["max"] = 200 }));
-                }
-
-                if (string.IsNullOrWhiteSpace(taxId))
-                {
-                    errors.Add(new ValidationError("required", "taxId"));
-                }
-                else
-                {
-                    if (taxId.Length > 50)
-                    {
-                        errors.Add(new ValidationError("max-length", "taxId", new() { ["max"] = 50 }));
-                    }
-
-                    if (existingSet.Contains(taxId.ToLower()))
-                    {
-                        errors.Add(new ValidationError("duplicate", "taxId", new() { ["value"] = taxId }));
-                    }
-
-                    if (seenTaxIds.TryGetValue(taxId, out var rowsWithSame) && rowsWithSame.Count > 1)
-                    {
-                        errors.Add(new ValidationError("duplicate-in-file", "taxId", new() { ["value"] = taxId }));
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(terminos) && terminos.Length > 100)
-                {
-                    errors.Add(new ValidationError("max-length", "terminosFinancieros", new() { ["max"] = 100 }));
-                }
-
-                if (!string.IsNullOrEmpty(esgStr))
-                {
-                    if (!decimal.TryParse(esgStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var esg))
-                    {
-                        errors.Add(new ValidationError("invalid-decimal", "calificacionEsg"));
-                    }
-                    else if (esg is < 0 or > 100)
-                    {
-                        errors.Add(new ValidationError("invalid-range", "calificacionEsg", new() { ["min"] = 0, ["max"] = 100 }));
-                    }
-                }
-
-                if (string.IsNullOrWhiteSpace(tasaStr))
-                {
-                    errors.Add(new ValidationError("required", "tasaCumplimiento"));
-                }
-                else if (!decimal.TryParse(tasaStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var tasa))
-                {
-                    errors.Add(new ValidationError("invalid-decimal", "tasaCumplimiento"));
-                }
-                else if (tasa is < 0 or > 100)
-                {
-                    errors.Add(new ValidationError("invalid-range", "tasaCumplimiento", new() { ["min"] = 0, ["max"] = 100 }));
-                }
-
-                return new PreviewRowResult { RowNumber = row.RowNumber, Data = row.Values, Errors = errors };
-            })]
-        };
-
+        var result = await sender.Send(new PreviewImportProveedoresQuery(rows), cancellationToken);
         return Ok(result);
     }
-
-    public record ProveedorImportRow(
-        string RazonSocial,
-        string TaxId,
-        string? TerminosFinancieros,
-        decimal? CalificacionEsg,
-        decimal TasaCumplimiento);
 
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<ProveedorImportRow> rows, CancellationToken cancellationToken)
     {
-        var saved = 0;
-        foreach (var row in rows)
-        {
-            var result = ProveedorDistribuidor.Create(row.RazonSocial, row.TaxId, row.TerminosFinancieros, row.CalificacionEsg, row.TasaCumplimiento);
-            if (result.IsSuccess)
-            {
-                _ = context.Proveedores.Add(result.Value);
-                saved++;
-            }
-        }
-
-        _ = await context.SaveChangesAsync(cancellationToken);
-        return Ok(new { savedCount = saved });
+        var result = await sender.Send(new CargaMasivaProveedoresCommand(rows), cancellationToken);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 }
+
+public record ProveedorExportRequest(string[] Headers, string? RazonSocial, string? TaxId, decimal? TasaCumplimientoDesde, decimal? TasaCumplimientoHasta);

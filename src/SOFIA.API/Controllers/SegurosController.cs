@@ -1,12 +1,11 @@
-using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Excel;
-using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Seguros.Commands.CargaMasivaSeguros;
 using SOFIA.Application.Seguros.Commands.CreateAseguradora;
 using SOFIA.Application.Seguros.Commands.DeleteAseguradora;
 using SOFIA.Application.Seguros.Commands.UpdateAseguradora;
 using SOFIA.Application.Seguros.Queries.GetAseguradoraById;
 using SOFIA.Application.Seguros.Queries.GetAseguradoras;
-using SOFIA.Domain.Entities;
+using SOFIA.Application.Seguros.Queries.PreviewImportSeguros;
 using SOFIA.Infrastructure.Excel;
 
 namespace SOFIA.Api.Controllers;
@@ -14,7 +13,7 @@ namespace SOFIA.Api.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class SegurosController(ISender sender, IApplicationDbContext context, IExcelReaderService excelReader) : ControllerBase
+public class SegurosController(ISender sender, IExcelReaderService excelReader) : ControllerBase
 {
     [HasPermission("Seguros", "Crear")]
     [HttpPost]
@@ -57,6 +56,30 @@ public class SegurosController(ISender sender, IApplicationDbContext context, IE
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 
+    [HasPermission("Seguros", "Leer")]
+    [HttpPost("exportar")]
+    public async Task<IActionResult> Exportar([FromBody] AseguradoraExportRequest request)
+    {
+        var result = await sender.Send(new GetAseguradorasQuery
+        {
+            NombreComercial = request.NombreComercial,
+            CodigoIdentificadorNacional = request.CodigoIdentificadorNacional,
+            PageSize = int.MaxValue,
+        });
+        if (!result.IsSuccess)
+        {
+            return Problem(result.Error.Message, statusCode: result.StatusCode);
+        }
+
+        var rows = result.Value.Items.Select(a => new object?[]
+        {
+            a.NombreComercial,
+            a.CodigoIdentificadorNacional,
+        });
+        var bytes = ExcelTemplateGenerator.GenerateReport(request.Headers, rows);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "aseguradoras.xlsx");
+    }
+
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -76,90 +99,16 @@ public class SegurosController(ISender sender, IApplicationDbContext context, IE
         var columns = new[] { "NombreComercial", "CodigoIdentificadorNacional" };
         using var stream = file.OpenReadStream();
         var rows = excelReader.ReadRows(stream, columns);
-
-        var existingCodes = await context.Aseguradoras
-            .Select(a => a.CodigoIdentificadorNacional.ToLower())
-            .ToListAsync(cancellationToken);
-        var existingSet = new HashSet<string>(existingCodes);
-
-        var seenCodes = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in rows)
-        {
-            var code = row.Values.GetValueOrDefault("CodigoIdentificadorNacional");
-            if (!string.IsNullOrWhiteSpace(code))
-            {
-                if (!seenCodes.ContainsKey(code))
-                {
-                    seenCodes[code] = [];
-                }
-
-                seenCodes[code].Add(row.RowNumber);
-            }
-        }
-
-        var result = new PreviewResult
-        {
-            Rows = [.. rows.Select(row =>
-            {
-                var errors = new List<ValidationError>();
-                var nombre = row.Values.GetValueOrDefault("NombreComercial");
-                var codigo = row.Values.GetValueOrDefault("CodigoIdentificadorNacional");
-
-                if (string.IsNullOrWhiteSpace(nombre))
-                {
-                    errors.Add(new ValidationError("required", "nombreComercial"));
-                }
-                else if (nombre.Length > 150)
-                {
-                    errors.Add(new ValidationError("max-length", "nombreComercial", new() { ["max"] = 150 }));
-                }
-
-                if (string.IsNullOrWhiteSpace(codigo))
-                {
-                    errors.Add(new ValidationError("required", "codigoIdentificadorNacional"));
-                }
-                else
-                {
-                    if (codigo.Length > 50)
-                    {
-                        errors.Add(new ValidationError("max-length", "codigoIdentificadorNacional", new() { ["max"] = 50 }));
-                    }
-
-                    if (existingSet.Contains(codigo.ToLower()))
-                    {
-                        errors.Add(new ValidationError("duplicate", "codigoIdentificadorNacional", new() { ["value"] = codigo }));
-                    }
-
-                    if (seenCodes.TryGetValue(codigo, out var rowsWithSame) && rowsWithSame.Count > 1)
-                    {
-                        errors.Add(new ValidationError("duplicate-in-file", "codigoIdentificadorNacional", new() { ["value"] = codigo }));
-                    }
-                }
-
-                return new PreviewRowResult { RowNumber = row.RowNumber, Data = row.Values, Errors = errors };
-            })]
-        };
-
+        var result = await sender.Send(new PreviewImportSegurosQuery(rows), cancellationToken);
         return Ok(result);
     }
 
-    public record AseguradoraImportRow(string NombreComercial, string CodigoIdentificadorNacional);
-
     [HttpPost("carga-masiva")]
-    public async Task<IActionResult> CargaMasiva([FromBody] List<AseguradoraImportRow> rows, CancellationToken cancellationToken)
+    public async Task<IActionResult> CargaMasiva([FromBody] List<SeguroImportRow> rows, CancellationToken cancellationToken)
     {
-        var saved = 0;
-        foreach (var row in rows)
-        {
-            var result = AseguradoraMedica.Create(row.NombreComercial, row.CodigoIdentificadorNacional);
-            if (result.IsSuccess)
-            {
-                _ = context.Aseguradoras.Add(result.Value);
-                saved++;
-            }
-        }
-
-        _ = await context.SaveChangesAsync(cancellationToken);
-        return Ok(new { savedCount = saved });
+        var result = await sender.Send(new CargaMasivaSegurosCommand(rows), cancellationToken);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 }
+
+public record AseguradoraExportRequest(string[] Headers, string? NombreComercial, string? CodigoIdentificadorNacional);

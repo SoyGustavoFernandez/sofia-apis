@@ -14,11 +14,14 @@ public class GetLaboratoriosQueryHandler(IApplicationDbContext context) : IReque
             .AsNoTracking()
             .Where(x => !x.IsDeleted);
 
-        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        if (!string.IsNullOrWhiteSpace(request.NombreCompania))
         {
-            var searchTerm = request.SearchTerm.ToLower();
-            query = query.Where(x => x.NombreCompania.ToLower().Contains(searchTerm) ||
-                                     (x.CodigoIdentificador != null && x.CodigoIdentificador.ToLower().Contains(searchTerm)));
+            query = query.Where(x => x.NombreCompania.ToLower().Contains(request.NombreCompania.ToLower()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.CodigoIdentificador))
+        {
+            query = query.Where(x => x.CodigoIdentificador != null && x.CodigoIdentificador.ToLower().Contains(request.CodigoIdentificador.ToLower()));
         }
 
         var paginatedList = await PaginatedList<LaboratorioDto>.CreateAsync(

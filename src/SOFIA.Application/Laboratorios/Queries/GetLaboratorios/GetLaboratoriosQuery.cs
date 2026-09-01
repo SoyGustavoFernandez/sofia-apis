@@ -8,7 +8,8 @@ namespace SOFIA.Application.Laboratorios.Queries.GetLaboratorios;
 
 public record GetLaboratoriosQuery : IRequest<Result<PaginatedList<LaboratorioDto>>>
 {
-    public string? SearchTerm { get; init; }
+    public string? NombreCompania { get; init; }
+    public string? CodigoIdentificador { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
 }

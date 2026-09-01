@@ -14,11 +14,14 @@ public class GetProfesionalesSaludQueryHandler(IApplicationDbContext context) : 
             .AsNoTracking()
             .Where(x => !x.IsDeleted);
 
-        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        if (!string.IsNullOrWhiteSpace(request.NumeroRegistro))
         {
-            var searchTerm = request.SearchTerm.ToLower();
-            query = query.Where(x => x.NumeroRegistro.ToLower().Contains(searchTerm) ||
-                                     x.NombrePrescriptor.ToLower().Contains(searchTerm));
+            query = query.Where(x => x.NumeroRegistro.ToLower().Contains(request.NumeroRegistro.ToLower()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.NombrePrescriptor))
+        {
+            query = query.Where(x => x.NombrePrescriptor.ToLower().Contains(request.NombrePrescriptor.ToLower()));
         }
 
         var paginatedList = await PaginatedList<ProfesionalSaludDto>.CreateAsync(

@@ -8,7 +8,8 @@ namespace SOFIA.Application.UnidadesMedida.Queries.GetUnidadesMedida;
 
 public record GetUnidadesMedidaQuery : IRequest<Result<PaginatedList<UnidadMedidaDto>>>
 {
-    public string? SearchTerm { get; init; }
+    public string? Codigo { get; init; }
+    public string? Descripcion { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
 }

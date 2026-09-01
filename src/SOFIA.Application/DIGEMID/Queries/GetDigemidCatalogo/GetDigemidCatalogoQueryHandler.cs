@@ -14,11 +14,14 @@ public class GetDigemidCatalogoQueryHandler(IApplicationDbContext context) : IRe
             .AsNoTracking()
             .Where(x => !x.IsDeleted);
 
-        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        if (!string.IsNullOrWhiteSpace(request.CodProd))
         {
-            var searchTerm = request.SearchTerm.ToLower();
-            query = query.Where(x => x.CodProd.ToLower().Contains(searchTerm) ||
-                                     x.NomProd.ToLower().Contains(searchTerm));
+            query = query.Where(x => x.CodProd.ToLower().Contains(request.CodProd.ToLower()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.NomProd))
+        {
+            query = query.Where(x => x.NomProd.ToLower().Contains(request.NomProd.ToLower()));
         }
 
         var paginatedList = await PaginatedList<DigemidProductoDto>.CreateAsync(

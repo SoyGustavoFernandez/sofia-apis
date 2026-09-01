@@ -8,7 +8,8 @@ namespace SOFIA.Application.IngredientesActivos.Queries.GetIngredientesActivos;
 
 public record GetIngredientesActivosQuery : IRequest<Result<PaginatedList<IngredienteActivoDto>>>
 {
-    public string? SearchTerm { get; init; }
+    public string? DenominacionDci { get; init; }
+    public string? CodigoAtc { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
 }

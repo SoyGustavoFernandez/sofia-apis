@@ -14,11 +14,24 @@ public class GetPacientesQueryHandler(IApplicationDbContext context) : IRequestH
             .AsNoTracking()
             .Where(x => !x.IsDeleted);
 
-        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        if (!string.IsNullOrWhiteSpace(request.DocIdentidadGub))
         {
-            var searchTerm = request.SearchTerm.ToLower();
-            query = query.Where(x => x.DocIdentidadGub.ToLower().Contains(searchTerm) ||
-                                     x.NombreApellidos.ToLower().Contains(searchTerm));
+            query = query.Where(x => x.DocIdentidadGub.ToLower().Contains(request.DocIdentidadGub.ToLower()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.NombreApellidos))
+        {
+            query = query.Where(x => x.NombreApellidos.ToLower().Contains(request.NombreApellidos.ToLower()));
+        }
+
+        if (request.FechaNacimientoDesde.HasValue)
+        {
+            query = query.Where(x => x.FechaNacimiento >= request.FechaNacimientoDesde.Value);
+        }
+
+        if (request.FechaNacimientoHasta.HasValue)
+        {
+            query = query.Where(x => x.FechaNacimiento <= request.FechaNacimientoHasta.Value);
         }
 
         var paginatedList = await PaginatedList<PacienteDto>.CreateAsync(

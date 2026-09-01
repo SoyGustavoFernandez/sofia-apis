@@ -14,11 +14,24 @@ public class GetProveedoresQueryHandler(IApplicationDbContext context) : IReques
             .AsNoTracking()
             .Where(x => !x.IsDeleted);
 
-        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        if (!string.IsNullOrWhiteSpace(request.RazonSocial))
         {
-            var searchTerm = request.SearchTerm.ToLower();
-            query = query.Where(x => x.RazonSocial.ToLower().Contains(searchTerm) ||
-                                     x.TaxId.ToLower().Contains(searchTerm));
+            query = query.Where(x => x.RazonSocial.ToLower().Contains(request.RazonSocial.ToLower()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.TaxId))
+        {
+            query = query.Where(x => x.TaxId.ToLower().Contains(request.TaxId.ToLower()));
+        }
+
+        if (request.TasaCumplimientoDesde.HasValue)
+        {
+            query = query.Where(x => x.TasaCumplimiento >= request.TasaCumplimientoDesde.Value);
+        }
+
+        if (request.TasaCumplimientoHasta.HasValue)
+        {
+            query = query.Where(x => x.TasaCumplimiento <= request.TasaCumplimientoHasta.Value);
         }
 
         var paginatedList = await PaginatedList<ProveedorDto>.CreateAsync(

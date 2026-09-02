@@ -39,7 +39,7 @@ public class CreateTransferenciaCommandHandlerTests
         var result = await _handler.Handle(command, CancellationToken.None);
 
         _ = result.IsFailure.Should().BeTrue();
-        _ = result.Error.Code.Should().Be("Transferencia.Auth");
+        _ = result.Error.Code.Should().Be("Auth.Sucursal");
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
@@ -11,10 +12,13 @@ public class GetVentaByIdQueryHandler(
 {
     public async Task<Result<VentaConDetalleDto>> Handle(GetVentaByIdQuery request, CancellationToken cancellationToken)
     {
-        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId))
+        var sucursalResult = currentUser.GetSucursalId();
+        if (sucursalResult.IsFailure)
         {
-            return Result.Failure<VentaConDetalleDto>(Error.Unauthorized("Venta.Auth", "Usuario no autenticado."));
+            return Result.Failure<VentaConDetalleDto>(sucursalResult.Error);
         }
+
+        var sucursalId = sucursalResult.Value;
 
         var venta = await context.Ventas
             .AsNoTracking()
@@ -33,8 +37,7 @@ public class GetVentaByIdQueryHandler(
             return Result.Failure<VentaConDetalleDto>(Error.NotFound("Venta.NotFound", $"No se encontrÃƒÂ³ la venta con ID {request.Id}"));
         }
 
-        // Verify the sale belongs to the user's branch
-        if (venta.SucursalId.ToString().ToLower() != currentUser.SucursalId.ToLower())
+        if (venta.SucursalId != sucursalId)
         {
             return Result.Failure<VentaConDetalleDto>(Error.Forbidden("Venta.Forbidden", "No tiene permiso para ver esta venta."));
         }

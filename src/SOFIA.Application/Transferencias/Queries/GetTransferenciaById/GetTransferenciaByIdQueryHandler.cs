@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
@@ -11,15 +12,13 @@ public class GetTransferenciaByIdQueryHandler(
 {
     public async Task<Result<TransferenciaDto>> Handle(GetTransferenciaByIdQuery request, CancellationToken cancellationToken)
     {
-        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId))
+        var sucursalResult = currentUser.GetSucursalId();
+        if (sucursalResult.IsFailure)
         {
-            return Result.Failure<TransferenciaDto>(Error.Unauthorized("Transferencia.Auth", "Usuario no autenticado."));
+            return Result.Failure<TransferenciaDto>(sucursalResult.Error);
         }
 
-        if (!Guid.TryParse(currentUser.SucursalId, out var userSucursalId))
-        {
-            return Result.Failure<TransferenciaDto>(Error.Validation("Transferencia.Auth", "Invalid user branch ID."));
-        }
+        var userSucursalId = sucursalResult.Value;
 
         var entity = await context.Transferencias
             .AsNoTracking()

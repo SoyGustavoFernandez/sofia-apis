@@ -15,15 +15,13 @@ public class GetVentasQueryHandler(
 {
     public async Task<Result<PaginatedList<VentaDto>>> Handle(GetVentasQuery request, CancellationToken cancellationToken)
     {
-        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId))
+        var sucursalResult = currentUser.GetSucursalId();
+        if (sucursalResult.IsFailure)
         {
-            return Result.Failure<PaginatedList<VentaDto>>(Error.Unauthorized("Venta.Auth", "User is not authenticated."));
+            return Result.Failure<PaginatedList<VentaDto>>(sucursalResult.Error);
         }
 
-        if (!Guid.TryParse(currentUser.SucursalId, out var sucursalId))
-        {
-            return Result.Failure<PaginatedList<VentaDto>>(Error.Validation("Venta.Sucursal", "Invalid branch ID."));
-        }
+        var sucursalId = sucursalResult.Value;
 
         var query = context.Ventas
             .AsNoTracking()

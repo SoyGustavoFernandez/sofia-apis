@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
@@ -22,11 +23,24 @@ public class RecibirTransferenciaCommandHandler(
             return Result.Failure(Error.NotFound("Transferencia.NotFound", $"La transferencia con ID {request.Id} no existe."));
         }
 
-        var authResult = ValidateAndParseUserContext(transferencia.SucursalDestinoId, out var userSucursalId, out var empleadoReceptorId);
-        if (authResult.IsFailure)
+        var sucursalResult = currentUser.GetSucursalId();
+        if (sucursalResult.IsFailure)
         {
-            return authResult;
+            return Result.Failure(sucursalResult.Error);
         }
+
+        if (sucursalResult.Value != transferencia.SucursalDestinoId)
+        {
+            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Only staff from the destination branch can receive this transfer."));
+        }
+
+        var empleadoResult = currentUser.GetEmpleadoId();
+        if (empleadoResult.IsFailure)
+        {
+            return Result.Failure(empleadoResult.Error);
+        }
+
+        var empleadoReceptorId = empleadoResult.Value;
 
         var recepcionesList = request.Recepciones.Select(r => (r.LoteId, r.CantidadRecibida)).ToList();
         var receiveResult = transferencia.Recibir(empleadoReceptorId, recepcionesList);
@@ -42,29 +56,6 @@ public class RecibirTransferenciaCommandHandler(
         }
 
         _ = await context.SaveChangesAsync(cancellationToken);
-        return Result.Success();
-    }
-
-    private Result ValidateAndParseUserContext(Guid sucursalDestinoId, out Guid sucursalId, out Guid empleadoId)
-    {
-        sucursalId = Guid.Empty;
-        empleadoId = Guid.Empty;
-
-        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId) || string.IsNullOrEmpty(currentUser.Id))
-        {
-            return Result.Failure(Error.Unauthorized("Transferencia.Auth", "User must be authenticated."));
-        }
-
-        if (!Guid.TryParse(currentUser.SucursalId, out sucursalId) || sucursalId != sucursalDestinoId)
-        {
-            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Only staff from the destination branch can receive this transfer."));
-        }
-
-        if (!Guid.TryParse(currentUser.Id, out empleadoId))
-        {
-            return Result.Failure(Error.Validation("Transferencia.EmpleadoReceptor", "Invalid receptor employee ID."));
-        }
-
         return Result.Success();
     }
 

@@ -14,7 +14,7 @@ public class GetEmpleadosWithPaginationQueryHandler(IApplicationDbContext contex
             .AsNoTracking()
             .Where(x => !x.IsDeleted);
 
-        if (request.SucursalId.HasValue && request.SucursalId != Guid.Empty)
+        if (request.SucursalId.HasValue)
         {
             query = query.Where(x => x.Sucursal_Base_ID == request.SucursalId);
         }

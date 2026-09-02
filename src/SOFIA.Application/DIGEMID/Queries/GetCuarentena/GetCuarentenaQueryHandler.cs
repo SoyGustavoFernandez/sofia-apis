@@ -13,7 +13,7 @@ public class GetCuarentenaQueryHandler(IApplicationDbContext dbContext) : IReque
     {
         var query = dbContext.DigemidInventarioCuarentena.AsNoTracking().AsQueryable();
 
-        if (request.SucursalId.HasValue && request.SucursalId.Value != Guid.Empty)
+        if (request.SucursalId.HasValue)
         {
             query = query.Where(c => c.SucursalId == request.SucursalId.Value);
         }

@@ -12,7 +12,7 @@ public class GetRecetasQueryHandler(IApplicationDbContext dbContext) : IRequestH
     {
         var query = dbContext.Recetas.AsNoTracking().AsQueryable();
 
-        if (request.ClienteId.HasValue && request.ClienteId.Value != Guid.Empty)
+        if (request.ClienteId.HasValue)
         {
             query = query.Where(r => r.ClienteId == request.ClienteId.Value);
         }

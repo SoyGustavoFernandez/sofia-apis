@@ -13,7 +13,7 @@ public class GetDevolucionesQueryHandler(IApplicationDbContext dbContext) : IReq
     {
         var query = dbContext.Devoluciones.AsNoTracking().AsQueryable();
 
-        if (request.EmpleadoAutorizaId.HasValue && request.EmpleadoAutorizaId.Value != Guid.Empty)
+        if (request.EmpleadoAutorizaId.HasValue)
         {
             query = query.Where(d => d.EmpleadoAutorizaId == request.EmpleadoAutorizaId.Value);
         }

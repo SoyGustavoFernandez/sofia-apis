@@ -13,7 +13,7 @@ public class GetSesionesQueryHandler(IApplicationDbContext dbContext) : IRequest
     {
         var query = dbContext.POSSesionesCaja.AsNoTracking().AsQueryable();
 
-        if (request.SucursalId.HasValue && request.SucursalId.Value != Guid.Empty)
+        if (request.SucursalId.HasValue)
         {
             query = query.Where(s => s.SucursalId == request.SucursalId.Value);
         }

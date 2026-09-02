@@ -13,7 +13,7 @@ public class GetInmunizacionesQueryHandler(IApplicationDbContext dbContext) : IR
     {
         var query = dbContext.ServiciosClinicosInmunizacion.AsNoTracking().AsQueryable();
 
-        if (request.ClienteId.HasValue && request.ClienteId.Value != Guid.Empty)
+        if (request.ClienteId.HasValue)
         {
             query = query.Where(i => i.ClienteId == request.ClienteId.Value);
         }

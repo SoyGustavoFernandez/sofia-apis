@@ -13,7 +13,7 @@ public class GetOrdenesQueryHandler(IApplicationDbContext dbContext) : IRequestH
     {
         var query = dbContext.MagistralesOrdenesProduccion.AsNoTracking().AsQueryable();
 
-        if (request.SucursalId.HasValue && request.SucursalId.Value != Guid.Empty)
+        if (request.SucursalId.HasValue)
         {
             query = query.Where(o => o.SucursalId == request.SucursalId.Value);
         }

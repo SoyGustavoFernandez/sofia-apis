@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
@@ -17,14 +18,7 @@ public class GetDevolucionesQueryHandler(IApplicationDbContext dbContext) : IReq
             query = query.Where(d => d.EmpleadoAutorizaId == request.EmpleadoAutorizaId.Value);
         }
 
-        if (request.FechaInicio.HasValue)
-        {
-            query = query.Where(d => d.FechaDevolucion >= request.FechaInicio.Value);
-        }
-        if (request.FechaFin.HasValue)
-        {
-            query = query.Where(d => d.FechaDevolucion <= request.FechaFin.Value);
-        }
+        query = query.WhereDateRange(d => d.FechaDevolucion, request.FechaInicio, request.FechaFin);
 
         var projectedQuery = query
             .OrderByDescending(d => d.FechaDevolucion)

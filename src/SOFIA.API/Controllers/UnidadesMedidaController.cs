@@ -104,7 +104,9 @@ public class UnidadesMedidaController(ISender sender, IExcelReaderService excelR
             PageSize = int.MaxValue,
         });
         if (!result.IsSuccess)
+        {
             return Problem(result.Error.Message, statusCode: result.StatusCode);
+        }
 
         var rows = result.Value.Items.Select(u => new object?[]
         {

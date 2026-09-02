@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
@@ -12,14 +13,7 @@ public class GetActasQueryHandler(IApplicationDbContext dbContext) : IRequestHan
     {
         var query = dbContext.DIGEMIDActasDestruccion.AsNoTracking().AsQueryable();
 
-        if (request.FechaInicio.HasValue)
-        {
-            query = query.Where(a => a.FechaEjecucion >= request.FechaInicio.Value);
-        }
-        if (request.FechaFin.HasValue)
-        {
-            query = query.Where(a => a.FechaEjecucion <= request.FechaFin.Value);
-        }
+        query = query.WhereDateRange(a => a.FechaEjecucion, request.FechaInicio, request.FechaFin);
 
         var projectedQuery = query
             .OrderByDescending(a => a.FechaEjecucion)

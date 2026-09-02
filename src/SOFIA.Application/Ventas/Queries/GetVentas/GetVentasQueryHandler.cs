@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
@@ -31,15 +32,7 @@ public class GetVentasQueryHandler(
             .Where(v => v.SucursalId == sucursalId);
 
         // Apply filters
-        if (request.FechaInicio.HasValue)
-        {
-            query = query.Where(v => v.FechaHoraUtc >= request.FechaInicio.Value);
-        }
-
-        if (request.FechaFin.HasValue)
-        {
-            query = query.Where(v => v.FechaHoraUtc <= request.FechaFin.Value);
-        }
+        query = query.WhereDateRange(v => v.FechaHoraUtc, request.FechaInicio, request.FechaFin);
 
         if (request.Estado.HasValue)
         {

@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
@@ -17,14 +18,7 @@ public class GetServiciosQueryHandler(IApplicationDbContext dbContext) : IReques
             query = query.Where(s => s.EstadoCita == request.EstadoCita);
         }
 
-        if (request.FechaInicio.HasValue)
-        {
-            query = query.Where(s => s.FechaHoraProgramada >= request.FechaInicio.Value);
-        }
-        if (request.FechaFin.HasValue)
-        {
-            query = query.Where(s => s.FechaHoraProgramada <= request.FechaFin.Value);
-        }
+        query = query.WhereDateRange(s => s.FechaHoraProgramada, request.FechaInicio, request.FechaFin);
 
         var projectedQuery = query
             .OrderByDescending(s => s.FechaHoraProgramada)

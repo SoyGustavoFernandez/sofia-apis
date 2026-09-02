@@ -135,7 +135,9 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
             PageSize = int.MaxValue,
         });
         if (!result.IsSuccess)
+        {
             return Problem(result.Error.Message, statusCode: result.StatusCode);
+        }
 
         var rows = result.Value.Items.Select(p => new object?[]
         {

@@ -2,10 +2,10 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Ventas.Events;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 using SOFIA.Domain.Enums;
-using System.Text.Json;
 
 namespace SOFIA.Application.Ventas.Commands.CreateVenta;
 
@@ -48,7 +48,7 @@ public class CreateVentaCommandHandler(
             ProcessInsurance(detallesResult.Value![0].Id, request, ventaResult.Value.MontoTotalBruto);
         }
 
-        CreateOutboxEvent(ventaResult.Value.Id, sucursalId);
+        ventaResult.Value.AddDomainEvent(new VentaCompletadaEvent(ventaResult.Value.Id, sucursalId));
 
         _ = await context.SaveChangesAsync(cancellationToken);
 
@@ -198,16 +198,4 @@ public class CreateVentaCommandHandler(
         }
     }
 
-    private void CreateOutboxEvent(Guid ventaId, Guid sucursalId)
-    {
-        var outboxResult = SistemaOutboxEvento.Create(
-            "VentaCompletada",
-            JsonSerializer.Serialize(new { VentaId = ventaId, SucursalId = sucursalId }),
-            false, null, null);
-
-        if (outboxResult.IsSuccess)
-        {
-            _ = context.SistemaOutboxEventos.Add(outboxResult.Value);
-        }
-    }
 }

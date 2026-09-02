@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
@@ -21,14 +22,7 @@ public class GetOrdenesQueryHandler(IApplicationDbContext dbContext) : IRequestH
             query = query.Where(o => o.EstadoProduccion == request.EstadoProduccion);
         }
 
-        if (request.FechaInicio.HasValue)
-        {
-            query = query.Where(o => o.FechaPreparacion >= request.FechaInicio.Value);
-        }
-        if (request.FechaFin.HasValue)
-        {
-            query = query.Where(o => o.FechaPreparacion <= request.FechaFin.Value);
-        }
+        query = query.WhereDateRange(o => o.FechaPreparacion, request.FechaInicio, request.FechaFin);
 
         var projectedQuery = query
             .OrderByDescending(o => o.FechaPreparacion)

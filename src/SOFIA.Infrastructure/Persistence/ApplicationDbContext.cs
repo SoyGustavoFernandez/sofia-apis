@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Entities;
@@ -95,6 +96,22 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        // Persist domain events as outbox entries before saving
+        var domainEvents = ChangeTracker.Entries<Domain.Common.BaseEntity>()
+            .SelectMany(e => e.Entity.DomainEvents)
+            .ToList();
+
+        foreach (var domainEvent in domainEvents)
+        {
+            var outboxResult = SistemaOutboxEvento.Create(
+                domainEvent.GetType().FullName!,
+                JsonSerializer.Serialize(domainEvent, domainEvent.GetType()),
+                false, null, null);
+
+            if (outboxResult.IsSuccess)
+                SistemaOutboxEventos.Add(outboxResult.Value);
+        }
+
         foreach (var entry in ChangeTracker.Entries<Domain.Common.IAuditableEntity>())
         {
             switch (entry.State)
@@ -121,6 +138,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                     break;
             }
         }
+
+        foreach (var entry in ChangeTracker.Entries<Domain.Common.BaseEntity>())
+            entry.Entity.ClearDomainEvents();
 
         return await base.SaveChangesAsync(cancellationToken);
     }

@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
@@ -21,14 +22,7 @@ public class GetCuarentenaQueryHandler(IApplicationDbContext dbContext) : IReque
             query = query.Where(c => c.EstadoResolucion == request.EstadoResolucion);
         }
 
-        if (request.FechaInicio.HasValue)
-        {
-            query = query.Where(c => c.FechaIngresoCuarentena >= request.FechaInicio.Value);
-        }
-        if (request.FechaFin.HasValue)
-        {
-            query = query.Where(c => c.FechaIngresoCuarentena <= request.FechaFin.Value);
-        }
+        query = query.WhereDateRange(c => c.FechaIngresoCuarentena, request.FechaInicio, request.FechaFin);
 
         var projectedQuery = query
             .OrderByDescending(c => c.FechaIngresoCuarentena)

@@ -1,3 +1,4 @@
+using System.Reflection;
 using SOFIA.Application.Common.Excel;
 using SOFIA.Application.Security.Commands.Roles.AssignPermission;
 using SOFIA.Application.Security.Commands.Roles.AssignRol;
@@ -102,6 +103,22 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
         return result.IsSuccess
             ? Ok()
             : Problem(result.Error.Message, statusCode: result.StatusCode);
+    }
+
+    [HasPermission("Seguridad", "Leer")]
+    [HttpGet("permissions/catalog")]
+    public IActionResult GetPermissionsCatalog()
+    {
+        var catalog = Assembly.GetExecutingAssembly()
+            .GetTypes()
+            .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract)
+            .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .SelectMany(m => m.GetCustomAttributes<HasPermissionAttribute>()))
+            .GroupBy(a => a.Module, a => a.Action)
+            .Select(g => new { Modulo = g.Key, Acciones = g.Distinct().OrderBy(a => a).ToList() })
+            .OrderBy(g => g.Modulo)
+            .ToList();
+        return Ok(catalog);
     }
 
     [HasPermission("Seguridad", "Leer")]

@@ -16,16 +16,24 @@ public class AssignPermissionToRolCommandHandler(IApplicationDbContext context) 
             return Result.Failure<Guid>(Error.NotFound("Rol.NotFound", "El rol especificado no existe."));
         }
 
-        // Check whether the permission is already assigned to the role
-        var alreadyExists = await context.PermisosRol
-            .AnyAsync(p => p.RolId == request.RolId &&
-                           p.ModuloSistema == request.ModuloSistema &&
-                           p.Accion == request.Accion &&
-                           !p.IsDeleted, cancellationToken);
+        // Check including soft-deleted rows to avoid unique constraint violations on restore
+        var existing = await context.PermisosRol
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.RolId == request.RolId &&
+                                      p.ModuloSistema == request.ModuloSistema &&
+                                      p.Accion == request.Accion, cancellationToken);
 
-        if (alreadyExists)
+        if (existing is not null)
         {
-            return Result.Failure<Guid>(Error.Conflict("Permiso.Duplicate", "This permission is already assigned to this role."));
+            if (!existing.IsDeleted)
+                return Result.Failure<Guid>(Error.Conflict("Permiso.Duplicate", "This permission is already assigned to this role."));
+
+            // Restore a previously revoked permission instead of inserting a duplicate
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.DeletedBy = null;
+            _ = await context.SaveChangesAsync(cancellationToken);
+            return Result.Success(existing.Id);
         }
 
         var result = PermisoRol.Create(request.RolId, request.ModuloSistema, request.Accion);

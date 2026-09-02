@@ -14,10 +14,19 @@ public class GetSucursalesWithPaginationQueryHandler(IApplicationDbContext conte
             .AsNoTracking()
             .Where(x => !x.IsDeleted);
 
-        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        if (!string.IsNullOrWhiteSpace(request.Nombre))
         {
-            // Note: Guid doesn't support Contains. We search by Nombre or Numero_Licencia instead.
-            query = query.Where(x => x.Nombre.Contains(request.SearchTerm) || x.Numero_Licencia.Contains(request.SearchTerm));
+            query = query.Where(x => x.Nombre.Contains(request.Nombre));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.NumeroLicencia))
+        {
+            query = query.Where(x => x.Numero_Licencia.Contains(request.NumeroLicencia));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.DireccionFisica))
+        {
+            query = query.Where(x => x.Direccion_Fisica.Contains(request.DireccionFisica));
         }
 
         var paginatedList = await query

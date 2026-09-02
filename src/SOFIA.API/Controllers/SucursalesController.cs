@@ -1,16 +1,53 @@
+using SOFIA.Application.Common.Excel;
+using SOFIA.Application.Sucursales.Commands.CargaMasivaSucursales;
 using SOFIA.Application.Sucursales.Commands.CreateSucursal;
 using SOFIA.Application.Sucursales.Commands.DeleteSucursal;
 using SOFIA.Application.Sucursales.Commands.UpdateSucursal;
 using SOFIA.Application.Sucursales.Queries.GetById;
 using SOFIA.Application.Sucursales.Queries.GetSucursalesWithPagination;
+using SOFIA.Application.Sucursales.Queries.PreviewImportSucursales;
+using SOFIA.Infrastructure.Excel;
 
 namespace SOFIA.API.Controllers;
 
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class SucursalesController(ISender sender) : ControllerBase
+public class SucursalesController(ISender sender, IExcelReaderService excelReader) : ControllerBase
 {
+    private static readonly string[] Columns = ["Nombre", "DireccionFisica", "NumeroLicencia"];
+
+    [HasPermission("Sucursales", "Leer")]
+    [HttpGet("plantilla")]
+    public IActionResult GetPlantilla()
+    {
+        var bytes = ExcelTemplateGenerator.GenerateTemplate(Columns);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-sucursales.xlsx");
+    }
+
+    [HasPermission("Sucursales", "Crear")]
+    [HttpPost("previsualizar")]
+    public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest("Debe adjuntar un archivo Excel.");
+        }
+
+        using var stream = file.OpenReadStream();
+        var rows = excelReader.ReadRows(stream, Columns);
+        var result = await sender.Send(new PreviewImportSucursalesQuery(rows), cancellationToken);
+        return Ok(result);
+    }
+
+    [HasPermission("Sucursales", "Crear")]
+    [HttpPost("carga-masiva")]
+    public async Task<IActionResult> CargaMasiva([FromBody] List<SucursalImportRow> rows, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new CargaMasivaSucursalesCommand(rows), cancellationToken);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+    }
+
     [HasPermission("Sucursales", "Leer")]
     [HttpGet]
     public async Task<IActionResult> GetPaginated([FromQuery] GetSucursalesWithPaginationQuery query)
@@ -25,6 +62,35 @@ public class SucursalesController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(new GetSucursalByIdQuery(id));
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+    }
+
+    [HasPermission("Sucursales", "Leer")]
+    [HttpPost("exportar")]
+    public async Task<IActionResult> Exportar([FromBody] SucursalExportRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetSucursalesWithPaginationQuery
+        {
+            Nombre = request.Nombre,
+            NumeroLicencia = request.NumeroLicencia,
+            DireccionFisica = request.DireccionFisica,
+            PageSize = int.MaxValue,
+        }, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return Problem(result.Error.Message, statusCode: result.StatusCode);
+        }
+
+        var rows = result.Value.Items.Select(s => new object?[]
+        {
+            s.Nombre,
+            s.DireccionFisica,
+            s.NumeroLicencia,
+            s.GerenteNombre,
+        });
+
+        var bytes = ExcelTemplateGenerator.GenerateReport(request.Headers, rows);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "sucursales.xlsx");
     }
 
     [HasPermission("Sucursales", "Crear")]
@@ -59,3 +125,9 @@ public class SucursalesController(ISender sender) : ControllerBase
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 }
+
+public record SucursalExportRequest(
+    string[] Headers,
+    string? Nombre,
+    string? NumeroLicencia,
+    string? DireccionFisica);

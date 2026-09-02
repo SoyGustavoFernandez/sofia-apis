@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
@@ -22,13 +23,14 @@ public class AnularVentaCommandHandler(
             return Result.Failure(Error.NotFound("Venta.Anular", "Sale not found."));
         }
 
-        // 2. Security: only cancellable if it belongs to the user's branch
-        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId))
+        var sucursalResult = currentUser.GetSucursalId();
+        if (sucursalResult.IsFailure)
         {
-            return Result.Failure(Error.Unauthorized("Venta.Auth", "User is not authenticated."));
+            return Result.Failure(sucursalResult.Error);
         }
 
-        if (!Guid.TryParse(currentUser.SucursalId, out var sucursalId) || venta.SucursalId != sucursalId)
+        var sucursalId = sucursalResult.Value;
+        if (venta.SucursalId != sucursalId)
         {
             return Result.Failure(Error.Forbidden("Venta.Anular", "You do not have permission to cancel sales from another branch."));
         }

@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
@@ -22,10 +23,15 @@ public class CancelarTransferenciaCommandHandler(
             return Result.Failure(Error.NotFound("Transferencia.NotFound", $"La transferencia con ID {request.Id} no existe."));
         }
 
-        var authResult = ValidateBranchAuthorization(transferencia.SucursalOrigenId);
-        if (authResult.IsFailure)
+        var sucursalResult = currentUser.GetSucursalId();
+        if (sucursalResult.IsFailure)
         {
-            return authResult;
+            return Result.Failure(sucursalResult.Error);
+        }
+
+        if (sucursalResult.Value != transferencia.SucursalOrigenId)
+        {
+            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Only staff from the origin branch can cancel this transfer."));
         }
 
         var estadoAnterior = transferencia.EstadoLogistico;
@@ -46,21 +52,6 @@ public class CancelarTransferenciaCommandHandler(
         }
 
         _ = await context.SaveChangesAsync(cancellationToken);
-        return Result.Success();
-    }
-
-    private Result ValidateBranchAuthorization(Guid sucursalOrigenId)
-    {
-        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId))
-        {
-            return Result.Failure(Error.Unauthorized("Transferencia.Auth", "User must be authenticated."));
-        }
-
-        if (!Guid.TryParse(currentUser.SucursalId, out var userSucursalId) || userSucursalId != sucursalOrigenId)
-        {
-            return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Only staff from the origin branch can cancel this transfer."));
-        }
-
         return Result.Success();
     }
 

@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Ventas.Events;
 using SOFIA.Domain.Common;
@@ -15,11 +16,21 @@ public class CreateVentaCommandHandler(
 {
     public async Task<Result<VentaCreadaDto>> Handle(CreateVentaCommand request, CancellationToken cancellationToken)
     {
-        var contextResult = ValidateUserContext(out var sucursalId, out var empleadoId);
-        if (contextResult.IsFailure)
+        var sucursalResult = currentUser.GetSucursalId();
+        if (sucursalResult.IsFailure)
         {
-            return Result.Failure<VentaCreadaDto>(contextResult.Error);
+            return Result.Failure<VentaCreadaDto>(sucursalResult.Error);
         }
+
+        var sucursalId = sucursalResult.Value;
+
+        var empleadoResult = currentUser.GetEmpleadoId();
+        if (empleadoResult.IsFailure)
+        {
+            return Result.Failure<VentaCreadaDto>(empleadoResult.Error);
+        }
+
+        var empleadoId = empleadoResult.Value;
 
         var sesionResult = await ValidateSesionCajaAsync(request.SesionId, cancellationToken);
         if (sesionResult.IsFailure)
@@ -53,29 +64,6 @@ public class CreateVentaCommandHandler(
         _ = await context.SaveChangesAsync(cancellationToken);
 
         return Result.Success(new VentaCreadaDto(ventaResult.Value.Id, dtoComprobante), 201);
-    }
-
-    private Result ValidateUserContext(out Guid sucursalId, out Guid empleadoId)
-    {
-        sucursalId = Guid.Empty;
-        empleadoId = Guid.Empty;
-
-        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId) || string.IsNullOrEmpty(currentUser.Id))
-        {
-            return Result.Failure(Error.Unauthorized("Venta.Auth", "User must be authenticated and assigned to a branch."));
-        }
-
-        if (!Guid.TryParse(currentUser.SucursalId, out sucursalId))
-        {
-            return Result.Failure(Error.Validation("Venta.Sucursal", "Invalid Sucursal ID in user context."));
-        }
-
-        if (!Guid.TryParse(currentUser.Id, out empleadoId))
-        {
-            return Result.Failure(Error.Validation("Venta.Empleado", "Invalid Empleado ID in user context."));
-        }
-
-        return Result.Success();
     }
 
     private async Task<Result> ValidateSesionCajaAsync(Guid? sesionId, CancellationToken cancellationToken)

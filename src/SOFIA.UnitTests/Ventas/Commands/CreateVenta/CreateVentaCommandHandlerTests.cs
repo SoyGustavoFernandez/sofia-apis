@@ -43,7 +43,7 @@ public class CreateVentaCommandHandlerTests
 
         // Assert
         _ = result.IsSuccess.Should().BeFalse();
-        _ = result.Error.Code.Should().Be("Venta.Auth");
+        _ = result.Error.Code.Should().Be("Auth.Sucursal");
     }
 
     [Fact]

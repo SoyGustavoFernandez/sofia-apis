@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
@@ -13,21 +14,21 @@ public class CreateTransferenciaCommandHandler(
 {
     public async Task<Result<Guid>> Handle(CreateTransferenciaCommand request, CancellationToken cancellationToken)
     {
-        // 1. Obtener usuario actual y su sucursal base
-        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId) || string.IsNullOrEmpty(currentUser.Id))
+        var sucursalResult = currentUser.GetSucursalId();
+        if (sucursalResult.IsFailure)
         {
-            return Result.Failure<Guid>(Error.Unauthorized("Transferencia.Auth", "El usuario debe estar autenticado y asignado a una sucursal."));
+            return Result.Failure<Guid>(sucursalResult.Error);
         }
 
-        if (!Guid.TryParse(currentUser.SucursalId, out var sucursalOrigenId))
+        var sucursalOrigenId = sucursalResult.Value;
+
+        var empleadoResult = currentUser.GetEmpleadoId();
+        if (empleadoResult.IsFailure)
         {
-            return Result.Failure<Guid>(Error.Validation("Transferencia.SucursalOrigen", "Invalid origin branch ID."));
+            return Result.Failure<Guid>(empleadoResult.Error);
         }
 
-        if (!Guid.TryParse(currentUser.Id, out var empleadoEmisorId))
-        {
-            return Result.Failure<Guid>(Error.Validation("Transferencia.EmpleadoEmisor", "Invalid sender employee ID."));
-        }
+        var empleadoEmisorId = empleadoResult.Value;
 
         // 2. Validar que origen y destino sean distintos
         if (sucursalOrigenId == request.SucursalDestinoId)

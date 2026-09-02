@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
@@ -21,13 +22,13 @@ public class DespacharTransferenciaCommandHandler(
             return Result.Failure(Error.NotFound("Transferencia.NotFound", $"Transfer with ID {request.Id} does not exist."));
         }
 
-        // 2. Verify authorization (must belong to the origin branch)
-        if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.SucursalId))
+        var sucursalResult = currentUser.GetSucursalId();
+        if (sucursalResult.IsFailure)
         {
-            return Result.Failure(Error.Unauthorized("Transferencia.Auth", "User must be authenticated."));
+            return Result.Failure(sucursalResult.Error);
         }
 
-        if (!Guid.TryParse(currentUser.SucursalId, out var userSucursalId) || userSucursalId != transferencia.SucursalOrigenId)
+        if (sucursalResult.Value != transferencia.SucursalOrigenId)
         {
             return Result.Failure(Error.Forbidden("Transferencia.Forbidden", "Only staff from the origin branch can dispatch this transfer."));
         }

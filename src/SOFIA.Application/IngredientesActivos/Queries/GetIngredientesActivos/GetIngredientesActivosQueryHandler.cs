@@ -16,12 +16,12 @@ public class GetIngredientesActivosQueryHandler(IApplicationDbContext context) :
 
         if (!string.IsNullOrWhiteSpace(request.DenominacionDci))
         {
-            query = query.Where(x => x.DenominacionDci.ToLower().Contains(request.DenominacionDci.ToLower()));
+            query = query.Where(x => x.DenominacionDci.Contains(request.DenominacionDci));
         }
 
         if (!string.IsNullOrWhiteSpace(request.CodigoAtc))
         {
-            query = query.Where(x => x.CodigoAtc.ToLower().Contains(request.CodigoAtc.ToLower()));
+            query = query.Where(x => x.CodigoAtc.Contains(request.CodigoAtc));
         }
 
         var paginatedList = await PaginatedList<IngredienteActivoDto>.CreateAsync(

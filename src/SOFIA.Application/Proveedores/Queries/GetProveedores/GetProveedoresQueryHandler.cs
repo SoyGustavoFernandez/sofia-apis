@@ -16,12 +16,12 @@ public class GetProveedoresQueryHandler(IApplicationDbContext context) : IReques
 
         if (!string.IsNullOrWhiteSpace(request.RazonSocial))
         {
-            query = query.Where(x => x.RazonSocial.ToLower().Contains(request.RazonSocial.ToLower()));
+            query = query.Where(x => x.RazonSocial.Contains(request.RazonSocial));
         }
 
         if (!string.IsNullOrWhiteSpace(request.TaxId))
         {
-            query = query.Where(x => x.TaxId.ToLower().Contains(request.TaxId.ToLower()));
+            query = query.Where(x => x.TaxId.Contains(request.TaxId));
         }
 
         if (request.TasaCumplimientoDesde.HasValue)

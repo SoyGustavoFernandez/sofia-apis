@@ -38,15 +38,12 @@ public class GetEmpresasQueryHandler(IApplicationDbContext context)
             query = query.Where(e => e.FechaVencimiento <= request.FechaVencimientoHasta.Value);
         }
 
-        var count = await query.CountAsync(cancellationToken);
+        var paginatedEntities = await PaginatedList<Empresa>.CreateAsync(
+            query.OrderBy(e => e.Nombre),
+            request.PageNumber,
+            request.PageSize);
 
-        var empresas = await query
-            .OrderBy(e => e.Nombre)
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
-            .ToListAsync(cancellationToken);
-
-        var dtos = empresas.Select(e => new EmpresaDto(
+        var dtos = paginatedEntities.Items.Select(e => new EmpresaDto(
             e.Id,
             e.Nombre,
             e.RUC?.Value,
@@ -56,6 +53,6 @@ public class GetEmpresasQueryHandler(IApplicationDbContext context)
             e.EstaVigente,
             e.Sucursales.Count(s => !s.IsDeleted))).ToList();
 
-        return Result.Success(new PaginatedList<EmpresaDto>(dtos, count, request.PageNumber, request.PageSize));
+        return Result.Success(new PaginatedList<EmpresaDto>(dtos, paginatedEntities.TotalCount, paginatedEntities.PageNumber, request.PageSize));
     }
 }

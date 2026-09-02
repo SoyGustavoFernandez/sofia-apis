@@ -109,7 +109,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 false, null, null);
 
             if (outboxResult.IsSuccess)
-                SistemaOutboxEventos.Add(outboxResult.Value);
+            {
+                _ = SistemaOutboxEventos.Add(outboxResult.Value);
+            }
         }
 
         foreach (var entry in ChangeTracker.Entries<Domain.Common.IAuditableEntity>())
@@ -140,7 +142,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         }
 
         foreach (var entry in ChangeTracker.Entries<Domain.Common.BaseEntity>())
+        {
             entry.Entity.ClearDomainEvents();
+        }
 
         return await base.SaveChangesAsync(cancellationToken);
     }

@@ -16,12 +16,12 @@ public class GetDigemidCatalogoQueryHandler(IApplicationDbContext context) : IRe
 
         if (!string.IsNullOrWhiteSpace(request.CodProd))
         {
-            query = query.Where(x => x.CodProd.ToLower().Contains(request.CodProd.ToLower()));
+            query = query.Where(x => x.CodProd.Contains(request.CodProd));
         }
 
         if (!string.IsNullOrWhiteSpace(request.NomProd))
         {
-            query = query.Where(x => x.NomProd.ToLower().Contains(request.NomProd.ToLower()));
+            query = query.Where(x => x.NomProd.Contains(request.NomProd));
         }
 
         var paginatedList = await PaginatedList<DigemidProductoDto>.CreateAsync(

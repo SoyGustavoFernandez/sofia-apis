@@ -16,12 +16,12 @@ public class GetProfesionalesSaludQueryHandler(IApplicationDbContext context) : 
 
         if (!string.IsNullOrWhiteSpace(request.NumeroRegistro))
         {
-            query = query.Where(x => x.NumeroRegistro.ToLower().Contains(request.NumeroRegistro.ToLower()));
+            query = query.Where(x => x.NumeroRegistro.Contains(request.NumeroRegistro));
         }
 
         if (!string.IsNullOrWhiteSpace(request.NombrePrescriptor))
         {
-            query = query.Where(x => x.NombrePrescriptor.ToLower().Contains(request.NombrePrescriptor.ToLower()));
+            query = query.Where(x => x.NombrePrescriptor.Contains(request.NombrePrescriptor));
         }
 
         var paginatedList = await PaginatedList<ProfesionalSaludDto>.CreateAsync(

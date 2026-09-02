@@ -16,12 +16,12 @@ public class GetAseguradorasQueryHandler(IApplicationDbContext context) : IReque
 
         if (!string.IsNullOrWhiteSpace(request.NombreComercial))
         {
-            query = query.Where(x => x.NombreComercial.ToLower().Contains(request.NombreComercial.ToLower()));
+            query = query.Where(x => x.NombreComercial.Contains(request.NombreComercial));
         }
 
         if (!string.IsNullOrWhiteSpace(request.CodigoIdentificadorNacional))
         {
-            query = query.Where(x => x.CodigoIdentificadorNacional.ToLower().Contains(request.CodigoIdentificadorNacional.ToLower()));
+            query = query.Where(x => x.CodigoIdentificadorNacional.Contains(request.CodigoIdentificadorNacional));
         }
 
         var paginatedList = await PaginatedList<AseguradoraDto>.CreateAsync(

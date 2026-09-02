@@ -16,12 +16,12 @@ public class GetPacientesQueryHandler(IApplicationDbContext context) : IRequestH
 
         if (!string.IsNullOrWhiteSpace(request.DocIdentidadGub))
         {
-            query = query.Where(x => x.DocIdentidadGub.ToLower().Contains(request.DocIdentidadGub.ToLower()));
+            query = query.Where(x => x.DocIdentidadGub.Contains(request.DocIdentidadGub));
         }
 
         if (!string.IsNullOrWhiteSpace(request.NombreApellidos))
         {
-            query = query.Where(x => x.NombreApellidos.ToLower().Contains(request.NombreApellidos.ToLower()));
+            query = query.Where(x => x.NombreApellidos.Contains(request.NombreApellidos));
         }
 
         if (request.FechaNacimientoDesde.HasValue)

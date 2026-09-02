@@ -16,12 +16,12 @@ public class GetLaboratoriosQueryHandler(IApplicationDbContext context) : IReque
 
         if (!string.IsNullOrWhiteSpace(request.NombreCompania))
         {
-            query = query.Where(x => x.NombreCompania.ToLower().Contains(request.NombreCompania.ToLower()));
+            query = query.Where(x => x.NombreCompania.Contains(request.NombreCompania));
         }
 
         if (!string.IsNullOrWhiteSpace(request.CodigoIdentificador))
         {
-            query = query.Where(x => x.CodigoIdentificador != null && x.CodigoIdentificador.ToLower().Contains(request.CodigoIdentificador.ToLower()));
+            query = query.Where(x => x.CodigoIdentificador != null && x.CodigoIdentificador.Contains(request.CodigoIdentificador));
         }
 
         var paginatedList = await PaginatedList<LaboratorioDto>.CreateAsync(

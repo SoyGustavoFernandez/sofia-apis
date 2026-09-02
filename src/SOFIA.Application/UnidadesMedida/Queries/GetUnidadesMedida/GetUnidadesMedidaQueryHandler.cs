@@ -16,12 +16,12 @@ public class GetUnidadesMedidaQueryHandler(IApplicationDbContext context) : IReq
 
         if (!string.IsNullOrWhiteSpace(request.Codigo))
         {
-            query = query.Where(x => x.Codigo.ToLower().Contains(request.Codigo.ToLower()));
+            query = query.Where(x => x.Codigo.Contains(request.Codigo));
         }
 
         if (!string.IsNullOrWhiteSpace(request.Descripcion))
         {
-            query = query.Where(x => x.Descripcion.ToLower().Contains(request.Descripcion.ToLower()));
+            query = query.Where(x => x.Descripcion.Contains(request.Descripcion));
         }
 
         var paginatedList = await PaginatedList<UnidadMedidaDto>.CreateAsync(

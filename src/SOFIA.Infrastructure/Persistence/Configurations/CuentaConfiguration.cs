@@ -74,5 +74,20 @@ public class CuentaConfiguration : IEntityTypeConfiguration<Cuenta>
                 l => l.HasOne(cr => cr.Rol).WithMany().HasForeignKey(cr => cr.RolId),
                 r => r.HasOne(cr => cr.Cuenta).WithMany(c => c.CuentasRoles).HasForeignKey(cr => cr.CuentaId)
             );
+
+        // Many-to-Many via CuentaSucursal
+        _ = builder.HasMany(x => x.Sucursales)
+            .WithMany()
+            .UsingEntity<CuentaSucursal>(
+                "Seguridad_CuentasSucursales",
+                l => l.HasOne(cs => cs.Sucursal).WithMany().HasForeignKey(cs => cs.SucursalId),
+                r => r.HasOne(cs => cs.Cuenta).WithMany(c => c.CuentasSucursales).HasForeignKey(cs => cs.CuentaId),
+                j =>
+                {
+                    _ = j.HasKey(cs => new { cs.CuentaId, cs.SucursalId });
+                    _ = j.Property(cs => cs.AssignedAt).HasColumnName("Assigned_At");
+                    _ = j.Property(cs => cs.AssignedBy).HasColumnName("Assigned_By").HasMaxLength(100);
+                }
+            );
     }
 }

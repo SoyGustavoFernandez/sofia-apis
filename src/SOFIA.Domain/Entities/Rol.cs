@@ -13,6 +13,20 @@ public sealed class Rol : BaseEntity
     // Navigation Properties
     public ICollection<Cuenta> Cuentas { get; private set; } = [];
     public ICollection<PermisoRol> Permisos { get; private set; } = [];
+    public ICollection<Sucursal> Sucursales { get; private set; } = [];
+
+    public void AddSucursal(Sucursal sucursal)
+    {
+        if (!Sucursales.Any(s => s.Id == sucursal.Id))
+            Sucursales.Add(sucursal);
+    }
+
+    public void RemoveSucursal(Guid sucursalId)
+    {
+        var sucursal = Sucursales.FirstOrDefault(s => s.Id == sucursalId);
+        if (sucursal != null)
+            _ = Sucursales.Remove(sucursal);
+    }
 
     public static Result<Rol> Create(
         string nombreRol,

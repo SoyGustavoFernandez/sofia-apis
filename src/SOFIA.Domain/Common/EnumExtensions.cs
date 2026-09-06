@@ -35,6 +35,6 @@ public static class EnumExtensions
             }
         }
 
-        throw new ArgumentException($"No se encontrÃ³ el valor '{description}' en el enum {typeof(T).Name}");
+        throw new ArgumentException($"No se encontró el valor '{description}' en el enum {typeof(T).Name}");
     }
 }

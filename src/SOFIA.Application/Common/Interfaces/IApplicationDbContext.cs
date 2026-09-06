@@ -20,6 +20,8 @@ public interface IApplicationDbContext
     DbSet<Rol> Roles { get; }
     DbSet<PermisoRol> PermisosRol { get; }
     DbSet<CuentaRol> CuentasRoles { get; }
+    DbSet<CuentaSucursal> CuentasSucursales { get; }
+    DbSet<RolSucursal> RolesSucursales { get; }
     DbSet<LoteInventario> LotesInventario { get; }
     DbSet<InventarioSucursal> LotesEnSucursal { get; }
     DbSet<Venta> Ventas { get; }

@@ -6,6 +6,7 @@ using SOFIA.Application.Inventarios.Queries.GetLotes;
 using SOFIA.Application.Inventarios.Queries.GetLotesByProducto;
 using SOFIA.Application.Inventarios.Commands.RegisterInventario;
 using SOFIA.Application.Inventarios.Queries.GetStockByMedicamento;
+using SOFIA.Infrastructure.Excel;
 
 namespace SOFIA.API.Controllers;
 
@@ -90,4 +91,45 @@ public class LotesInventarioController(ISender sender) : ControllerBase
         var result = await sender.Send(new GetStockByMedicamentoQuery(medicamentoId));
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
+
+    [HasPermission("Inventarios", "Leer")]
+    [HttpPost("exportar")]
+    public async Task<IActionResult> Exportar([FromBody] LoteExportRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetLotesQuery
+        {
+            ProductoNombre = request.ProductoNombre,
+            NumeroLote = request.NumeroLote,
+            CaducidadDesde = request.CaducidadDesde,
+            CaducidadHasta = request.CaducidadHasta,
+            FabricacionDesde = request.FabricacionDesde,
+            FabricacionHasta = request.FabricacionHasta,
+            PageSize = int.MaxValue,
+        }, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return Problem(result.Error.Message, statusCode: result.StatusCode);
+        }
+
+        var rows = result.Value.Items.Select(l => new object?[]
+        {
+            l.NombreProducto,
+            l.NumeroLoteMfr,
+            l.FechaFabricacion?.ToString(request.DateFormat),
+            l.FechaCaducidad.ToString(request.DateFormat),
+        });
+
+        var bytes = ExcelTemplateGenerator.GenerateReport(request.Headers, rows);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "lotes.xlsx");
+    }
 }
+
+public record LoteExportRequest(
+    string[] Headers,
+    string DateFormat,
+    string? ProductoNombre,
+    string? NumeroLote,
+    DateTimeOffset? CaducidadDesde,
+    DateTimeOffset? CaducidadHasta,
+    DateTimeOffset? FabricacionDesde,
+    DateTimeOffset? FabricacionHasta);

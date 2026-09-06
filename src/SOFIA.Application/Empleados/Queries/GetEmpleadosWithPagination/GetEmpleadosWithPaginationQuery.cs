@@ -12,6 +12,11 @@ public record GetEmpleadosWithPaginationQuery : IRequest<Result<PaginatedList<Em
     public int PageSize { get; init; } = 10;
     public string? SearchTerm { get; init; }
     public Guid? SucursalId { get; init; }
+    public string? Nombres { get; init; }
+    public string? ApellidoPaterno { get; init; }
+    public string? ApellidoMaterno { get; init; }
+    public string? Licencia { get; init; }
+    public string? SucursalNombre { get; init; }
 }
 
 public static class MappingExtensions

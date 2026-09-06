@@ -11,6 +11,7 @@ public class RegisterAccountCommandHandlerTests
 {
     private readonly Mock<IApplicationDbContext> _dbContextMock;
     private readonly Mock<IPasswordHasher> _passwordHasherMock;
+    private readonly Mock<ICurrentUser> _currentUserMock;
     private readonly RegisterAccountCommandHandler _handler;
 
     private readonly Guid _empleadoId = Guid.NewGuid();
@@ -22,8 +23,10 @@ public class RegisterAccountCommandHandlerTests
     {
         _dbContextMock = new Mock<IApplicationDbContext>();
         _passwordHasherMock = new Mock<IPasswordHasher>();
+        _currentUserMock = new Mock<ICurrentUser>();
         _ = _passwordHasherMock.Setup(p => p.Hash(Password)).Returns(HashedPassword);
-        _handler = new RegisterAccountCommandHandler(_dbContextMock.Object, _passwordHasherMock.Object);
+        _ = _currentUserMock.Setup(u => u.EmpresaId).Returns(Guid.NewGuid().ToString());
+        _handler = new RegisterAccountCommandHandler(_dbContextMock.Object, _passwordHasherMock.Object, _currentUserMock.Object);
     }
 
     private Empleado CreateEmpleado(Guid id)

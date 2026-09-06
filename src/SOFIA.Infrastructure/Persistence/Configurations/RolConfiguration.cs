@@ -30,5 +30,18 @@ public class RolConfiguration : IEntityTypeConfiguration<Rol>
             .IsRequired();
 
         _ = builder.HasQueryFilter(x => !x.IsDeleted);
+
+        _ = builder.HasMany(x => x.Sucursales)
+            .WithMany()
+            .UsingEntity<RolSucursal>(
+                l => l.HasOne(rs => rs.Sucursal).WithMany().HasForeignKey(rs => rs.SucursalId),
+                r => r.HasOne(rs => rs.Rol).WithMany().HasForeignKey(rs => rs.RolId),
+                j =>
+                {
+                    j.ToTable("Seguridad_Roles_Sucursales");
+                    j.HasKey(rs => new { rs.RolId, rs.SucursalId });
+                    j.Property(rs => rs.RolId).HasColumnName("Rol_ID");
+                    j.Property(rs => rs.SucursalId).HasColumnName("Sucursal_ID");
+                });
     }
 }

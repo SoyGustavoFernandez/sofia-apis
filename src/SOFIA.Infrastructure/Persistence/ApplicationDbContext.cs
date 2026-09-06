@@ -23,6 +23,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Rol> Roles => Set<Rol>();
     public DbSet<PermisoRol> PermisosRol => Set<PermisoRol>();
     public DbSet<CuentaRol> CuentasRoles => Set<CuentaRol>();
+    public DbSet<CuentaSucursal> CuentasSucursales => Set<CuentaSucursal>();
+    public DbSet<RolSucursal> RolesSucursales => Set<RolSucursal>();
     public DbSet<LoteInventario> LotesInventario => Set<LoteInventario>();
     public DbSet<InventarioSucursal> LotesEnSucursal => Set<InventarioSucursal>();
     public DbSet<Venta> Ventas => Set<Venta>();

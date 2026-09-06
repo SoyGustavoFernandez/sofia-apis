@@ -8,7 +8,8 @@ namespace SOFIA.Application.Security.Commands.Register;
 
 public class RegisterAccountCommandHandler(
     IApplicationDbContext context,
-    IPasswordHasher passwordHasher) : IRequestHandler<RegisterAccountCommand, Result<Guid>>
+    IPasswordHasher passwordHasher,
+    ICurrentUser currentUser) : IRequestHandler<RegisterAccountCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(RegisterAccountCommand request, CancellationToken cancellationToken)
     {
@@ -35,9 +36,10 @@ public class RegisterAccountCommandHandler(
             return Result.Failure<Guid>(Error.Conflict("Auth.DuplicateUsername", "Username is already in use."), 409);
         }
 
+        var tenantId = Guid.TryParse(currentUser.EmpresaId, out var id) ? id : (Guid?)null;
         var passwordHash = passwordHasher.Hash(request.Password);
 
-        var result = Cuenta.Create(request.EmpleadoId, request.NombreUsuario, passwordHash);
+        var result = Cuenta.Create(request.EmpleadoId, request.NombreUsuario, passwordHash, tenantId);
 
         if (result.IsFailure)
         {

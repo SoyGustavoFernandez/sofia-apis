@@ -21,6 +21,8 @@ public sealed class Cuenta : BaseEntity
     public Empleado? Empleado { get; }
     public ICollection<Rol> Roles { get; private set; } = [];
     public ICollection<CuentaRol> CuentasRoles { get; private set; } = [];
+    public ICollection<Sucursal> Sucursales { get; private set; } = [];
+    public ICollection<CuentaSucursal> CuentasSucursales { get; private set; } = [];
 
     public static Result<Cuenta> Create(
         Guid empleadoId,
@@ -83,6 +85,8 @@ public sealed class Cuenta : BaseEntity
 
     public void InvalidateSecurityStamp() => SecurityStamp = Guid.NewGuid();
 
+    public void ForcePasswordChange() => RequiereCambioClave = true;
+
     public void GenerateRecoveryToken()
     {
         RecoveryToken = Guid.NewGuid().ToString("N");
@@ -109,19 +113,26 @@ public sealed class Cuenta : BaseEntity
     public void AddRol(Rol rol)
     {
         if (!Roles.Any(r => r.Id == rol.Id))
-        {
             Roles.Add(rol);
-            SecurityStamp = Guid.NewGuid();
-        }
     }
 
     public void RemoveRol(Guid rolId)
     {
         var rol = Roles.FirstOrDefault(r => r.Id == rolId);
         if (rol != null)
-        {
             _ = Roles.Remove(rol);
-            SecurityStamp = Guid.NewGuid();
-        }
+    }
+
+    public void AddSucursal(Sucursal sucursal)
+    {
+        if (!Sucursales.Any(s => s.Id == sucursal.Id))
+            Sucursales.Add(sucursal);
+    }
+
+    public void RemoveSucursal(Guid sucursalId)
+    {
+        var sucursal = Sucursales.FirstOrDefault(s => s.Id == sucursalId);
+        if (sucursal != null)
+            _ = Sucursales.Remove(sucursal);
     }
 }

@@ -8,9 +8,11 @@ using SOFIA.Application.Security.Commands.Roles.DeleteRol;
 using SOFIA.Application.Security.Commands.Roles.RemoveRol;
 using SOFIA.Application.Security.Commands.Roles.RevokePermission;
 using SOFIA.Application.Security.Commands.Roles.UpdateRol;
+using SOFIA.Application.Security.Commands.Roles.SetSucursales;
 using SOFIA.Application.Security.Queries.Roles.GetPermissions;
 using SOFIA.Application.Security.Queries.Roles.GetRoles;
 using SOFIA.Application.Security.Queries.Roles.GetRolById;
+using SOFIA.Application.Security.Queries.Roles.GetRolSucursales;
 using SOFIA.Application.Security.Queries.Roles.PreviewImportRoles;
 using SOFIA.Infrastructure.Excel;
 
@@ -152,6 +154,26 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
     }
 
     [HasPermission("Seguridad", "Leer")]
+    [HttpGet("{id:guid}/sucursales")]
+    public async Task<IActionResult> GetRolSucursales(Guid id)
+    {
+        var result = await sender.Send(new GetRolSucursalesQuery(id));
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : Problem(result.Error.Message, statusCode: result.StatusCode);
+    }
+
+    [HasPermission("Seguridad", "GestionarPermisos")]
+    [HttpPut("{id:guid}/sucursales")]
+    public async Task<IActionResult> SetRolSucursales(Guid id, [FromBody] SetRolSucursalesRequest request)
+    {
+        var result = await sender.Send(new SetRolSucursalesCommand(id, request.SucursalIds));
+        return result.IsSuccess
+            ? NoContent()
+            : Problem(result.Error.Message, statusCode: result.StatusCode);
+    }
+
+    [HasPermission("Seguridad", "Leer")]
     [HttpPost("exportar")]
     public async Task<IActionResult> Exportar([FromBody] RolExportRequest request, CancellationToken cancellationToken)
     {
@@ -211,5 +233,6 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
 }
 
 public record UpdateRolRequest(string? Descripcion, [property: System.Text.Json.Serialization.JsonRequired] int NivelJerarquia);
+public record SetRolSucursalesRequest(List<Guid> SucursalIds);
 
 public record RolExportRequest(string[] Headers, string? NombreRol, string? Descripcion, int? NivelJerarquiaDesde, int? NivelJerarquiaHasta);

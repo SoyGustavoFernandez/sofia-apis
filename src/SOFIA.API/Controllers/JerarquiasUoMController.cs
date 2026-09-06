@@ -1,16 +1,22 @@
+using SOFIA.Application.Common.Excel;
+using SOFIA.Application.JerarquiasUoM.Commands.CargaMasivaJerarquiasUoM;
 using SOFIA.Application.JerarquiasUoM.Commands.CreateJerarquiaUoM;
 using SOFIA.Application.JerarquiasUoM.Commands.DeleteJerarquiaUoM;
 using SOFIA.Application.JerarquiasUoM.Commands.UpdateJerarquiaUoM;
 using SOFIA.Application.JerarquiasUoM.Queries.GetJerarquiaUoMById;
 using SOFIA.Application.JerarquiasUoM.Queries.GetJerarquiasUoM;
+using SOFIA.Application.JerarquiasUoM.Queries.PreviewImportJerarquiasUoM;
+using SOFIA.Infrastructure.Excel;
 
 namespace SOFIA.API.Controllers;
 
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class JerarquiasUoMController(ISender sender) : ControllerBase
+public class JerarquiasUoMController(ISender sender, IExcelReaderService excelReader) : ControllerBase
 {
+    private static readonly string[] ImportColumns = ["Producto", "UnidadMayor", "UnidadMenor", "Multiplicador"];
+
     [HasPermission("JerarquiasUoM", "Leer")]
     [HttpGet]
     public async Task<IActionResult> GetPaginated([FromQuery] GetJerarquiasUoMQuery query)
@@ -58,4 +64,70 @@ public class JerarquiasUoMController(ISender sender) : ControllerBase
         var result = await sender.Send(new DeleteJerarquiaUoMCommand(id));
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
+
+    [HasPermission("JerarquiasUoM", "Leer")]
+    [HttpPost("exportar")]
+    public async Task<IActionResult> Exportar([FromBody] JerarquiaUoMExportRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetJerarquiasUoMQuery
+        {
+            ProductoNombre = request.ProductoNombre,
+            UnidadMayorNombre = request.UnidadMayorNombre,
+            UnidadMenorNombre = request.UnidadMenorNombre,
+            MultiplicadorMin = request.MultiplicadorMin,
+            MultiplicadorMax = request.MultiplicadorMax,
+            PageSize = int.MaxValue,
+        }, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return Problem(result.Error.Message, statusCode: result.StatusCode);
+        }
+
+        var rows = result.Value.Items.Select(j => new object?[]
+        {
+            j.ProductoNombre,
+            j.UnidadMayorNombre,
+            j.UnidadMenorNombre,
+            j.Multiplicador,
+        });
+
+        var bytes = ExcelTemplateGenerator.GenerateReport(request.Headers, rows);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "jerarquias-uom.xlsx");
+    }
+
+    [HttpGet("plantilla")]
+    public IActionResult GetPlantilla()
+    {
+        var bytes = ExcelTemplateGenerator.GenerateTemplate(ImportColumns);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-jerarquias-uom.xlsx");
+    }
+
+    [HttpPost("previsualizar")]
+    public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest("Debe adjuntar un archivo Excel.");
+        }
+
+        using var stream = file.OpenReadStream();
+        var rows = excelReader.ReadRows(stream, ImportColumns);
+        var result = await sender.Send(new PreviewImportJerarquiasUoMQuery(rows), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("carga-masiva")]
+    public async Task<IActionResult> CargaMasiva([FromBody] List<JerarquiaUoMImportRow> rows, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new CargaMasivaJerarquiasUoMCommand(rows), cancellationToken);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+    }
 }
+
+public record JerarquiaUoMExportRequest(
+    string[] Headers,
+    string? ProductoNombre,
+    string? UnidadMayorNombre,
+    string? UnidadMenorNombre,
+    decimal? MultiplicadorMin,
+    decimal? MultiplicadorMax);

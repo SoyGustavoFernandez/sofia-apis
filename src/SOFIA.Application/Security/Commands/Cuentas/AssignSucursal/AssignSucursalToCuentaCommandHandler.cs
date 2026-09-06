@@ -14,13 +14,17 @@ public class AssignSucursalToCuentaCommandHandler(IApplicationDbContext context)
             .FirstOrDefaultAsync(c => c.Id == request.CuentaId && !c.IsDeleted, cancellationToken);
 
         if (cuenta is null)
+        {
             return Result.Failure(Error.NotFound("Auth.CuentaNotFound", "La cuenta no existe."));
+        }
 
         var sucursal = await context.Sucursales
             .FirstOrDefaultAsync(s => s.Id == request.SucursalId && !s.IsDeleted, cancellationToken);
 
         if (sucursal is null)
+        {
             return Result.Failure(Error.NotFound("Sucursal.NotFound", "La sucursal no existe."));
+        }
 
         cuenta.AddSucursal(sucursal);
 

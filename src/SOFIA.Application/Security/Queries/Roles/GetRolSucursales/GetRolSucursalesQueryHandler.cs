@@ -16,7 +16,9 @@ public class GetRolSucursalesQueryHandler(IApplicationDbContext context, ICurren
             .AnyAsync(r => r.Id == request.RolId && !r.IsDeleted, cancellationToken);
 
         if (!rolExists)
+        {
             return Result.Failure<List<SucursalRolItem>>(Error.NotFound("Rol.NotFound", "El rol no existe."));
+        }
 
         var empresaId = Guid.TryParse(currentUser.EmpresaId, out var eid) ? eid : (Guid?)null;
 

@@ -18,14 +18,18 @@ public sealed class Rol : BaseEntity
     public void AddSucursal(Sucursal sucursal)
     {
         if (!Sucursales.Any(s => s.Id == sucursal.Id))
+        {
             Sucursales.Add(sucursal);
+        }
     }
 
     public void RemoveSucursal(Guid sucursalId)
     {
         var sucursal = Sucursales.FirstOrDefault(s => s.Id == sucursalId);
         if (sucursal != null)
+        {
             _ = Sucursales.Remove(sucursal);
+        }
     }
 
     public static Result<Rol> Create(

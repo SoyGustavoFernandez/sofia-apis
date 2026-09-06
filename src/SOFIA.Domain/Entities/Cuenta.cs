@@ -113,26 +113,34 @@ public sealed class Cuenta : BaseEntity
     public void AddRol(Rol rol)
     {
         if (!Roles.Any(r => r.Id == rol.Id))
+        {
             Roles.Add(rol);
+        }
     }
 
     public void RemoveRol(Guid rolId)
     {
         var rol = Roles.FirstOrDefault(r => r.Id == rolId);
         if (rol != null)
+        {
             _ = Roles.Remove(rol);
+        }
     }
 
     public void AddSucursal(Sucursal sucursal)
     {
         if (!Sucursales.Any(s => s.Id == sucursal.Id))
+        {
             Sucursales.Add(sucursal);
+        }
     }
 
     public void RemoveSucursal(Guid sucursalId)
     {
         var sucursal = Sucursales.FirstOrDefault(s => s.Id == sucursalId);
         if (sucursal != null)
+        {
             _ = Sucursales.Remove(sucursal);
+        }
     }
 }

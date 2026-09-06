@@ -38,10 +38,10 @@ public class RolConfiguration : IEntityTypeConfiguration<Rol>
                 r => r.HasOne(rs => rs.Rol).WithMany().HasForeignKey(rs => rs.RolId),
                 j =>
                 {
-                    j.ToTable("Seguridad_Roles_Sucursales");
-                    j.HasKey(rs => new { rs.RolId, rs.SucursalId });
-                    j.Property(rs => rs.RolId).HasColumnName("Rol_ID");
-                    j.Property(rs => rs.SucursalId).HasColumnName("Sucursal_ID");
+                    _ = j.ToTable("Seguridad_Roles_Sucursales");
+                    _ = j.HasKey(rs => new { rs.RolId, rs.SucursalId });
+                    _ = j.Property(rs => rs.RolId).HasColumnName("Rol_ID");
+                    _ = j.Property(rs => rs.SucursalId).HasColumnName("Sucursal_ID");
                 });
     }
 }

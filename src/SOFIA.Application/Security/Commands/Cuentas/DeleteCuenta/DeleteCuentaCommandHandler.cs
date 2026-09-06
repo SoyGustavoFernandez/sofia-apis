@@ -14,7 +14,9 @@ public class DeleteCuentaCommandHandler(IApplicationDbContext context)
             .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
 
         if (cuenta is null)
+        {
             return Result.Failure(Error.NotFound("Cuenta.NotFound", "La cuenta especificada no existe."));
+        }
 
         _ = context.Cuentas.Remove(cuenta);
         _ = await context.SaveChangesAsync(cancellationToken);

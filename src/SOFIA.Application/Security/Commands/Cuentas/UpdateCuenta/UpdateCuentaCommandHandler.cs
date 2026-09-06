@@ -14,16 +14,24 @@ public class UpdateCuentaCommandHandler(IApplicationDbContext context)
             .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
 
         if (cuenta is null)
+        {
             return Result.Failure(Error.NotFound("Cuenta.NotFound", "La cuenta especificada no existe."));
+        }
 
         if (request.CuentaActiva.HasValue && cuenta.CuentaActiva != request.CuentaActiva.Value)
+        {
             cuenta.ToggleActive();
+        }
 
         if (request.ForzarCambioClave == true)
+        {
             cuenta.ForcePasswordChange();
+        }
 
         if (request.ResetearIntentos)
+        {
             cuenta.ResetFailedAttempts();
+        }
 
         _ = await context.SaveChangesAsync(cancellationToken);
         return Result.Success();

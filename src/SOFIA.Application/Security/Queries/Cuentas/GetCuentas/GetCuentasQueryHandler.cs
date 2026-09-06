@@ -20,20 +20,28 @@ public class GetCuentasQueryHandler(IApplicationDbContext context)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.NombreUsuario))
+        {
             query = query.Where(c => c.NombreUsuario.Contains(request.NombreUsuario));
+        }
 
         if (!string.IsNullOrWhiteSpace(request.NombreEmpleado))
+        {
             query = query.Where(c =>
                 (c.Empleado!.Nombres + " " + c.Empleado.Apellido_Paterno + " " + c.Empleado.Apellido_Materno)
                     .Contains(request.NombreEmpleado));
+        }
 
         if (request.CuentaActiva.HasValue)
+        {
             query = query.Where(c => c.CuentaActiva == request.CuentaActiva.Value);
+        }
 
         if (request.Bloqueado.HasValue)
+        {
             query = query.Where(c => request.Bloqueado.Value
                 ? c.BloqueadoHasta != null && c.BloqueadoHasta > DateTimeOffset.UtcNow
                 : c.BloqueadoHasta == null || c.BloqueadoHasta <= DateTimeOffset.UtcNow);
+        }
 
         var paginated = await PaginatedList<CuentaDto>.CreateAsync(
             query.OrderBy(c => c.NombreUsuario).Select(c => new CuentaDto(

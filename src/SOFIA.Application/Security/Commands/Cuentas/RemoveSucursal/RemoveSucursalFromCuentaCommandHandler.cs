@@ -14,7 +14,9 @@ public class RemoveSucursalFromCuentaCommandHandler(IApplicationDbContext contex
             .FirstOrDefaultAsync(c => c.Id == request.CuentaId && !c.IsDeleted, cancellationToken);
 
         if (cuenta is null)
+        {
             return Result.Failure(Error.NotFound("Auth.CuentaNotFound", "La cuenta no existe."));
+        }
 
         cuenta.RemoveSucursal(request.SucursalId);
 

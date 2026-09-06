@@ -15,7 +15,9 @@ public class SetRolSucursalesCommandHandler(IApplicationDbContext context)
             .AnyAsync(r => r.Id == request.RolId && !r.IsDeleted, cancellationToken);
 
         if (!rolExists)
+        {
             return Result.Failure(Error.NotFound("Rol.NotFound", "El rol no existe."));
+        }
 
         var existing = await context.RolesSucursales
             .Where(rs => rs.RolId == request.RolId)

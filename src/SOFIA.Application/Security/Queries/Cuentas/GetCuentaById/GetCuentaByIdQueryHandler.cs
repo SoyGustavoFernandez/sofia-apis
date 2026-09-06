@@ -19,7 +19,9 @@ public class GetCuentaByIdQueryHandler(IApplicationDbContext context)
             .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
 
         if (cuenta is null)
+        {
             return Result.Failure<CuentaDto>(Error.NotFound("Cuenta.NotFound", "La cuenta especificada no existe."));
+        }
 
         return Result.Success(new CuentaDto(
             cuenta.Id,
@@ -31,7 +33,7 @@ public class GetCuentaByIdQueryHandler(IApplicationDbContext context)
             cuenta.IntentosFallidos,
             cuenta.BloqueadoHasta,
             cuenta.CreatedAt,
-            cuenta.Roles.Select(r => new RolResponse(r.Id, r.NombreRol, r.Descripcion, r.NivelJerarquia, r.CreatedAt)).ToList(),
-            cuenta.Sucursales.Select(s => new SucursalAsignadaDto(s.Id, s.Nombre)).ToList()));
+            [.. cuenta.Roles.Select(r => new RolResponse(r.Id, r.NombreRol, r.Descripcion, r.NivelJerarquia, r.CreatedAt))],
+            [.. cuenta.Sucursales.Select(s => new SucursalAsignadaDto(s.Id, s.Nombre))]));
     }
 }

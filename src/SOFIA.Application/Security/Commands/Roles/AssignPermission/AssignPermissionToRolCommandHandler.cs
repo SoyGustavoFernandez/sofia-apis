@@ -26,7 +26,9 @@ public class AssignPermissionToRolCommandHandler(IApplicationDbContext context) 
         if (existing is not null)
         {
             if (!existing.IsDeleted)
+            {
                 return Result.Failure<Guid>(Error.Conflict("Permiso.Duplicate", "This permission is already assigned to this role."));
+            }
 
             // Restore a previously revoked permission instead of inserting a duplicate
             existing.IsDeleted = false;

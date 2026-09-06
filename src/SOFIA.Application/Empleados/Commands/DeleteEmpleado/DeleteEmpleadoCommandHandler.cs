@@ -20,8 +20,9 @@ public class DeleteEmpleadoCommandHandler(IApplicationDbContext context) : IRequ
 
         if (entity.Sucursal_Gerenciada != null)
         {
-            return Result.Failure(Error.Validation("Empleado.DeleteError",
-                $"Cannot delete employee because they are the Manager of branch: {entity.Sucursal_Gerenciada.Nombre}. Please assign a new manager first."));
+            return Result.Failure(
+                Error.Conflict("Empleado.EsGerente", "Cannot delete an employee who manages a branch."),
+                409);
         }
 
         _ = context.Empleados.Remove(entity);

@@ -3,6 +3,7 @@ using SOFIA.Application.Empleados.Commands.DeleteEmpleado;
 using SOFIA.Application.Empleados.Commands.UpdateEmpleado;
 using SOFIA.Application.Empleados.Queries.GetById;
 using SOFIA.Application.Empleados.Queries.GetEmpleadosWithPagination;
+using SOFIA.Infrastructure.Excel;
 
 namespace SOFIA.API.Controllers;
 
@@ -58,4 +59,43 @@ public class EmpleadosController(ISender sender) : ControllerBase
         var result = await sender.Send(new DeleteEmpleadoCommand(id));
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
+
+    [HasPermission("Empleados", "Leer")]
+    [HttpPost("exportar")]
+    public async Task<IActionResult> Exportar([FromBody] EmpleadoExportRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetEmpleadosWithPaginationQuery
+        {
+            Nombres = request.Nombres,
+            ApellidoPaterno = request.ApellidoPaterno,
+            ApellidoMaterno = request.ApellidoMaterno,
+            Licencia = request.Licencia,
+            SucursalNombre = request.SucursalNombre,
+            PageSize = int.MaxValue,
+        }, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return Problem(result.Error.Message, statusCode: result.StatusCode);
+        }
+
+        var rows = result.Value.Items.Select(e => new object?[]
+        {
+            e.Nombres,
+            e.Apellido_Paterno,
+            e.Apellido_Materno,
+            e.Licencia_Prof,
+            e.SucursalNombre,
+        });
+
+        var bytes = ExcelTemplateGenerator.GenerateReport(request.Headers, rows);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "empleados.xlsx");
+    }
 }
+
+public record EmpleadoExportRequest(
+    string[] Headers,
+    string? Nombres,
+    string? ApellidoPaterno,
+    string? ApellidoMaterno,
+    string? Licencia,
+    string? SucursalNombre);

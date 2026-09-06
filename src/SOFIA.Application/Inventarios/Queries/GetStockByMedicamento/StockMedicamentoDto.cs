@@ -9,8 +9,8 @@ public record StockMedicamentoDto(
 
 public record StockSucursalDto(
     Guid SucursalId,
-    string NombreSucursal,
-    decimal Cantidad);
+    string SucursalNombre,
+    decimal CantidadFisica);
 
 public record StockLoteDto(
     Guid LoteId,

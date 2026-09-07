@@ -45,4 +45,16 @@ public sealed class InventarioSucursal : BaseEntity
     public void UpdateStock(decimal nuevaCantidad) => CantidadFisica = nuevaCantidad;
 
     public void AddStock(decimal cantidadAAgregar) => CantidadFisica += cantidadAAgregar;
+
+    // Manual inventory adjustment (physical count, shrinkage, correction).
+    public Result AdjustStock(decimal nuevaCantidad)
+    {
+        if (nuevaCantidad < 0)
+        {
+            return Result.Failure(Error.Validation("InventarioSucursal.CantidadFisica", "Quantity cannot be negative."));
+        }
+
+        CantidadFisica = nuevaCantidad;
+        return Result.Success();
+    }
 }

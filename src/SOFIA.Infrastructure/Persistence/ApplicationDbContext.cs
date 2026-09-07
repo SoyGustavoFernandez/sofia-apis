@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Entities;
 
@@ -62,6 +63,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     private Guid? CurrentEmpresaId =>
         Guid.TryParse(currentUser.EmpresaId, out var id) ? id : null;
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // SQL Server returns DateTime with Kind=Unspecified; tag all as UTC so JSON serializer adds 'Z'
+        _ = configurationBuilder.Properties<DateTime>()
+            .HaveConversion<UtcDateTimeConverter>();
+        _ = configurationBuilder.Properties<DateTime?>()
+            .HaveConversion<UtcNullableDateTimeConverter>();
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -150,4 +160,18 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         return await base.SaveChangesAsync(cancellationToken);
     }
+}
+
+sealed file class UtcDateTimeConverter() : ValueConverter<DateTime, DateTime>(
+    v => v.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(v, DateTimeKind.Utc) : v.ToUniversalTime(),
+    v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+sealed file class UtcNullableDateTimeConverter() : ValueConverter<DateTime?, DateTime?>(
+    v => v == null ? null : DateTimeUtcHelper.ToUtc(v.Value),
+    v => v == null ? null : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc));
+
+static file class DateTimeUtcHelper
+{
+    internal static DateTime ToUtc(DateTime v) =>
+        v.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(v, DateTimeKind.Utc) : v.ToUniversalTime();
 }

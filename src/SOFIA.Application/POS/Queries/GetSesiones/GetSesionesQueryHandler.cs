@@ -24,9 +24,25 @@ public class GetSesionesQueryHandler(IApplicationDbContext dbContext) : IRequest
 
         query = query.WhereDateRange(s => s.FechaHoraApertura, request.FechaInicio, request.FechaFin);
 
-        var projectedQuery = query
-            .OrderByDescending(s => s.FechaHoraApertura)
-            .Select(s => new SesionResumenDto(s.Id, s.SucursalId, s.EmpleadoId, s.FechaHoraApertura, s.FechaHoraCierre, s.MontoAperturaEfectivo, s.MontoCierreCalculado, s.EstadoSesion));
+        var projectedQuery =
+            from s in query.OrderByDescending(s => s.FechaHoraApertura)
+            join suc in dbContext.Sucursales on s.SucursalId equals suc.Id into sucGroup
+            from suc in sucGroup.DefaultIfEmpty()
+            join emp in dbContext.Empleados on s.EmpleadoId equals emp.Id into empGroup
+            from emp in empGroup.DefaultIfEmpty()
+            select new SesionResumenDto(
+                s.Id,
+                s.SucursalId,
+                suc != null ? suc.Nombre : string.Empty,
+                s.EmpleadoId,
+                emp != null ? emp.Nombres + " " + emp.Apellido_Paterno : string.Empty,
+                s.FechaHoraApertura,
+                s.FechaHoraCierre,
+                s.MontoAperturaEfectivo,
+                s.MontoCierreCalculado,
+                s.MontoCierreDeclarado,
+                s.DiferenciaArqueo,
+                s.EstadoSesion);
 
         var paginatedList = await PaginatedList<SesionResumenDto>.CreateAsync(projectedQuery, request.PageNumber, request.PageSize);
 

@@ -11,24 +11,31 @@ public class GetSesionByIdQueryHandler(IApplicationDbContext context) : IRequest
 {
     public async Task<Result<SesionResumenDto>> Handle(GetSesionByIdQuery request, CancellationToken cancellationToken)
     {
-        var sesion = await context.POSSesionesCaja
-            .AsNoTracking()
-            .FirstOrDefaultAsync(o => o.Id == request.Id && !o.IsDeleted, cancellationToken);
+        var dto = await (
+            from s in context.POSSesionesCaja.AsNoTracking().Where(o => o.Id == request.Id && !o.IsDeleted)
+            join suc in context.Sucursales on s.SucursalId equals suc.Id into sucGroup
+            from suc in sucGroup.DefaultIfEmpty()
+            join emp in context.Empleados on s.EmpleadoId equals emp.Id into empGroup
+            from emp in empGroup.DefaultIfEmpty()
+            select new SesionResumenDto(
+                s.Id,
+                s.SucursalId,
+                suc != null ? suc.Nombre : string.Empty,
+                s.EmpleadoId,
+                emp != null ? emp.Nombres + " " + emp.Apellido_Paterno : string.Empty,
+                s.FechaHoraApertura,
+                s.FechaHoraCierre,
+                s.MontoAperturaEfectivo,
+                s.MontoCierreCalculado,
+                s.MontoCierreDeclarado,
+                s.DiferenciaArqueo,
+                s.EstadoSesion))
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (sesion == null)
+        if (dto == null)
         {
             return Result.Failure<SesionResumenDto>(Error.NotFound("SesionCaja.NotFound", "Sesion de Caja not found."));
         }
-
-        var dto = new SesionResumenDto(
-            sesion.Id,
-            sesion.SucursalId,
-            sesion.EmpleadoId,
-            sesion.FechaHoraApertura,
-            sesion.FechaHoraCierre,
-            sesion.MontoAperturaEfectivo,
-            sesion.MontoCierreCalculado,
-            sesion.EstadoSesion);
 
         return Result.Success(dto);
     }

@@ -1,5 +1,6 @@
 using SOFIA.Application.POS.Commands.AperturarCaja;
 using SOFIA.Application.POS.Commands.CerrarCaja;
+using SOFIA.Infrastructure.Excel;
 
 namespace SOFIA.Api.Controllers;
 
@@ -40,4 +41,41 @@ public class PosController(ISender sender) : ControllerBase
         var result = await sender.Send(new Application.POS.Queries.GetSesionById.GetSesionByIdQuery(id));
         return !result.IsSuccess ? NotFound(result) : Ok(result);
     }
+
+    [HasPermission("POS", "Leer")]
+    [HttpPost("sesiones/exportar")]
+    public async Task<IActionResult> ExportarSesiones([FromBody] SesionCajaExportRequest request, CancellationToken cancellationToken)
+    {
+        var query = new Application.POS.Queries.GetSesiones.GetSesionesQuery(
+            request.SucursalId, request.EstadoSesion, request.FechaInicio, request.FechaFin, 1, int.MaxValue);
+        var result = await sender.Send(query, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return Problem(result.Error.Message, statusCode: result.StatusCode);
+        }
+
+        var rows = result.Value.Items.Select(s => new object?[]
+        {
+            s.SucursalNombre,
+            s.EmpleadoNombre,
+            s.FechaHoraApertura.ToString(request.DateFormat),
+            s.FechaHoraCierre?.ToString(request.DateFormat),
+            s.MontoAperturaEfectivo,
+            s.MontoCierreDeclarado,
+            s.MontoCierreCalculado,
+            s.DiferenciaArqueo,
+            s.EstadoSesion.ToString(),
+        });
+
+        var bytes = ExcelTemplateGenerator.GenerateReport(request.Headers, rows);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "sesiones-caja.xlsx");
+    }
 }
+
+public record SesionCajaExportRequest(
+    string[] Headers,
+    string DateFormat,
+    Guid? SucursalId,
+    Domain.Enums.EstadoSesion? EstadoSesion,
+    DateTime? FechaInicio,
+    DateTime? FechaFin);

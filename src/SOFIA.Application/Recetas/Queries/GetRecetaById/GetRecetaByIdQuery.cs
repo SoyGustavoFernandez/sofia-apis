@@ -1,15 +1,17 @@
-using SOFIA.Domain.Common;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Linq;
+using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Recetas.Queries.GetRecetaById;
 
-public record GetRecetaByIdQuery(Guid Id) : IRequest<Result<RecetaDto>>;
+public record RecetaDto(
+    Guid Id,
+    Guid ClienteId,
+    string ClienteNombre,
+    Guid MedicoId,
+    string MedicoNombre,
+    DateOnly FechaExpedicion,
+    int RepeticionesMax,
+    string? IndicacionesUso);
 
-public record RecetaDto(Guid Id);
+public record GetRecetaByIdQuery(Guid Id) : IRequest<Result<RecetaDto>>;

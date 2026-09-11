@@ -6,6 +6,7 @@ public class MedicamentoInterpretadoDto
 {
     public string NombreDetectado { get; set; } = string.Empty;
     public string? ConcentracionDetectada { get; set; }
+    public int? CantidadSugerida { get; set; }
     public List<string>? Sugerencias { get; set; }
     public double NivelConfianza { get; set; }
 }

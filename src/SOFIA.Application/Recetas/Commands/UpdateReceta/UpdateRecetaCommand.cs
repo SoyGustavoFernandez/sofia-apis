@@ -1,12 +1,12 @@
-using SOFIA.Domain.Common;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
-using SOFIA.Application.Common.Models;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Recetas.Commands.UpdateReceta;
 
-public record UpdateRecetaCommand(Guid Id) : ICommand<Guid>; // TODO: Add properties manually
+public record UpdateRecetaCommand(
+    Guid Id,
+    Guid ClienteId,
+    Guid MedicoId,
+    DateOnly FechaExpedicion,
+    int RepeticionesMax,
+    string? IndicacionesUso) : ICommand<Guid>;

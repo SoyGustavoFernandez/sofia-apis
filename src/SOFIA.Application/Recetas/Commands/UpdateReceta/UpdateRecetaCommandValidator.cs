@@ -1,11 +1,12 @@
 using FluentValidation;
 
-namespace SOFIA.Application.Recetas.Commands.CreateReceta;
+namespace SOFIA.Application.Recetas.Commands.UpdateReceta;
 
-public class CreateRecetaCommandValidator : AbstractValidator<CreateRecetaCommand>
+public class UpdateRecetaCommandValidator : AbstractValidator<UpdateRecetaCommand>
 {
-    public CreateRecetaCommandValidator()
+    public UpdateRecetaCommandValidator()
     {
+        _ = RuleFor(x => x.Id).NotEmpty();
         _ = RuleFor(x => x.ClienteId).NotEmpty();
         _ = RuleFor(x => x.MedicoId).NotEmpty();
         _ = RuleFor(x => x.FechaExpedicion).NotEqual(default(DateOnly));

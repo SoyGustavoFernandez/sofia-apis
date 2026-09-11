@@ -1,11 +1,8 @@
-using SOFIA.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Recetas.Commands.UpdateReceta;
 
@@ -18,10 +15,20 @@ public class UpdateRecetaCommandHandler(IApplicationDbContext context) : IReques
 
         if (entity == null)
         {
-            return Result.Failure<Guid>(Error.NotFound("NotFound", "Record not found."));
+            return Result.Failure<Guid>(Error.NotFound("RecetaMedica.NotFound", "Receta médica not found."));
         }
 
-        // TODO: Update properties here
+        var updateResult = entity.Update(
+            request.ClienteId,
+            request.MedicoId,
+            request.FechaExpedicion,
+            request.RepeticionesMax,
+            request.IndicacionesUso);
+
+        if (updateResult.IsFailure)
+        {
+            return Result.Failure<Guid>(updateResult.Error);
+        }
 
         _ = await context.SaveChangesAsync(cancellationToken);
         return Result.Success(entity.Id);

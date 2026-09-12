@@ -10,7 +10,8 @@ public record GetFormulacionesClinicasWithPaginationQuery : IRequest<Result<Pagi
 {
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
-    public string? SearchTerm { get; init; }
+    public string? ProductoNombre { get; init; }
+    public string? IngredienteNombre { get; init; }
 }
 
 public static class MappingExtensions

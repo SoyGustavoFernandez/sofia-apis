@@ -161,7 +161,7 @@ public class AnalizarRecetaQueryHandler(
                 .AsNoTracking()
                 .Where(f => f.IngredienteId == fc.IngredienteId
                     && f.ConcentracionDosis == fc.ConcentracionDosis
-                    && f.UnidadDosisClinica == fc.UnidadDosisClinica
+                    && f.UnidadMedidaId == fc.UnidadMedidaId
                     && f.ProductoId != medicamentoId)
                 .Select(f => f.ProductoId)
                 .Distinct()

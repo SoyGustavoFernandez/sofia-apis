@@ -30,10 +30,22 @@ public class UpdateFormulacionClinicaCommandHandler(IApplicationDbContext contex
             }
         }
 
+        // Check that the unit of measure exists (only if it changed)
+        if (formulacion.UnidadMedidaId != request.UnidadMedidaId)
+        {
+            var unidadMedidaExists = await context.UnidadesMedida
+                .AnyAsync(x => x.Id == request.UnidadMedidaId && !x.IsDeleted, cancellationToken);
+
+            if (!unidadMedidaExists)
+            {
+                return Result.Failure(Error.NotFound("UnidadMedida.NotFound", $"Unidad de Medida with ID {request.UnidadMedidaId} not found."));
+            }
+        }
+
         var result = formulacion.Update(
             request.IngredienteId,
             request.ConcentracionDosis,
-            request.UnidadDosisClinica,
+            request.UnidadMedidaId,
             request.CodigoTeOrange);
 
         if (!result.IsSuccess)

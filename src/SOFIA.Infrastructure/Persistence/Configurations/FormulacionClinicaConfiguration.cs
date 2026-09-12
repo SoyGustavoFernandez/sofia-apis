@@ -29,9 +29,8 @@ public class FormulacionClinicaConfiguration : IEntityTypeConfiguration<Formulac
             .HasPrecision(12, 4)
             .IsRequired();
 
-        _ = builder.Property(x => x.UnidadDosisClinica)
-            .HasColumnName("Unidad_Dosis_Clinica")
-            .HasMaxLength(20)
+        _ = builder.Property(x => x.UnidadMedidaId)
+            .HasColumnName("Unidad_Medida_ID")
             .IsRequired();
 
         _ = builder.Property(x => x.CodigoTeOrange)
@@ -47,6 +46,11 @@ public class FormulacionClinicaConfiguration : IEntityTypeConfiguration<Formulac
         _ = builder.HasOne(x => x.Ingrediente)
             .WithMany()
             .HasForeignKey(x => x.IngredienteId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.HasOne(x => x.UnidadMedida)
+            .WithMany()
+            .HasForeignKey(x => x.UnidadMedidaId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Audit & Soft Delete

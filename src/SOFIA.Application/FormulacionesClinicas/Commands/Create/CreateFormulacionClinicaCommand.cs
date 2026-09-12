@@ -12,6 +12,6 @@ public record CreateFormulacionClinicaCommand : ICommand<Guid>
     public Guid ProductoId { get; init; }
     public Guid IngredienteId { get; init; }
     public decimal ConcentracionDosis { get; init; }
-    public string UnidadDosisClinica { get; init; } = string.Empty;
+    public Guid UnidadMedidaId { get; init; }
     public string? CodigoTeOrange { get; init; }
 }

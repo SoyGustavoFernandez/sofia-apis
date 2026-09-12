@@ -14,6 +14,7 @@ public class GetFormulacionesByMedicamentoQueryHandler(IApplicationDbContext con
             .Where(x => x.ProductoId == request.ProductoId && !x.IsDeleted)
             .Include(x => x.Producto)
             .Include(x => x.Ingrediente)
+            .Include(x => x.UnidadMedida)
             .Select(x => new FormulacionClinicaDto
             {
                 Id = x.Id,
@@ -22,7 +23,8 @@ public class GetFormulacionesByMedicamentoQueryHandler(IApplicationDbContext con
                 IngredienteId = x.IngredienteId,
                 IngredienteNombre = x.Ingrediente != null ? x.Ingrediente.DenominacionDci : null,
                 ConcentracionDosis = x.ConcentracionDosis,
-                UnidadDosisClinica = x.UnidadDosisClinica,
+                UnidadMedidaId = x.UnidadMedidaId,
+                UnidadMedidaNombre = x.UnidadMedida != null ? x.UnidadMedida.Descripcion : null,
                 CodigoTeOrange = x.CodigoTeOrange
             })
             .ToListAsync(cancellationToken);

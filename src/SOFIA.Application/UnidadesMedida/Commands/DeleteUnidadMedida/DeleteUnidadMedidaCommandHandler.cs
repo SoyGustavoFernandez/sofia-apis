@@ -21,10 +21,12 @@ public class DeleteUnidadMedidaCommandHandler(IApplicationDbContext context) : I
             .AnyAsync(m => m.UnidadBaseId == request.Id && !m.IsDeleted, cancellationToken);
         var referenciadaPorJerarquia = await context.JerarquiasUoM
             .AnyAsync(j => (j.UnidadMayorId == request.Id || j.UnidadMenorId == request.Id) && !j.IsDeleted, cancellationToken);
-        if (referenciadaPorMedicamento || referenciadaPorJerarquia)
+        var referenciadaPorFormulacion = await context.FormulacionesClinicas
+            .AnyAsync(f => f.UnidadMedidaId == request.Id && !f.IsDeleted, cancellationToken);
+        if (referenciadaPorMedicamento || referenciadaPorJerarquia || referenciadaPorFormulacion)
         {
             return Result.Failure(
-                Error.Conflict("UnidadMedida.InUse", "Cannot delete a unit of measure referenced by medications or unit hierarchies."),
+                Error.Conflict("UnidadMedida.InUse", "Cannot delete a unit of measure referenced by medications, unit hierarchies or clinical formulations."),
                 409);
         }
 

@@ -8,6 +8,7 @@ public record FormulacionClinicaDto
     public Guid IngredienteId { get; init; }
     public string? IngredienteNombre { get; init; }
     public decimal ConcentracionDosis { get; init; }
-    public string UnidadDosisClinica { get; init; } = string.Empty;
+    public Guid UnidadMedidaId { get; init; }
+    public string? UnidadMedidaNombre { get; init; }
     public string? CodigoTeOrange { get; init; }
 }

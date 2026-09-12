@@ -9,18 +9,19 @@ public sealed class FormulacionClinica : BaseEntity
     public Guid ProductoId { get; private set; }
     public Guid IngredienteId { get; private set; }
     public decimal ConcentracionDosis { get; private set; }
-    public string UnidadDosisClinica { get; private set; } = string.Empty;
+    public Guid UnidadMedidaId { get; private set; }
     public string? CodigoTeOrange { get; private set; }
 
     // Navigation Properties
     public Medicamento? Producto { get; }
     public IngredienteActivo? Ingrediente { get; }
+    public UnidadMedida? UnidadMedida { get; }
 
     public static Result<FormulacionClinica> Create(
         Guid productoId,
         Guid ingredienteId,
         decimal concentracionDosis,
-        string unidadDosisClinica,
+        Guid unidadMedidaId,
         string? codigoTeOrange)
     {
         if (productoId == Guid.Empty)
@@ -38,9 +39,9 @@ public sealed class FormulacionClinica : BaseEntity
             return Result.Failure<FormulacionClinica>(Error.Validation("Formulacion.Concentracion", "Concentracion must be greater than zero."));
         }
 
-        if (string.IsNullOrWhiteSpace(unidadDosisClinica))
+        if (unidadMedidaId == Guid.Empty)
         {
-            return Result.Failure<FormulacionClinica>(Error.Validation("Formulacion.UnidadDosis", "Unidad Dosis Clinica is required."));
+            return Result.Failure<FormulacionClinica>(Error.Validation("Formulacion.UnidadMedidaId", "Unidad Medida ID is required."));
         }
 
         return Result.Success(new FormulacionClinica
@@ -48,7 +49,7 @@ public sealed class FormulacionClinica : BaseEntity
             ProductoId = productoId,
             IngredienteId = ingredienteId,
             ConcentracionDosis = concentracionDosis,
-            UnidadDosisClinica = unidadDosisClinica,
+            UnidadMedidaId = unidadMedidaId,
             CodigoTeOrange = codigoTeOrange
         });
     }
@@ -56,7 +57,7 @@ public sealed class FormulacionClinica : BaseEntity
     public Result Update(
         Guid ingredienteId,
         decimal concentracionDosis,
-        string unidadDosisClinica,
+        Guid unidadMedidaId,
         string? codigoTeOrange)
     {
         if (ingredienteId == Guid.Empty)
@@ -69,14 +70,14 @@ public sealed class FormulacionClinica : BaseEntity
             return Result.Failure(Error.Validation("Formulacion.Concentracion", "Concentracion must be greater than zero."));
         }
 
-        if (string.IsNullOrWhiteSpace(unidadDosisClinica))
+        if (unidadMedidaId == Guid.Empty)
         {
-            return Result.Failure(Error.Validation("Formulacion.UnidadDosis", "Unidad Dosis Clinica is required."));
+            return Result.Failure(Error.Validation("Formulacion.UnidadMedidaId", "Unidad Medida ID is required."));
         }
 
         IngredienteId = ingredienteId;
         ConcentracionDosis = concentracionDosis;
-        UnidadDosisClinica = unidadDosisClinica;
+        UnidadMedidaId = unidadMedidaId;
         CodigoTeOrange = codigoTeOrange;
 
         return Result.Success();

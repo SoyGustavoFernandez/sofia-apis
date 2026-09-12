@@ -21,6 +21,7 @@ public class DeleteUnidadMedidaCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         SetupMedicamentos();
         SetupJerarquias();
+        SetupFormulaciones();
         _handler = new DeleteUnidadMedidaCommandHandler(_dbContextMock.Object);
     }
 
@@ -33,6 +34,9 @@ public class DeleteUnidadMedidaCommandHandlerTests
 
     private void SetupJerarquias(params JerarquiaUoM[] jerarquias) =>
         _dbContextMock.Setup(c => c.JerarquiasUoM).Returns(jerarquias.ToList().BuildMockDbSet().Object);
+
+    private void SetupFormulaciones(params FormulacionClinica[] formulaciones) =>
+        _dbContextMock.Setup(c => c.FormulacionesClinicas).Returns(formulaciones.ToList().BuildMockDbSet().Object);
 
     [Fact]
     public async Task Handle_ShouldReturnNotFound_WhenUnidadDoesNotExist()
@@ -71,6 +75,20 @@ public class DeleteUnidadMedidaCommandHandlerTests
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("UnidadMedida.InUse");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnConflict_WhenReferencedByFormulacionClinica()
+    {
+        var unidad = UnidadMedida.Create("MG", "Miligramo").Value!;
+        SetupFind(unidad);
+        SetupFormulaciones(FormulacionClinica.Create(Guid.NewGuid(), Guid.NewGuid(), 100m, unidad.Id, null).Value!);
+
+        var result = await _handler.Handle(new DeleteUnidadMedidaCommand(unidad.Id), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("UnidadMedida.InUse");
+        _ = result.StatusCode.Should().Be(409);
     }
 
     [Fact]

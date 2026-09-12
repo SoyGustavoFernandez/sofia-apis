@@ -14,7 +14,7 @@ public class CreateFormulacionClinicaCommandValidator : AbstractValidator<Create
         _ = RuleFor(v => v.ProductoId).NotEmpty();
         _ = RuleFor(v => v.IngredienteId).NotEmpty();
         _ = RuleFor(v => v.ConcentracionDosis).GreaterThan(0);
-        _ = RuleFor(v => v.UnidadDosisClinica).NotEmpty().MaximumLength(20);
+        _ = RuleFor(v => v.UnidadMedidaId).NotEmpty();
         _ = RuleFor(v => v.CodigoTeOrange).MaximumLength(5);
     }
 }

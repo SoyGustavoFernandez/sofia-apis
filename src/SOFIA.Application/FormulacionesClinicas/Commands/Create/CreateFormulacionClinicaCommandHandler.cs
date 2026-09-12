@@ -29,11 +29,20 @@ public class CreateFormulacionClinicaCommandHandler(IApplicationDbContext contex
             return Result.Failure<Guid>(Error.NotFound("IngredienteActivo.NotFound", $"Ingrediente Activo with ID {request.IngredienteId} not found."));
         }
 
+        // Check that the unit of measure exists
+        var unidadMedidaExists = await context.UnidadesMedida
+            .AnyAsync(x => x.Id == request.UnidadMedidaId && !x.IsDeleted, cancellationToken);
+
+        if (!unidadMedidaExists)
+        {
+            return Result.Failure<Guid>(Error.NotFound("UnidadMedida.NotFound", $"Unidad de Medida with ID {request.UnidadMedidaId} not found."));
+        }
+
         var result = FormulacionClinica.Create(
             request.ProductoId,
             request.IngredienteId,
             request.ConcentracionDosis,
-            request.UnidadDosisClinica,
+            request.UnidadMedidaId,
             request.CodigoTeOrange);
 
         if (!result.IsSuccess)

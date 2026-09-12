@@ -15,12 +15,16 @@ public class GetFormulacionesClinicasWithPaginationQueryHandler(IApplicationDbCo
             .AsNoTracking()
             .Where(x => !x.IsDeleted);
 
-        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        if (!string.IsNullOrWhiteSpace(request.ProductoNombre))
         {
-            query = query.Where(x =>
-                (x.Producto != null && x.Producto.NombreComercial.Contains(request.SearchTerm)) ||
-                (x.Ingrediente != null && x.Ingrediente.DenominacionDci.Contains(request.SearchTerm)) ||
-                x.UnidadDosisClinica.Contains(request.SearchTerm));
+            var term = request.ProductoNombre.ToLower();
+            query = query.Where(x => x.Producto != null && x.Producto.NombreComercial.ToLower().Contains(term));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.IngredienteNombre))
+        {
+            var term = request.IngredienteNombre.ToLower();
+            query = query.Where(x => x.Ingrediente != null && x.Ingrediente.DenominacionDci.ToLower().Contains(term));
         }
 
         var paginatedList = await query
@@ -33,7 +37,8 @@ public class GetFormulacionesClinicasWithPaginationQueryHandler(IApplicationDbCo
                 IngredienteId = x.IngredienteId,
                 IngredienteNombre = x.Ingrediente != null ? x.Ingrediente.DenominacionDci : null,
                 ConcentracionDosis = x.ConcentracionDosis,
-                UnidadDosisClinica = x.UnidadDosisClinica,
+                UnidadMedidaId = x.UnidadMedidaId,
+                UnidadMedidaNombre = x.UnidadMedida != null ? x.UnidadMedida.Descripcion : null,
                 CodigoTeOrange = x.CodigoTeOrange
             })
             .PaginatedListAsync(request.PageNumber, request.PageSize);

@@ -4,6 +4,7 @@ using SOFIA.Application.FormulacionesClinicas.Commands.Update;
 using SOFIA.Application.FormulacionesClinicas.Queries.GetById;
 using SOFIA.Application.FormulacionesClinicas.Queries.GetByMedicamento;
 using SOFIA.Application.FormulacionesClinicas.Queries.GetFormulacionesClinicasWithPagination;
+using SOFIA.Infrastructure.Excel;
 
 namespace SOFIA.API.Controllers;
 
@@ -66,4 +67,34 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
         var result = await sender.Send(new DeleteFormulacionClinicaCommand(id));
         return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
+
+    [HasPermission("FormulacionesClinicas", "Leer")]
+    [HttpPost("exportar")]
+    public async Task<IActionResult> Exportar([FromBody] FormulacionClinicaExportRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetFormulacionesClinicasWithPaginationQuery
+        {
+            ProductoNombre = request.ProductoNombre,
+            IngredienteNombre = request.IngredienteNombre,
+            PageSize = int.MaxValue,
+        }, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return Problem(result.Error.Message, statusCode: result.StatusCode);
+        }
+
+        var rows = result.Value.Items.Select(f => new object?[]
+        {
+            f.ProductoNombre,
+            f.IngredienteNombre,
+            f.ConcentracionDosis,
+            f.UnidadMedidaNombre,
+            f.CodigoTeOrange,
+        });
+
+        var bytes = ExcelTemplateGenerator.GenerateReport(request.Headers, rows);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "formulaciones-clinicas.xlsx");
+    }
 }
+
+public record FormulacionClinicaExportRequest(string[] Headers, string? ProductoNombre, string? IngredienteNombre);

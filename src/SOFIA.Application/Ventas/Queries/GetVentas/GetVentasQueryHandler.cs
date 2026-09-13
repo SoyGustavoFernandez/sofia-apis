@@ -26,6 +26,7 @@ public class GetVentasQueryHandler(
         var query = context.Ventas
             .AsNoTracking()
             .Include(v => v.Empleado)
+            .Include(v => v.Cliente)
             .Include(v => v.Detalles)
             .Where(v => v.SucursalId == sucursalId);
 
@@ -56,7 +57,7 @@ public class GetVentasQueryHandler(
             v.MontoTotalBruto,
             v.Estado.ToString(),
             v.Empleado != null ? $"{v.Empleado.Nombres} {v.Empleado.Apellido_Paterno}" : "N/A",
-            v.ClienteId?.ToString()[..8] ?? "General Public",
+            v.Cliente?.NombreApellidos ?? "Público General",
             v.Detalles.Count)).ToList();
 
         // 3. Return the new paginated list

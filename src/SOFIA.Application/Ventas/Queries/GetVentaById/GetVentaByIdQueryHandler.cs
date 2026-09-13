@@ -23,6 +23,7 @@ public class GetVentaByIdQueryHandler(
         var venta = await context.Ventas
             .AsNoTracking()
             .Include(v => v.Empleado)
+            .Include(v => v.Cliente)
             .Include(v => v.Detalles)
                 .ThenInclude(d => d.Lote)
                     .ThenInclude(l => l!.Producto)
@@ -34,7 +35,7 @@ public class GetVentaByIdQueryHandler(
 
         if (venta == null)
         {
-            return Result.Failure<VentaConDetalleDto>(Error.NotFound("Venta.NotFound", $"No se encontrÃƒÂ³ la venta con ID {request.Id}"));
+            return Result.Failure<VentaConDetalleDto>(Error.NotFound("Venta.NotFound", $"No se encontró la venta con ID {request.Id}"));
         }
 
         if (venta.SucursalId != sucursalId)
@@ -50,7 +51,7 @@ public class GetVentaByIdQueryHandler(
             venta.Estado.ToString(),
             venta.MotivoAnulacion,
             venta.Empleado != null ? $"{venta.Empleado.Nombres} {venta.Empleado.Apellido_Paterno}" : "N/A",
-            venta.ClienteId?.ToString()[..8] ?? "PÃƒÂºblico General",
+            venta.Cliente?.NombreApellidos ?? "Público General",
             [.. venta.Detalles.Select(d => new VentaDetalleDto(
                 d.Id,
                 d.LoteId,

@@ -22,5 +22,16 @@ public class CreateVentaCommandValidator : AbstractValidator<CreateVentaCommand>
             _ = detail.RuleFor(d => d.Cantidad).GreaterThan(0);
             _ = detail.RuleFor(d => d.PrecioUnitario).GreaterThanOrEqualTo(0);
         });
+
+        _ = RuleFor(v => v.Pagos)
+            .NotEmpty().WithMessage("A sale must have at least one payment.")
+            .When(v => v.Estado != EstadoVenta.Pendiente);
+
+        _ = RuleForEach(v => v.Pagos).ChildRules(pago =>
+        {
+            _ = pago.RuleFor(p => p.MetodoPago).IsInEnum();
+            _ = pago.RuleFor(p => p.MontoPagado).GreaterThan(0);
+            _ = pago.RuleFor(p => p.ReferenciaOperacion).MaximumLength(100);
+        });
     }
 }

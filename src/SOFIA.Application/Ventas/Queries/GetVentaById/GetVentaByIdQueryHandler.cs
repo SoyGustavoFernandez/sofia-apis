@@ -24,6 +24,7 @@ public class GetVentaByIdQueryHandler(
             .AsNoTracking()
             .Include(v => v.Empleado)
             .Include(v => v.Cliente)
+            .Include(v => v.Pagos)
             .Include(v => v.Detalles)
                 .ThenInclude(d => d.Lote)
                     .ThenInclude(l => l!.Producto)
@@ -43,15 +44,21 @@ public class GetVentaByIdQueryHandler(
             return Result.Failure<VentaConDetalleDto>(Error.Forbidden("Venta.Forbidden", "No tiene permiso para ver esta venta."));
         }
 
+        var codigoVenta = comprobante != null
+            ? $"{comprobante.Serie?.PrefijoSerie}-{comprobante.NumeroCorrelativo:D8}"
+            : venta.Id.ToString()[..8].ToUpper();
+
         var dto = new VentaConDetalleDto(
             venta.Id,
-            venta.Id.ToString()[..8].ToUpper(),
+            codigoVenta,
             venta.FechaHoraUtc,
             venta.MontoTotalBruto,
             venta.Estado.ToString(),
             venta.MotivoAnulacion,
             venta.Empleado != null ? $"{venta.Empleado.Nombres} {venta.Empleado.Apellido_Paterno}" : "N/A",
+            venta.ClienteId,
             venta.Cliente?.NombreApellidos ?? "Público General",
+            venta.Cliente?.DocIdentidadGub,
             [.. venta.Detalles.Select(d => new VentaDetalleDto(
                 d.Id,
                 d.LoteId,
@@ -68,7 +75,14 @@ public class GetVentaByIdQueryHandler(
                 comprobante.UrlPublicaVerificacion,
                 comprobante.RutaArchivoXml,
                 comprobante.RutaArchivoCdr
-            ) : null
+            ) : null,
+            [.. venta.Pagos.Select(p => new VentaPagoDto(
+                p.Id,
+                p.MetodoPago.ToString(),
+                p.MontoPagado,
+                p.ReferenciaOperacion,
+                p.FechaPago
+            ))]
         );
 
         return Result.Success(dto);

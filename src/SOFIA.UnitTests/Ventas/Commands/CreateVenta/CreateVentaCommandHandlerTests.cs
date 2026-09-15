@@ -4,6 +4,7 @@ using Moq;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Ventas.Commands.CreateVenta;
 using SOFIA.Domain.Entities;
+using SOFIA.Domain.Enums;
 
 namespace SOFIA.UnitTests.Ventas.Commands.CreateVenta;
 
@@ -36,7 +37,7 @@ public class CreateVentaCommandHandlerTests
     {
         // Arrange
         _ = _currentUserMock.Setup(c => c.IsAuthenticated).Returns(false);
-        var command = new CreateVentaCommand(_clienteId, _sesionId, []);
+        var command = new CreateVentaCommand(_clienteId, _sesionId, [], []);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -50,7 +51,7 @@ public class CreateVentaCommandHandlerTests
     public async Task Handle_ShouldReturnError_WhenSesionCajaIsNull()
     {
         // Arrange
-        var command = new CreateVentaCommand(_clienteId, null, []);
+        var command = new CreateVentaCommand(_clienteId, null, [], []);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -66,7 +67,7 @@ public class CreateVentaCommandHandlerTests
         // Arrange
         SetupMocks([]);
 
-        var command = new CreateVentaCommand(_clienteId, _sesionId, []);
+        var command = new CreateVentaCommand(_clienteId, _sesionId, [], []);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -92,6 +93,9 @@ public class CreateVentaCommandHandlerTests
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
             new CreateVentaDetailDto(_loteId, 1, 10, 5)
+        ],
+        [
+            new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)
         ]);
 
         // Act
@@ -115,6 +119,9 @@ public class CreateVentaCommandHandlerTests
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
             new CreateVentaDetailDto(_loteId, 1, 10, 5)
+        ],
+        [
+            new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)
         ]);
 
         // Act
@@ -142,6 +149,9 @@ public class CreateVentaCommandHandlerTests
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
             new CreateVentaDetailDto(_loteId, 10, 10, 5) // Requesting 10
+        ],
+        [
+            new CreateVentaPagoDto(MetodoPago.Efectivo, 100, null)
         ]);
 
         // Act
@@ -169,6 +179,10 @@ public class CreateVentaCommandHandlerTests
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
             new CreateVentaDetailDto(_loteId, 2, 10, 5)
+        ],
+        [
+            new CreateVentaPagoDto(MetodoPago.Efectivo, 12, null),
+            new CreateVentaPagoDto(MetodoPago.Tarjeta, 8, "AUTH-001")
         ]);
 
         // Act
@@ -184,6 +198,98 @@ public class CreateVentaCommandHandlerTests
 
         // Verify inventory stock was reduced
         _ = inventarioItem.CantidadFisica.Should().Be(18);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreateVentaPendiente_WithoutComprobante_WhenNoPagosProvided()
+    {
+        // Arrange
+        var sesionCajaResult = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
+        var sesiones = new List<PosSesionCaja> { sesionCajaResult.Value! };
+        sesiones[0].SetId(_sesionId);
+
+        var inventarioItemResult = InventarioSucursal.Create(_sucursalId, _loteId, 20);
+        var inventarioItem = inventarioItemResult.Value!;
+        var inventario = new List<InventarioSucursal> { inventarioItem! };
+
+        SetupMocks(sesionesCaja: sesiones, inventario: inventario);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+        [
+            new CreateVentaDetailDto(_loteId, 2, 10, 5)
+        ],
+        [],
+        Estado: EstadoVenta.Pendiente);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value.Comprobante.Should().BeNull();
+
+        // Stock is reserved immediately, even though the sale hasn't been paid yet
+        _ = inventarioItem.CantidadFisica.Should().Be(18);
+
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnError_WhenPagosAreInsufficient()
+    {
+        // Arrange
+        var sesionCajaResult = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
+        var sesiones = new List<PosSesionCaja> { sesionCajaResult.Value! };
+        sesiones[0].SetId(_sesionId);
+
+        var inventarioItemResult = InventarioSucursal.Create(_sucursalId, _loteId, 20);
+        var inventario = new List<InventarioSucursal> { inventarioItemResult.Value! };
+
+        SetupMocks(sesionesCaja: sesiones, inventario: inventario);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+        [
+            new CreateVentaDetailDto(_loteId, 2, 10, 5) // Total = 20
+        ],
+        [
+            new CreateVentaPagoDto(MetodoPago.Efectivo, 15, null) // Only 15 paid
+        ]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Pagos");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnError_WhenChangeIsGivenWithoutCashPayment()
+    {
+        // Arrange
+        var sesionCajaResult = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
+        var sesiones = new List<PosSesionCaja> { sesionCajaResult.Value! };
+        sesiones[0].SetId(_sesionId);
+
+        var inventarioItemResult = InventarioSucursal.Create(_sucursalId, _loteId, 20);
+        var inventario = new List<InventarioSucursal> { inventarioItemResult.Value! };
+
+        SetupMocks(sesionesCaja: sesiones, inventario: inventario);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+        [
+            new CreateVentaDetailDto(_loteId, 2, 10, 5) // Total = 20
+        ],
+        [
+            new CreateVentaPagoDto(MetodoPago.Tarjeta, 25, "AUTH-001") // Overpaid by card, no cash line
+        ]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Pagos");
     }
 
     private void SetupMocks(

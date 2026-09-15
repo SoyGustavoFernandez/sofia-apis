@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SOFIA.Domain.Entities;
+using SOFIA.Domain.Enums;
+using SOFIA.Infrastructure.Persistence.Converters;
 
 namespace SOFIA.Infrastructure.Persistence.Configurations;
 
@@ -21,6 +23,7 @@ public class VentaPagoConfiguration : IEntityTypeConfiguration<VentaPago>
             .IsRequired();
 
         _ = builder.Property(x => x.MetodoPago)
+            .HasConversion(new EnumDescriptionConverter<MetodoPago>())
             .HasColumnName("Metodo_Pago")
             .HasMaxLength(50)
             .IsRequired();
@@ -49,9 +52,9 @@ public class VentaPagoConfiguration : IEntityTypeConfiguration<VentaPago>
 
         // Relationships
         _ = builder.HasOne(x => x.Venta)
-            .WithMany()
+            .WithMany(v => v.Pagos)
             .HasForeignKey(x => x.TransaccionId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Indexes
         _ = builder.HasIndex(x => x.TransaccionId);

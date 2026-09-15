@@ -6,6 +6,7 @@ namespace SOFIA.Domain.Entities;
 public sealed class Venta : BaseEntity
 {
     private readonly List<DetalleVenta> _detalles = [];
+    private readonly List<VentaPago> _pagos = [];
 
     private Venta() { }
 
@@ -25,6 +26,7 @@ public sealed class Venta : BaseEntity
     public PosSesionCaja? Sesion { get; }
 
     public IReadOnlyCollection<DetalleVenta> Detalles => _detalles.AsReadOnly();
+    public IReadOnlyCollection<VentaPago> Pagos => _pagos.AsReadOnly();
 
     public static Result<Venta> Create(
         Guid sucursalId,
@@ -99,4 +101,66 @@ public sealed class Venta : BaseEntity
     }
 
     private void CalcularTotales() => MontoTotalBruto = _detalles.Sum(d => d.PrecioFijadoUnidad * d.CantidadVendida);
+
+    public Result ActualizarDetalles(List<DetalleVenta> nuevosDetalles, Guid? clienteId)
+    {
+        if (Estado != EstadoVenta.Pendiente)
+        {
+            return Result.Failure(Error.Validation("Venta.ActualizarDetalles", "Only a pending sale can have its items modified."));
+        }
+
+        if (nuevosDetalles == null || nuevosDetalles.Count == 0)
+        {
+            return Result.Failure(Error.Validation("Venta.Detalles", "A sale must have at least one detail."));
+        }
+
+        _detalles.Clear();
+        foreach (var detalle in nuevosDetalles)
+        {
+            detalle.SetVentaId(Id);
+            _detalles.Add(detalle);
+        }
+
+        ClienteId = clienteId;
+        CalcularTotales();
+
+        return Result.Success();
+    }
+
+    public Result RegistrarPagos(List<VentaPago> pagos, decimal montoCubiertoSeguro = 0)
+    {
+        if (Estado == EstadoVenta.Anulada || Estado == EstadoVenta.Devuelta)
+        {
+            return Result.Failure(Error.Validation("Venta.Pagos", "Cannot register payments on a cancelled or returned sale."));
+        }
+
+        if (pagos == null || pagos.Count == 0)
+        {
+            return Result.Failure(Error.Validation("Venta.Pagos", "At least one payment is required."));
+        }
+
+        var montoAPagar = MontoTotalBruto - montoCubiertoSeguro;
+        var totalPagado = pagos.Sum(p => p.MontoPagado);
+
+        if (totalPagado < montoAPagar)
+        {
+            return Result.Failure(Error.Validation("Venta.Pagos", "The sum of payments is insufficient to cover the sale total."));
+        }
+
+        var vuelto = totalPagado - montoAPagar;
+        if (vuelto > 0 && !pagos.Exists(p => p.MetodoPago == MetodoPago.Efectivo))
+        {
+            return Result.Failure(Error.Validation("Venta.Pagos", "Change can only be given when a cash payment is included."));
+        }
+
+        foreach (var pago in pagos)
+        {
+            pago.SetVentaId(Id);
+            _pagos.Add(pago);
+        }
+
+        Estado = EstadoVenta.Completada;
+
+        return Result.Success();
+    }
 }

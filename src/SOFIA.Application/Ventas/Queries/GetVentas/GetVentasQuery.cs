@@ -14,6 +14,7 @@ public record GetVentasQuery : IRequest<Result<PaginatedList<VentaDto>>>
     public DateTime? FechaFin { get; init; }
     public EstadoVenta? Estado { get; init; }
     public Guid? EmpleadoId { get; init; }
+    public Guid? ClienteId { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
 }

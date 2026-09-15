@@ -15,9 +15,12 @@ public record VentaConDetalleDto(
     string Estado,
     string? MotivoAnulacion,
     string EmpleadoNombre,
+    Guid? ClienteId,
     string? ClienteNombre,
+    string? ClienteDocumento,
     List<VentaDetalleDto> Detalles,
-    ComprobanteDto? Comprobante);
+    ComprobanteDto? Comprobante,
+    List<VentaPagoDto> Pagos);
 
 public record ComprobanteDto(
     string Tipo,
@@ -35,3 +38,10 @@ public record VentaDetalleDto(
     decimal Cantidad,
     decimal PrecioUnitario,
     decimal Subtotal);
+
+public record VentaPagoDto(
+    Guid Id,
+    string MetodoPago,
+    decimal MontoPagado,
+    string? ReferenciaOperacion,
+    DateTime FechaPago);

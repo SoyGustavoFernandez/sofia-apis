@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Ventas.Common;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 using SOFIA.Domain.Enums;
@@ -13,16 +14,14 @@ public record CreateVentaCommand(
     Guid? ClienteId,
     Guid? SesionId,
     List<CreateVentaDetailDto> Detalles,
+    List<CreateVentaPagoDto> Pagos,
     EstadoVenta Estado = EstadoVenta.Completada,
     Guid? AseguradoraId = null,
     decimal? MontoCubiertoSeguro = null) : ICommand<VentaCreadaDto>;
 
+public record CreateVentaPagoDto(MetodoPago MetodoPago, decimal MontoPagado, string? ReferenciaOperacion);
+
 public record VentaCreadaDto(Guid VentaId, ComprobanteEmitidoDto? Comprobante);
-
-// NOTE: SUNAT integration is simulated (thesis). Hash, URL and CDR fields are placeholders.
-// Real integration requires a certified OSE/PSE and a valid digital signature certificate.
-
-public record ComprobanteEmitidoDto(string Tipo, string Numero, string EstadoAceptacion, string? UrlVerificacion, string? UrlXml, string? UrlCdr);
 
 public record CreateVentaDetailDto(
     Guid LoteId,

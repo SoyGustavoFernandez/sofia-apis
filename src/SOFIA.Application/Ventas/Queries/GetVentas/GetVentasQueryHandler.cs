@@ -23,11 +23,9 @@ public class GetVentasQueryHandler(
 
         var sucursalId = sucursalResult.Value;
 
+        // No .Include() here on purpose: EF Core's CountAsync() throws with combined reference+collection Includes; reference navs are fetched separately below.
         var query = context.Ventas
             .AsNoTracking()
-            .Include(v => v.Empleado)
-            .Include(v => v.Cliente)
-            .Include(v => v.Detalles)
             .Where(v => v.SucursalId == sucursalId);
 
         // Apply filters
@@ -43,24 +41,53 @@ public class GetVentasQueryHandler(
             query = query.Where(v => v.EmpleadoId == request.EmpleadoId.Value);
         }
 
+        if (request.ClienteId.HasValue)
+        {
+            query = query.Where(v => v.ClienteId == request.ClienteId.Value);
+        }
+
         // 1. Fetch the paginated entity list (EF does the heavy lifting)
         var paginatedEntities = await PaginatedList<Venta>.CreateAsync(
             query.OrderByDescending(v => v.FechaHoraUtc),
             request.PageNumber,
             request.PageSize);
 
-        // 2. Map to DTO in memory
+        var ventaIds = paginatedEntities.Items.Select(v => v.Id).ToList();
+
+        // 2. Fetch comprobantes for the page's ventas separately (in-memory join, avoids the paginated-projection bug).
+        var comprobantes = await context.SUNATComprobantesEmitidos
+            .AsNoTracking()
+            .Include(c => c.Serie)
+            .Where(c => ventaIds.Contains(c.TransaccionId) && !c.IsDeleted)
+            .ToDictionaryAsync(c => c.TransaccionId, cancellationToken);
+
+        // 3. Fetch related display fields via a Select projection (no Include, safe with the page's id list).
+        var extras = await context.Ventas
+            .AsNoTracking()
+            .Where(v => ventaIds.Contains(v.Id))
+            .Select(v => new
+            {
+                v.Id,
+                EmpleadoNombre = v.Empleado != null ? v.Empleado.Nombres + " " + v.Empleado.Apellido_Paterno : null,
+                ClienteNombre = v.Cliente != null ? v.Cliente.NombreApellidos : null,
+                ItemsCount = v.Detalles.Count,
+            })
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        // 4. Map to DTO in memory
         var dtos = paginatedEntities.Items.Select(v => new VentaDto(
             v.Id,
-            v.Id.ToString()[..8].ToUpper(),
+            comprobantes.TryGetValue(v.Id, out var comprobante)
+                ? $"{comprobante.Serie?.PrefijoSerie}-{comprobante.NumeroCorrelativo:D8}"
+                : v.Id.ToString()[..8].ToUpper(),
             v.FechaHoraUtc,
             v.MontoTotalBruto,
             v.Estado.ToString(),
-            v.Empleado != null ? $"{v.Empleado.Nombres} {v.Empleado.Apellido_Paterno}" : "N/A",
-            v.Cliente?.NombreApellidos ?? "Público General",
-            v.Detalles.Count)).ToList();
+            extras.TryGetValue(v.Id, out var extra) ? extra.EmpleadoNombre ?? "N/A" : "N/A",
+            extras.TryGetValue(v.Id, out extra) ? extra.ClienteNombre ?? "Público General" : "Público General",
+            extras.TryGetValue(v.Id, out extra) ? extra.ItemsCount : 0)).ToList();
 
-        // 3. Return the new paginated list
+        // 5. Return the new paginated list
         var result = new PaginatedList<VentaDto>(
             dtos,
             paginatedEntities.TotalCount,

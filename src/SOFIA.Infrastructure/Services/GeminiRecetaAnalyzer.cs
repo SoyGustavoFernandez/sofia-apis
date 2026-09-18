@@ -46,7 +46,7 @@ public class GeminiRecetaAnalyzer(
             // Anonymize the text
             var textoAnomizado = await _privacyService.AnonymizeTextAsync(ocrText, cancellationToken);
 
-            _logger.LogInformation("Anonymized OCR text to be sent to the LLM: {Texto}", textoAnomizado);
+            _logger.LogInformation("Anonymized text ready for the LLM (Length: {Len})", textoAnomizado.Length);
 
             // PASS 2: Reasoning with Gemini Pro/Flash
             var listaMedicamentos = await AnalyzeTextWithGeminiAsync(textoAnomizado, especialidadContexto, apiKey, cancellationToken);

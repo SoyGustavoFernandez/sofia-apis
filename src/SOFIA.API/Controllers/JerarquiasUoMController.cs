@@ -23,7 +23,7 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
     public async Task<IActionResult> GetPaginated([FromQuery] GetJerarquiasUoMQuery query)
     {
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("JerarquiasUoM", "Leer")]
@@ -31,7 +31,7 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
     public async Task<IActionResult> GetUnidadesVendibles([FromQuery] Guid productoId)
     {
         var result = await sender.Send(new GetUnidadesVendiblesUoMQuery(productoId));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("JerarquiasUoM", "Leer")]
@@ -39,7 +39,7 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await sender.Send(new GetJerarquiaUoMByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("JerarquiasUoM", "Crear")]
@@ -49,7 +49,7 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("JerarquiasUoM", "Actualizar")]
@@ -63,7 +63,7 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
         }
 
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("JerarquiasUoM", "Eliminar")]
@@ -71,7 +71,7 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await sender.Send(new DeleteJerarquiaUoMCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("JerarquiasUoM", "Leer")]
@@ -89,7 +89,7 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
         }, cancellationToken);
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(j => new object?[]
@@ -129,7 +129,7 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
     public async Task<IActionResult> CargaMasiva([FromBody] List<JerarquiaUoMImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaJerarquiasUoMCommand(rows), cancellationToken);
-        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : result.ToProblemResult();
     }
 }
 

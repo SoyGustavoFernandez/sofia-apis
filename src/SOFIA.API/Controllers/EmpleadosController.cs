@@ -17,7 +17,7 @@ public class EmpleadosController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetPaginated([FromQuery] GetEmpleadosWithPaginationQuery query)
     {
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Empleados", "Leer")]
@@ -25,7 +25,7 @@ public class EmpleadosController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await sender.Send(new GetEmpleadoByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Empleados", "Crear")]
@@ -35,7 +35,7 @@ public class EmpleadosController(ISender sender) : ControllerBase
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("Empleados", "Actualizar")]
@@ -49,7 +49,7 @@ public class EmpleadosController(ISender sender) : ControllerBase
         }
 
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Empleados", "Eliminar")]
@@ -57,7 +57,7 @@ public class EmpleadosController(ISender sender) : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await sender.Send(new DeleteEmpleadoCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Empleados", "Leer")]
@@ -75,7 +75,7 @@ public class EmpleadosController(ISender sender) : ControllerBase
         }, cancellationToken);
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(e => new object?[]

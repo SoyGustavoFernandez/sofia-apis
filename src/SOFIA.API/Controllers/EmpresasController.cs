@@ -26,7 +26,7 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
         var result = await sender.Send(command);
         return result.IsSuccess
             ? StatusCode(201, new { token = result.Value })
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("Empresas", "Leer")]
@@ -48,7 +48,7 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
             PageNumber = pageNumber,
             PageSize = pageSize
         });
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Empresas", "Leer")]
@@ -56,7 +56,7 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await sender.Send(new GetEmpresaByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Empresas", "Actualizar")]
@@ -65,7 +65,7 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
     {
         command = command with { Id = id };
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Empresas", "Eliminar")]
@@ -73,7 +73,7 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await sender.Send(new DeleteEmpresaCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Empresas", "Leer")]
@@ -90,7 +90,7 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
         }, cancellationToken);
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(e => new object?[]
@@ -137,6 +137,6 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
     public async Task<IActionResult> CargaMasiva([FromBody] List<EmpresaImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaEmpresasCommand(rows), cancellationToken);
-        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : result.ToProblemResult();
     }
 }

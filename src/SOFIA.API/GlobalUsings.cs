@@ -11,3 +11,4 @@ global using MediatR;
 global using Microsoft.AspNetCore.Authorization;
 global using SOFIA.Infrastructure.Authentication;
 global using Asp.Versioning;
+global using SOFIA.API.Extensions;

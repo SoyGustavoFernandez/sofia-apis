@@ -20,7 +20,7 @@ public class UnidadesMedidaController(ISender sender, IExcelReaderService excelR
     public async Task<IActionResult> GetPaginated([FromQuery] GetUnidadesMedidaQuery query)
     {
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("UnidadesMedida", "Leer")]
@@ -28,7 +28,7 @@ public class UnidadesMedidaController(ISender sender, IExcelReaderService excelR
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await sender.Send(new GetUnidadMedidaByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("UnidadesMedida", "Crear")]
@@ -38,7 +38,7 @@ public class UnidadesMedidaController(ISender sender, IExcelReaderService excelR
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("UnidadesMedida", "Actualizar")]
@@ -52,7 +52,7 @@ public class UnidadesMedidaController(ISender sender, IExcelReaderService excelR
         }
 
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("UnidadesMedida", "Eliminar")]
@@ -60,7 +60,7 @@ public class UnidadesMedidaController(ISender sender, IExcelReaderService excelR
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await sender.Send(new DeleteUnidadMedidaCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpGet("plantilla")]
@@ -90,7 +90,7 @@ public class UnidadesMedidaController(ISender sender, IExcelReaderService excelR
     public async Task<IActionResult> CargaMasiva([FromBody] List<UnidadMedidaImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaUnidadesMedidaCommand(rows), cancellationToken);
-        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : result.ToProblemResult();
     }
 
     [HasPermission("UnidadesMedida", "Leer")]
@@ -105,7 +105,7 @@ public class UnidadesMedidaController(ISender sender, IExcelReaderService excelR
         });
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(u => new object?[]

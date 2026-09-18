@@ -56,7 +56,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
     public async Task<IActionResult> GetCatalogo([FromQuery] GetDigemidCatalogoQuery query)
     {
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("DIGEMID", "Leer")]
@@ -64,7 +64,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
     public async Task<IActionResult> GetCatalogoById(Guid id)
     {
         var result = await sender.Send(new GetDigemidCatalogoByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("DIGEMID", "Crear")]
@@ -74,7 +74,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetCatalogoById), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("DIGEMID", "Actualizar")]
@@ -83,7 +83,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
     {
         command = command with { Id = id };
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("DIGEMID", "Eliminar")]
@@ -91,7 +91,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
     public async Task<IActionResult> DeleteCatalogo(Guid id)
     {
         var result = await sender.Send(new DeleteDigemidProductoCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpGet("catalogo/plantilla")]
@@ -121,7 +121,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
     public async Task<IActionResult> CargaMasiva([FromBody] List<DigemidImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaDigemidCommand(rows), cancellationToken);
-        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : result.ToProblemResult();
     }
 
     [HasPermission("DIGEMID", "Leer")]
@@ -136,7 +136,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
         });
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(p => new object?[]

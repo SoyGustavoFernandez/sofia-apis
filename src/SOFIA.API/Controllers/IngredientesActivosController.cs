@@ -20,7 +20,7 @@ public class IngredientesActivosController(ISender sender, IExcelReaderService e
     public async Task<IActionResult> GetPaginated([FromQuery] GetIngredientesActivosQuery query)
     {
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("IngredientesActivos", "Leer")]
@@ -28,7 +28,7 @@ public class IngredientesActivosController(ISender sender, IExcelReaderService e
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await sender.Send(new GetIngredienteActivoByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("IngredientesActivos", "Crear")]
@@ -38,7 +38,7 @@ public class IngredientesActivosController(ISender sender, IExcelReaderService e
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("IngredientesActivos", "Actualizar")]
@@ -52,7 +52,7 @@ public class IngredientesActivosController(ISender sender, IExcelReaderService e
         }
 
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("IngredientesActivos", "Eliminar")]
@@ -60,7 +60,7 @@ public class IngredientesActivosController(ISender sender, IExcelReaderService e
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await sender.Send(new DeleteIngredienteActivoCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("IngredientesActivos", "Leer")]
@@ -75,7 +75,7 @@ public class IngredientesActivosController(ISender sender, IExcelReaderService e
         }, cancellationToken);
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(i => new object?[]
@@ -115,7 +115,7 @@ public class IngredientesActivosController(ISender sender, IExcelReaderService e
     public async Task<IActionResult> CargaMasiva([FromBody] List<IngredienteActivoImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaIngredientesActivosCommand(rows), cancellationToken);
-        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : result.ToProblemResult();
     }
 }
 

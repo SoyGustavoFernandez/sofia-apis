@@ -22,7 +22,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
         var result = await sender.Send(request);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetPacienteById), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("Pacientes", "Leer")]
@@ -30,7 +30,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
     public async Task<IActionResult> GetPacientes([FromQuery] GetPacientesQuery request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpGet("{id}")]
@@ -38,7 +38,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
     public async Task<IActionResult> GetPacienteById(Guid id)
     {
         var result = await sender.Send(new GetPacienteByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpPut("{id}")]
@@ -47,7 +47,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
     {
         command = command with { Id = id };
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpDelete("{id}")]
@@ -55,7 +55,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
     public async Task<IActionResult> DeletePaciente(Guid id)
     {
         var result = await sender.Send(new DeletePacienteCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Pacientes", "Leer")]
@@ -72,7 +72,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
         });
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(p => new object?[]
@@ -113,7 +113,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
     public async Task<IActionResult> CargaMasiva([FromBody] List<PacienteImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaPacientesCommand(rows), cancellationToken);
-        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : result.ToProblemResult();
     }
 }
 

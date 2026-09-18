@@ -26,6 +26,10 @@ public class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TReq
 
         if (failures.Count != 0)
         {
+            // Namespaced per-field code (e.g. "CreateVentaCommand.Detalles") instead of a generic literal, so the frontend can map it to an i18n key.
+            var code = $"{typeof(TRequest).Name}.{failures[0].PropertyName}";
+            var error = Error.Validation(code, string.Join("; ", failures.Select(f => f.ErrorMessage)));
+
             if (typeof(TResponse).IsGenericType && typeof(TResponse).GetGenericTypeDefinition() == typeof(Result<>))
             {
                 var resultType = typeof(TResponse).GetGenericArguments()[0];
@@ -34,13 +38,11 @@ public class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TReq
                     .First(m => m.Name == "Failure" && m.IsGenericMethod)
                     .MakeGenericMethod(resultType);
 
-                var error = Error.Validation("ValidationError", string.Join("; ", failures.Select(f => f.ErrorMessage)));
                 return (TResponse)failureMethod.Invoke(null, [error, 400])!;
             }
 
             if (typeof(TResponse) == typeof(Result))
             {
-                var error = Error.Validation("ValidationError", string.Join("; ", failures.Select(f => f.ErrorMessage)));
                 return (TResponse)(object)Result.Failure(error, 400);
             }
 

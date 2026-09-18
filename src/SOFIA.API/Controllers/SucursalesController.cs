@@ -44,7 +44,7 @@ public class SucursalesController(ISender sender, IExcelReaderService excelReade
     public async Task<IActionResult> CargaMasiva([FromBody] List<SucursalImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaSucursalesCommand(rows), cancellationToken);
-        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : result.ToProblemResult();
     }
 
     [HasPermission("Sucursales", "Leer")]
@@ -52,7 +52,7 @@ public class SucursalesController(ISender sender, IExcelReaderService excelReade
     public async Task<IActionResult> GetPaginated([FromQuery] GetSucursalesWithPaginationQuery query)
     {
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Sucursales", "Leer")]
@@ -60,7 +60,7 @@ public class SucursalesController(ISender sender, IExcelReaderService excelReade
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await sender.Send(new GetSucursalByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Sucursales", "Leer")]
@@ -77,7 +77,7 @@ public class SucursalesController(ISender sender, IExcelReaderService excelReade
 
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(s => new object?[]
@@ -99,7 +99,7 @@ public class SucursalesController(ISender sender, IExcelReaderService excelReade
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("Sucursales", "Actualizar")]
@@ -113,7 +113,7 @@ public class SucursalesController(ISender sender, IExcelReaderService excelReade
         }
 
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Sucursales", "Eliminar")]
@@ -121,7 +121,7 @@ public class SucursalesController(ISender sender, IExcelReaderService excelReade
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await sender.Send(new DeleteSucursalCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 }
 

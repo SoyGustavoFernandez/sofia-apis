@@ -29,7 +29,7 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
     public async Task<IActionResult> GetPaginated([FromQuery] GetMedicamentosQuery query)
     {
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Medicamentos", "Leer")]
@@ -37,7 +37,7 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await sender.Send(new GetMedicamentoByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Medicamentos", "Crear")]
@@ -47,7 +47,7 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("Medicamentos", "Actualizar")]
@@ -61,7 +61,7 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
         }
 
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Medicamentos", "Eliminar")]
@@ -69,7 +69,7 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await sender.Send(new DeleteMedicamentoCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Medicamentos", "Leer")]
@@ -87,7 +87,7 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
         }, cancellationToken);
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(m => new object?[]
@@ -128,7 +128,7 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
     public async Task<IActionResult> CargaMasiva([FromBody] List<MedicamentoImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaMedicamentosCommand(rows), cancellationToken);
-        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : result.ToProblemResult();
     }
 }
 

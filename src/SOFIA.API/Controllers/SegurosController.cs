@@ -20,7 +20,7 @@ public class SegurosController(ISender sender, IExcelReaderService excelReader) 
     public async Task<IActionResult> CreateAseguradora([FromBody] CreateAseguradoraCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguros", "Leer")]
@@ -28,7 +28,7 @@ public class SegurosController(ISender sender, IExcelReaderService excelReader) 
     public async Task<IActionResult> GetAseguradoras([FromQuery] GetAseguradorasQuery request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpGet("{id:guid}")]
@@ -36,7 +36,7 @@ public class SegurosController(ISender sender, IExcelReaderService excelReader) 
     public async Task<IActionResult> GetAseguradoraById(Guid id)
     {
         var result = await sender.Send(new GetAseguradoraByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpPut("{id:guid}")]
@@ -45,7 +45,7 @@ public class SegurosController(ISender sender, IExcelReaderService excelReader) 
     {
         command = command with { Id = id };
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpDelete("{id:guid}")]
@@ -53,7 +53,7 @@ public class SegurosController(ISender sender, IExcelReaderService excelReader) 
     public async Task<IActionResult> DeleteAseguradora(Guid id)
     {
         var result = await sender.Send(new DeleteAseguradoraCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguros", "Leer")]
@@ -68,7 +68,7 @@ public class SegurosController(ISender sender, IExcelReaderService excelReader) 
         });
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(a => new object?[]
@@ -107,7 +107,7 @@ public class SegurosController(ISender sender, IExcelReaderService excelReader) 
     public async Task<IActionResult> CargaMasiva([FromBody] List<SeguroImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaSegurosCommand(rows), cancellationToken);
-        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : result.ToProblemResult();
     }
 }
 

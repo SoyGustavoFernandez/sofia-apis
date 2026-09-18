@@ -16,7 +16,7 @@ public class StockPorSucursalController(ISender sender) : ControllerBase
     public async Task<IActionResult> Get([FromQuery] GetStockPorSucursalQuery query)
     {
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Inventarios", "Leer")]
@@ -24,7 +24,7 @@ public class StockPorSucursalController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await sender.Send(new GetStockPorSucursalByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Inventarios", "Actualizar")]
@@ -32,7 +32,7 @@ public class StockPorSucursalController(ISender sender) : ControllerBase
     public async Task<IActionResult> Ajustar(Guid id, [FromBody] AdjustStockRequest request)
     {
         var result = await sender.Send(new AdjustStockCommand(id, request.NuevaCantidad));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Inventarios", "Leer")]
@@ -54,7 +54,7 @@ public class StockPorSucursalController(ISender sender) : ControllerBase
 
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(s => new object?[]

@@ -34,9 +34,7 @@ public class CuentasController(ISender sender) : ControllerBase
             PageNumber = pageNumber,
             PageSize = pageSize,
         });
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "Leer")]
@@ -44,9 +42,7 @@ public class CuentasController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetCuentaById(Guid id)
     {
         var result = await sender.Send(new GetCuentaByIdQuery(id));
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "Crear")]
@@ -56,7 +52,7 @@ public class CuentasController(ISender sender) : ControllerBase
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetCuentaById), new { id = result.Value }, new { id = result.Value })
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("Seguridad", "Actualizar")]
@@ -68,9 +64,7 @@ public class CuentasController(ISender sender) : ControllerBase
             request.CuentaActiva,
             request.ForzarCambioClave,
             request.ResetearIntentos));
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "Eliminar")]
@@ -78,9 +72,7 @@ public class CuentasController(ISender sender) : ControllerBase
     public async Task<IActionResult> DeleteCuenta(Guid id)
     {
         var result = await sender.Send(new DeleteCuentaCommand(id));
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "Actualizar")]
@@ -88,9 +80,7 @@ public class CuentasController(ISender sender) : ControllerBase
     public async Task<IActionResult> AssignRol(Guid id, Guid rolId)
     {
         var result = await sender.Send(new AssignRolToUserCommand(id, rolId));
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "Actualizar")]
@@ -98,9 +88,7 @@ public class CuentasController(ISender sender) : ControllerBase
     public async Task<IActionResult> RemoveRol(Guid id, Guid rolId)
     {
         var result = await sender.Send(new RemoveRolFromUserCommand(id, rolId));
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "Actualizar")]
@@ -108,9 +96,7 @@ public class CuentasController(ISender sender) : ControllerBase
     public async Task<IActionResult> AssignSucursal(Guid id, Guid sucursalId)
     {
         var result = await sender.Send(new AssignSucursalToCuentaCommand(id, sucursalId));
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "Actualizar")]
@@ -118,9 +104,7 @@ public class CuentasController(ISender sender) : ControllerBase
     public async Task<IActionResult> RemoveSucursal(Guid id, Guid sucursalId)
     {
         var result = await sender.Send(new RemoveSucursalFromCuentaCommand(id, sucursalId));
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 }
 

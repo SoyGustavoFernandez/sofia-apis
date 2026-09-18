@@ -41,9 +41,7 @@ public class RecetasController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetRecetaById(Guid id)
     {
         var result = await sender.Send(new GetRecetaByIdQuery(id));
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpPost("analizar")]
@@ -70,9 +68,7 @@ public class RecetasController(ISender sender) : ControllerBase
     public async Task<IActionResult> UpdateReceta(Guid id, [FromBody] UpdateRecetaCommand command)
     {
         var result = await sender.Send(command with { Id = id });
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpDelete("{id}")]
@@ -80,9 +76,7 @@ public class RecetasController(ISender sender) : ControllerBase
     public async Task<IActionResult> DeleteReceta(Guid id)
     {
         var result = await sender.Send(new DeleteRecetaCommand(id));
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Recetas", "Leer")]
@@ -94,7 +88,7 @@ public class RecetasController(ISender sender) : ControllerBase
         var result = await sender.Send(query, cancellationToken);
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(r => new object?[]

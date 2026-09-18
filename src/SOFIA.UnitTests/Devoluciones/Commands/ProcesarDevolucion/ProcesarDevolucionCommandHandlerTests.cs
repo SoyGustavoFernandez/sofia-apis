@@ -139,6 +139,7 @@ public class ProcesarDevolucionCommandHandlerTests
             [inventario1, inventario2],
             [serie]
         );
+        _ = _dbContextMock.Setup(x => x.IncrementarCorrelativoSunatAsync(serie.Id, It.IsAny<CancellationToken>())).ReturnsAsync(101);
 
         var command = new ProcesarDevolucionCommand(
             venta.Id,
@@ -163,12 +164,8 @@ public class ProcesarDevolucionCommandHandlerTests
 
         _dbContextMock.Verify(x => x.Devoluciones.Add(It.IsAny<DevolucionCabecera>()), Times.Once);
         _dbContextMock.Verify(x => x.LotesEnSucursal.Update(inventario1), Times.Once);
-        _dbContextMock.Verify(x => x.SUNATSeriesFiscales.Update(serie), Times.Once);
-        _dbContextMock.Verify(x => x.SUNATComprobantesEmitidos.Add(It.IsAny<SunatComprobanteEmitido>()), Times.Once);
+        _dbContextMock.Verify(x => x.SUNATComprobantesEmitidos.Add(It.Is<SunatComprobanteEmitido>(nc => nc.NumeroCorrelativo == 101)), Times.Once);
         _dbContextMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
-
-        // Serie should be incremented
-        _ = serie.CorrelativoActual.Should().Be(101);
     }
 
     [Fact]

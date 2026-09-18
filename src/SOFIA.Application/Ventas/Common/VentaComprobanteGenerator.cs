@@ -12,23 +12,24 @@ public static class VentaComprobanteGenerator
         var serie = await context.SUNATSeriesFiscales
             .FirstOrDefaultAsync(s => s.SucursalId == sucursalId && s.TipoComprobante == TipoComprobante.Boleta && s.EstadoSerie == "Activa" && !s.IsDeleted, cancellationToken);
 
+        int correlativo;
         if (serie == null)
         {
-            var newSerieResult = SunatSerieFiscal.Create(sucursalId, TipoComprobante.Boleta, "B001", 0, "Activa");
-            if (newSerieResult.IsSuccess)
+            // Brand-new series, no concurrent row to race against — start it directly at correlativo 1.
+            var newSerieResult = SunatSerieFiscal.Create(sucursalId, TipoComprobante.Boleta, "B001", 1, "Activa");
+            if (!newSerieResult.IsSuccess)
             {
-                serie = newSerieResult.Value;
-                _ = context.SUNATSeriesFiscales.Add(serie);
+                return null;
             }
-        }
 
-        if (serie == null)
+            serie = newSerieResult.Value;
+            _ = context.SUNATSeriesFiscales.Add(serie);
+            correlativo = serie.CorrelativoActual;
+        }
+        else
         {
-            return null;
+            correlativo = await context.IncrementarCorrelativoSunatAsync(serie.Id, cancellationToken);
         }
-
-        var correlativo = serie.CorrelativoActual + 1;
-        _ = serie.Update(serie.SucursalId, serie.TipoComprobante, serie.PrefijoSerie, correlativo, serie.EstadoSerie);
 
         var total = venta.MontoTotalBruto;
         var comprobanteResult = SunatComprobanteEmitido.Create(

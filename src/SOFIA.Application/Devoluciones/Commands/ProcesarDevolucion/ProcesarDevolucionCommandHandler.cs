@@ -112,9 +112,7 @@ public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext) :
             return;
         }
 
-        var correlativo = serie.CorrelativoActual + 1;
-        _ = serie.Update(serie.SucursalId, serie.TipoComprobante, serie.PrefijoSerie, correlativo, serie.EstadoSerie);
-        _ = dbContext.SUNATSeriesFiscales.Update(serie);
+        var correlativo = await dbContext.IncrementarCorrelativoSunatAsync(serie.Id, cancellationToken);
 
         var ncResult = SunatComprobanteEmitido.Create(
             venta.Id, serie.Id, correlativo,

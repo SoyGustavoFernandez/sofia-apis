@@ -79,7 +79,6 @@ jobs:
             --enableRetired
             --suppression .dependency-check-suppressions.xml
             --nvdApiDelay 6000
-        env:
           # NVD_API_KEY: ${{ secrets.NVD_API_KEY }}  # Optional but speeds up the scan
 
       - name: Upload OWASP report

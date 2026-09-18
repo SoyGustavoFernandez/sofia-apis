@@ -36,6 +36,13 @@ public class DetalleVentaConfiguration : IEntityTypeConfiguration<DetalleVenta>
             .HasColumnName("Costo_Unitario_Historico")
             .HasPrecision(10, 2);
 
+        _ = builder.Property(x => x.PresentacionVentaId)
+            .HasColumnName("Presentacion_ID");
+
+        _ = builder.Property(x => x.CantidadEnPresentacion)
+            .HasColumnName("Cantidad_En_Presentacion")
+            .HasPrecision(12, 4);
+
         _ = builder.HasOne(x => x.Venta)
             .WithMany(v => v.Detalles)
             .HasForeignKey(x => x.VentaId)
@@ -44,6 +51,11 @@ public class DetalleVentaConfiguration : IEntityTypeConfiguration<DetalleVenta>
         _ = builder.HasOne(x => x.Lote)
             .WithMany()
             .HasForeignKey(x => x.LoteId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.HasOne(x => x.PresentacionVenta)
+            .WithMany()
+            .HasForeignKey(x => x.PresentacionVentaId)
             .OnDelete(DeleteBehavior.Restrict);
 
         _ = builder.HasQueryFilter(x => !x.IsDeleted);

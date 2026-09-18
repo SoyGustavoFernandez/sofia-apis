@@ -5,6 +5,7 @@ using SOFIA.Application.JerarquiasUoM.Commands.DeleteJerarquiaUoM;
 using SOFIA.Application.JerarquiasUoM.Commands.UpdateJerarquiaUoM;
 using SOFIA.Application.JerarquiasUoM.Queries.GetJerarquiaUoMById;
 using SOFIA.Application.JerarquiasUoM.Queries.GetJerarquiasUoM;
+using SOFIA.Application.JerarquiasUoM.Queries.GetUnidadesVendiblesUoM;
 using SOFIA.Application.JerarquiasUoM.Queries.PreviewImportJerarquiasUoM;
 using SOFIA.Infrastructure.Excel;
 
@@ -22,6 +23,14 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
     public async Task<IActionResult> GetPaginated([FromQuery] GetJerarquiasUoMQuery query)
     {
         var result = await sender.Send(query);
+        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+    }
+
+    [HasPermission("JerarquiasUoM", "Leer")]
+    [HttpGet("unidades-vendibles")]
+    public async Task<IActionResult> GetUnidadesVendibles([FromQuery] Guid productoId)
+    {
+        var result = await sender.Send(new GetUnidadesVendiblesUoMQuery(productoId));
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
     }
 

@@ -19,6 +19,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<IngredienteActivo> IngredientesActivos => Set<IngredienteActivo>();
     public DbSet<Medicamento> Medicamentos => Set<Medicamento>();
     public DbSet<JerarquiaUoM> JerarquiasUoM => Set<JerarquiaUoM>();
+    public DbSet<PresentacionVenta> PresentacionesVenta => Set<PresentacionVenta>();
     public DbSet<FormulacionClinica> FormulacionesClinicas => Set<FormulacionClinica>();
     public DbSet<Cuenta> Cuentas => Set<Cuenta>();
     public DbSet<Rol> Roles => Set<Rol>();

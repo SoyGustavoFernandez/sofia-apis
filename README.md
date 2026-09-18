@@ -9,10 +9,11 @@
 
 | Verificación | Resultado |
 |---|---|
-| `dotnet build` (Release) | ✅ 0 errores, 0 warnings |
-| Unit Tests (46 tests) | ✅ 46/46 passed |
+| `dotnet build` (Release) | ✅ 0 errores · ⚠️ 69 warnings (SonarAnalyzer, complejidad cognitiva y nulabilidad — no bloquean el build) |
+| Unit Tests (386 tests) | ✅ 386/386 passed |
 | Architecture Tests (2 tests) | ✅ 2/2 passed |
-| Integration Tests | ⚠️ Requieren Docker Desktop corriendo |
+| Integration Tests (9 tests) | ⚠️ Requieren Docker Desktop corriendo (Testcontainers) |
+| CI (GitHub Actions) | `build-analysis` (build + unit + architecture tests) y `owasp-dependency-check` semanal |
 
 > **Nota SUNAT:** La integración con SUNAT es simulada (más adelante se implementará). Los campos de hash, URL y CDR en el comprobante son placeholders. La integración real requiere un OSE/PSE homologado y firma digital con certificado.
 
@@ -41,6 +42,27 @@ src/
 - **Outbox Pattern** — eventos de dominio con consistencia eventual
 - **Transaction Behavior** — todos los Commands envueltos automáticamente en transacciones SQL
 - **Nullable Reference Types** — habilitado en todos los proyectos (`<Nullable>enable</Nullable>`)
+
+---
+
+## 🧩 Módulos de negocio
+
+Cada módulo vive como carpeta de features en `SOFIA.Application/` (Commands/Queries + Validators + Handlers) y expone su propio controller en `SOFIA.API/Controllers/`:
+
+| Módulo | Alcance |
+|---|---|
+| Empresas, Sucursales | Multi-tenant y multi-sucursal |
+| Empleados, Roles (Security) | Usuarios, permisos y autenticación JWT |
+| Proveedores, Laboratorios, Aseguradoras (Seguros) | Terceros y catálogos maestros |
+| Pacientes, Profesionales de Salud | Catálogos clínicos |
+| Medicamentos, Ingredientes Activos, DIGEMID | Catálogo farmacéutico y padrón regulatorio peruano |
+| Unidades de Medida, Jerarquías UdM, Presentaciones de Venta | Conversión de unidades y presentaciones comerciales |
+| Inventarios, Lotes, Stock por Sucursal, Transferencias | Control de stock con trazabilidad de lotes/vencimientos |
+| Ventas, POS | Punto de venta, sesiones de caja, pagos divididos, ventas pendientes |
+| Recetas | Escaneo de recetas con IA (Gemini OCR) y anonimización PII (Presidio) |
+| Formulaciones Clínicas, Magistrales | Preparados magistrales y dosificación |
+| Devoluciones, Delivery, Servicios | Postventa y logística |
+| Auditoría | Trazabilidad de cambios sobre entidades auditadas |
 
 ---
 
@@ -201,10 +223,23 @@ El mensaje de commit también es validado (`commit-msg` hook):
 <tipo>(<alcance>): <descripción en imperativo>
 
 Tipos válidos : feat, fix, docs, style, refactor, perf, test, chore
-Alcances válidos: domain, app, infra, api, ia, db
+Alcances válidos: domain, app, infra, api, ia, db, test
 ```
 
 **Ejemplo**: `feat(api): agregar endpoint de sucursales con paginación`
+
+---
+
+## 🔄 CI (GitHub Actions)
+
+El workflow `.github/workflows/security.yml` corre en cada push/PR a `master`/`main` y semanalmente (lunes 08:00 UTC):
+
+| Job | Qué hace |
+|---|---|
+| `build-analysis` | Restore + `dotnet build` (Release) con reglas de SonarAnalyzer + Unit Tests + Architecture Tests, publica `.trx` como artifact |
+| `owasp-dependency-check` | Escanea CVEs en dependencias NuGet, falla si hay una vulnerabilidad con CVSS ≥ 7, sube el reporte SARIF a la pestaña Security de GitHub |
+
+Las supresiones de falsos positivos del OWASP scan viven en `.dependency-check-suppressions.xml`.
 
 ---
 

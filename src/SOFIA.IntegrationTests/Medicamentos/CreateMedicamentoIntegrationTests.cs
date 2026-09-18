@@ -20,7 +20,8 @@ public class CreateMedicamentoIntegrationTests(SofiaWebAppFactory factory)
             NombreComercial: "Paracetamol 500mg Test",
             LaboratorioId: laboratorioId,
             UnidadBaseId: unidadId,
-            CondicionVenta: CondicionVenta.VentaLibreOTC);
+            CondicionVenta: CondicionVenta.VentaLibreOTC,
+            PrecioVentaBase: 15m);
 
         // Act
         var result = await Sender.Send(command);
@@ -45,7 +46,8 @@ public class CreateMedicamentoIntegrationTests(SofiaWebAppFactory factory)
             NombreComercial: "Test",
             LaboratorioId: Guid.NewGuid(),
             UnidadBaseId: Guid.NewGuid(),
-            CondicionVenta: CondicionVenta.VentaLibreOTC);
+            CondicionVenta: CondicionVenta.VentaLibreOTC,
+            PrecioVentaBase: 15m);
 
         // Act
         var result = await Sender.Send(command);
@@ -67,7 +69,8 @@ public class CreateMedicamentoIntegrationTests(SofiaWebAppFactory factory)
             NombreComercial: "Test Rollback",
             LaboratorioId: Guid.NewGuid(), // FK inválido — no existe en BD
             UnidadBaseId: unidadId,
-            CondicionVenta: CondicionVenta.VentaLibreOTC);
+            CondicionVenta: CondicionVenta.VentaLibreOTC,
+            PrecioVentaBase: 15m);
 
         // Act
         var act = async () => await Sender.Send(command);

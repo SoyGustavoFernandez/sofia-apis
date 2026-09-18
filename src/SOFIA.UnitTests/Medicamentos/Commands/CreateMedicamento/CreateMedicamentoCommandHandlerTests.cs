@@ -25,7 +25,7 @@ public class CreateMedicamentoCommandHandlerTests
     [Fact]
     public async Task Handle_ShouldAddAndSave_WhenCommandValid()
     {
-        var command = new CreateMedicamentoCommand("COD-001", "Paracetamol", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.RecetaSimple);
+        var command = new CreateMedicamentoCommand("COD-001", "Paracetamol", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.RecetaSimple, 15m);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -39,7 +39,7 @@ public class CreateMedicamentoCommandHandlerTests
     [Fact]
     public async Task Handle_ShouldReturnFailureAndNotSave_WhenDomainValidationFails()
     {
-        var command = new CreateMedicamentoCommand("", "Paracetamol", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.RecetaSimple);
+        var command = new CreateMedicamentoCommand("", "Paracetamol", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.RecetaSimple, 15m);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 

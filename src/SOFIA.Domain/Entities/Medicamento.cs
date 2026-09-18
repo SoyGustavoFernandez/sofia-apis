@@ -13,6 +13,9 @@ public sealed class Medicamento : BaseEntity
     public Guid LaboratorioId { get; private set; }
     public Guid UnidadBaseId { get; private set; }
     public Enums.CondicionVenta CondicionVenta { get; private set; }
+    // Nullable: this field was added after many medicamentos already existed with no price on
+    // file. New/edited records always carry a real value — see ValidateFields.
+    public decimal? PrecioVentaBase { get; private set; }
 
     // Navigation Properties
     public Laboratorio? Laboratorio { get; }
@@ -32,9 +35,10 @@ public sealed class Medicamento : BaseEntity
         string nombreComercial,
         Guid laboratorioId,
         Guid unidadBaseId,
-        Enums.CondicionVenta condicionVenta)
+        Enums.CondicionVenta condicionVenta,
+        decimal? precioVentaBase = null)
     {
-        var error = ValidateFields(codigoNacional, nombreComercial, laboratorioId, unidadBaseId);
+        var error = ValidateFields(codigoNacional, nombreComercial, laboratorioId, unidadBaseId, precioVentaBase);
         if (error is not null)
         {
             return Result.Failure<Medicamento>(error);
@@ -46,7 +50,8 @@ public sealed class Medicamento : BaseEntity
             NombreComercial = nombreComercial,
             LaboratorioId = laboratorioId,
             UnidadBaseId = unidadBaseId,
-            CondicionVenta = condicionVenta
+            CondicionVenta = condicionVenta,
+            PrecioVentaBase = precioVentaBase
         });
     }
 
@@ -55,9 +60,10 @@ public sealed class Medicamento : BaseEntity
         string nombreComercial,
         Guid laboratorioId,
         Guid unidadBaseId,
-        Enums.CondicionVenta condicionVenta)
+        Enums.CondicionVenta condicionVenta,
+        decimal? precioVentaBase = null)
     {
-        var error = ValidateFields(codigoNacional, nombreComercial, laboratorioId, unidadBaseId);
+        var error = ValidateFields(codigoNacional, nombreComercial, laboratorioId, unidadBaseId, precioVentaBase);
         if (error is not null)
         {
             return Result.Failure(error);
@@ -68,6 +74,7 @@ public sealed class Medicamento : BaseEntity
         LaboratorioId = laboratorioId;
         UnidadBaseId = unidadBaseId;
         CondicionVenta = condicionVenta;
+        PrecioVentaBase = precioVentaBase;
 
         return Result.Success();
     }
@@ -76,7 +83,8 @@ public sealed class Medicamento : BaseEntity
         string codigoNacional,
         string nombreComercial,
         Guid laboratorioId,
-        Guid unidadBaseId)
+        Guid unidadBaseId,
+        decimal? precioVentaBase = null)
     {
         if (string.IsNullOrWhiteSpace(codigoNacional))
         {
@@ -106,6 +114,11 @@ public sealed class Medicamento : BaseEntity
         if (unidadBaseId == Guid.Empty)
         {
             return Error.Validation("Medicamento.UnidadBaseId", "Unidad Base ID is required.");
+        }
+
+        if (precioVentaBase is < 0)
+        {
+            return Error.Validation("Medicamento.PrecioVentaBase", "Precio de Venta Base cannot be negative.");
         }
 
         return null;

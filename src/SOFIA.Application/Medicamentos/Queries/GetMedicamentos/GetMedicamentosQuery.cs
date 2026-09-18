@@ -12,6 +12,12 @@ public record GetMedicamentosQuery : IRequest<Result<PaginatedList<MedicamentoDt
     public string? LaboratorioNombre { get; init; }
     public string? UnidadBaseNombre { get; init; }
     public CondicionVenta? CondicionVenta { get; init; }
+
+    // Opt-in: keeps the stock join off the Excel export, which reuses this query at PageSize = int.MaxValue.
+    public bool IncluirStock { get; init; }
+
+    // POS default view only: ranks by units sold in the caller's own sucursal over the last 30 days instead of by name.
+    public bool OrdenarPorMasVendidos { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
 }

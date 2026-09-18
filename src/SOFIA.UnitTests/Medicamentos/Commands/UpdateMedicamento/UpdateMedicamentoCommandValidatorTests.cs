@@ -10,7 +10,7 @@ public class UpdateMedicamentoCommandValidatorTests
     private readonly UpdateMedicamentoCommandValidator _validator = new();
 
     private static UpdateMedicamentoCommand ValidCommand() => new(
-        Guid.NewGuid(), "COD-001", "Paracetamol 500mg", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.RecetaSimple);
+        Guid.NewGuid(), "COD-001", "Paracetamol 500mg", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.RecetaSimple, 15m);
 
     [Fact]
     public void Validate_ShouldPass_WhenCommandValid()
@@ -72,5 +72,14 @@ public class UpdateMedicamentoCommandValidatorTests
 
         _ = result.IsValid.Should().BeFalse();
         _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(UpdateMedicamentoCommand.CondicionVenta));
+    }
+
+    [Fact]
+    public void Validate_ShouldFail_WhenPrecioVentaBaseIsNegative()
+    {
+        var result = _validator.Validate(ValidCommand() with { PrecioVentaBase = -1m });
+
+        _ = result.IsValid.Should().BeFalse();
+        _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(UpdateMedicamentoCommand.PrecioVentaBase));
     }
 }

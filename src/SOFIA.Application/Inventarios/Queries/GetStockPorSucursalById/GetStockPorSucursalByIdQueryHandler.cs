@@ -25,7 +25,8 @@ public class GetStockPorSucursalByIdQueryHandler(IApplicationDbContext context)
                 x.Lote.ProductoId,
                 x.Lote.Producto!.NombreComercial,
                 x.Lote.FechaCaducidad,
-                x.CantidadFisica))
+                x.CantidadFisica,
+                x.Lote.Producto!.PrecioVentaBase))
             .FirstOrDefaultAsync(cancellationToken);
 
         return dto is null

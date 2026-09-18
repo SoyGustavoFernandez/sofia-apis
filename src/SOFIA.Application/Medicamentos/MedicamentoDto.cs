@@ -11,5 +11,6 @@ public record MedicamentoDto(
     Guid UnidadBaseId,
     string UnidadBaseNombre,
     Domain.Enums.CondicionVenta CondicionVenta,
+    decimal? PrecioVentaBase,
     decimal? StockTotal = null,
     List<StockSucursalDto>? StockPorSucursal = null);

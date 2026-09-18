@@ -11,6 +11,7 @@ public record CreateMedicamentoCommand(
     string NombreComercial,
     Guid LaboratorioId,
     Guid UnidadBaseId,
-    Domain.Enums.CondicionVenta CondicionVenta) : ICommand<Guid>;
+    Domain.Enums.CondicionVenta CondicionVenta,
+    decimal PrecioVentaBase) : ICommand<Guid>;
 
 // Validator = pipeline fast-fail; entity method = domain invariant. Both layers are intentional.

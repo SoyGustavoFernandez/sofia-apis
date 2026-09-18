@@ -51,7 +51,7 @@ public class PosController(ISender sender) : ControllerBase
         var result = await sender.Send(query, cancellationToken);
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(s => new object?[]

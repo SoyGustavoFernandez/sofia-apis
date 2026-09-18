@@ -20,9 +20,7 @@ public class VentasController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(query);
 
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Ventas", "Leer")]
@@ -31,9 +29,7 @@ public class VentasController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(new GetVentaByIdQuery(id));
 
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Ventas", "Crear")]
@@ -42,9 +38,7 @@ public class VentasController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(command);
 
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Ventas", "Actualizar")]
@@ -53,9 +47,7 @@ public class VentasController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(new AnularVentaCommand(id, motivo));
 
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Ventas", "Actualizar")]
@@ -64,9 +56,7 @@ public class VentasController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(new CompletarVentaCommand(id, body.Pagos, body.Detalles, body.ClienteId, body.AseguradoraId, body.MontoCubiertoSeguro));
 
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Ventas", "Actualizar")]
@@ -75,9 +65,7 @@ public class VentasController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(new ActualizarVentaPendienteCommand(id, body.Detalles, body.ClienteId));
 
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Ventas", "Leer")]
@@ -95,7 +83,7 @@ public class VentasController(ISender sender) : ControllerBase
         }, cancellationToken);
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(v => new object?[]

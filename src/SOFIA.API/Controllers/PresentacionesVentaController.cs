@@ -17,7 +17,7 @@ public class PresentacionesVentaController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetPaginated([FromQuery] GetPresentacionesVentaQuery query)
     {
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("PresentacionesVenta", "Leer")]
@@ -25,7 +25,7 @@ public class PresentacionesVentaController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await sender.Send(new GetPresentacionVentaByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("PresentacionesVenta", "Crear")]
@@ -35,7 +35,7 @@ public class PresentacionesVentaController(ISender sender) : ControllerBase
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("PresentacionesVenta", "Actualizar")]
@@ -45,7 +45,7 @@ public class PresentacionesVentaController(ISender sender) : ControllerBase
         command = command with { Id = id };
 
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("PresentacionesVenta", "Eliminar")]
@@ -53,7 +53,7 @@ public class PresentacionesVentaController(ISender sender) : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await sender.Send(new DeletePresentacionVentaCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("PresentacionesVenta", "Leer")]
@@ -68,7 +68,7 @@ public class PresentacionesVentaController(ISender sender) : ControllerBase
         }, cancellationToken);
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(p => new object?[]

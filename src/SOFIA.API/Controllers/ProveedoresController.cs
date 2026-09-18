@@ -21,7 +21,7 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
     public async Task<IActionResult> CreateProveedor([FromBody] CreateProveedorCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Proveedores", "RegistrarPrecioProveedor")]
@@ -29,7 +29,7 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
     public async Task<IActionResult> RegistrarPrecioProveedor([FromBody] RegistrarPrecioProveedorCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Proveedores", "Leer")]
@@ -37,7 +37,7 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
     public async Task<IActionResult> GetProveedores([FromQuery] GetProveedoresQuery request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpGet("{id:guid}")]
@@ -45,7 +45,7 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
     public async Task<IActionResult> GetProveedorById(Guid id)
     {
         var result = await sender.Send(new GetProveedorByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpPut("{id:guid}")]
@@ -54,7 +54,7 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
     {
         command = command with { Id = id };
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpDelete("{id:guid}")]
@@ -62,7 +62,7 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
     public async Task<IActionResult> DeleteProveedor(Guid id)
     {
         var result = await sender.Send(new DeleteProveedorCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Proveedores", "Leer")]
@@ -79,7 +79,7 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
         });
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(p => new object?[]
@@ -119,7 +119,7 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
     public async Task<IActionResult> CargaMasiva([FromBody] List<ProveedorImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaProveedoresCommand(rows), cancellationToken);
-        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : result.ToProblemResult();
     }
 }
 

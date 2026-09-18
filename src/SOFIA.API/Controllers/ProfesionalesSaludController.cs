@@ -20,7 +20,7 @@ public class ProfesionalesSaludController(ISender sender, IExcelReaderService ex
     public async Task<IActionResult> GetPaginated([FromQuery] GetProfesionalesSaludQuery query)
     {
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("ProfesionalesSalud", "Leer")]
@@ -28,7 +28,7 @@ public class ProfesionalesSaludController(ISender sender, IExcelReaderService ex
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await sender.Send(new GetProfesionalSaludByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("ProfesionalesSalud", "Crear")]
@@ -38,7 +38,7 @@ public class ProfesionalesSaludController(ISender sender, IExcelReaderService ex
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("ProfesionalesSalud", "Actualizar")]
@@ -47,7 +47,7 @@ public class ProfesionalesSaludController(ISender sender, IExcelReaderService ex
     {
         command = command with { Id = id };
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("ProfesionalesSalud", "Eliminar")]
@@ -55,7 +55,7 @@ public class ProfesionalesSaludController(ISender sender, IExcelReaderService ex
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await sender.Send(new DeleteProfesionalSaludCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpGet("plantilla")]
@@ -85,7 +85,7 @@ public class ProfesionalesSaludController(ISender sender, IExcelReaderService ex
     public async Task<IActionResult> CargaMasiva([FromBody] List<ProfesionalSaludImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaProfesionalesSaludCommand(rows), cancellationToken);
-        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : result.ToProblemResult();
     }
 
     [HasPermission("ProfesionalesSalud", "Leer")]
@@ -100,7 +100,7 @@ public class ProfesionalesSaludController(ISender sender, IExcelReaderService ex
         });
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(p => new object?[]

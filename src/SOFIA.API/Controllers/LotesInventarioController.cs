@@ -21,7 +21,7 @@ public class LotesInventarioController(ISender sender) : ControllerBase
     public async Task<IActionResult> Get([FromQuery] GetLotesQuery query)
     {
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Inventarios", "Leer")]
@@ -29,7 +29,7 @@ public class LotesInventarioController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await sender.Send(new GetLoteByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Inventarios", "Leer")]
@@ -41,7 +41,7 @@ public class LotesInventarioController(ISender sender) : ControllerBase
             PageNumber = pageNumber,
             PageSize = pageSize
         });
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Inventarios", "Crear")]
@@ -51,7 +51,7 @@ public class LotesInventarioController(ISender sender) : ControllerBase
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("Inventarios", "Actualizar")]
@@ -65,7 +65,7 @@ public class LotesInventarioController(ISender sender) : ControllerBase
         }
 
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Inventarios", "Eliminar")]
@@ -73,7 +73,7 @@ public class LotesInventarioController(ISender sender) : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await sender.Send(new DeleteLoteInventarioCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Inventarios", "Actualizar")]
@@ -81,7 +81,7 @@ public class LotesInventarioController(ISender sender) : ControllerBase
     public async Task<IActionResult> RegisterStock([FromBody] RegisterInventarioCommand command)
     {
         var result = await sender.Send(command);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Inventarios", "Leer")]
@@ -89,7 +89,7 @@ public class LotesInventarioController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetStockByMedicamento(Guid medicamentoId)
     {
         var result = await sender.Send(new GetStockByMedicamentoQuery(medicamentoId));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Inventarios", "Leer")]
@@ -108,7 +108,7 @@ public class LotesInventarioController(ISender sender) : ControllerBase
         }, cancellationToken);
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(l => new object?[]

@@ -25,7 +25,7 @@ public class AuthController(ISender sender) : ControllerBase
         var result = await sender.Send(command);
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         SetRefreshTokenCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiry);
@@ -45,7 +45,7 @@ public class AuthController(ISender sender) : ControllerBase
         var result = await sender.Send(new RefreshTokenCommand(rawToken));
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         SetRefreshTokenCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiry);
@@ -63,9 +63,7 @@ public class AuthController(ISender sender) : ControllerBase
         }
 
         var result = await sender.Send(new GetProfileQuery(cuentaId));
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [Authorize]
@@ -80,9 +78,7 @@ public class AuthController(ISender sender) : ControllerBase
 
         Response.Cookies.Delete(RefreshTokenCookieName);
         var result = await sender.Send(new LogoutCommand(cuentaId));
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpPost("forgot-password")]
@@ -98,9 +94,7 @@ public class AuthController(ISender sender) : ControllerBase
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
     {
         var result = await sender.Send(command);
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HttpPost("register")]
@@ -110,7 +104,7 @@ public class AuthController(ISender sender) : ControllerBase
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(Login), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     private void SetRefreshTokenCookie(string token, DateTimeOffset expiry) => Response.Cookies.Append(RefreshTokenCookieName, token, new CookieOptions

@@ -42,9 +42,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
             PageNumber = pageNumber,
             PageSize = pageSize,
         });
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "Leer")]
@@ -52,9 +50,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
     public async Task<IActionResult> GetRolById(Guid id)
     {
         var result = await sender.Send(new GetRolByIdQuery(id));
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "Crear")]
@@ -64,7 +60,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetRoles), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("Seguridad", "Actualizar")]
@@ -72,9 +68,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
     public async Task<IActionResult> UpdateRol(Guid id, [FromBody] UpdateRolRequest request)
     {
         var result = await sender.Send(new UpdateRolCommand(id, request.Descripcion, request.NivelJerarquia));
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "Eliminar")]
@@ -82,9 +76,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
     public async Task<IActionResult> DeleteRol(Guid id)
     {
         var result = await sender.Send(new DeleteRolCommand(id));
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "AsignarRoles")]
@@ -94,7 +86,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
         var result = await sender.Send(command);
         return result.IsSuccess
             ? Ok()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("Seguridad", "AsignarRoles")]
@@ -104,7 +96,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
         var result = await sender.Send(command);
         return result.IsSuccess
             ? Ok()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("Seguridad", "Leer")]
@@ -128,9 +120,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
     public async Task<IActionResult> GetPermissions(Guid id)
     {
         var result = await sender.Send(new GetPermissionsByRolQuery(id));
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "GestionarPermisos")]
@@ -140,7 +130,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
         var result = await sender.Send(command);
         return result.IsSuccess
             ? Ok(new { Id = result.Value })
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("Seguridad", "GestionarPermisos")]
@@ -148,9 +138,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
     public async Task<IActionResult> RevokePermission(Guid permisoId)
     {
         var result = await sender.Send(new RevokePermissionFromRolCommand(permisoId));
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "Leer")]
@@ -158,9 +146,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
     public async Task<IActionResult> GetRolSucursales(Guid id)
     {
         var result = await sender.Send(new GetRolSucursalesQuery(id));
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "GestionarPermisos")]
@@ -168,9 +154,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
     public async Task<IActionResult> SetRolSucursales(Guid id, [FromBody] SetRolSucursalesRequest request)
     {
         var result = await sender.Send(new SetRolSucursalesCommand(id, request.SucursalIds));
-        return result.IsSuccess
-            ? NoContent()
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("Seguridad", "Leer")]
@@ -187,7 +171,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
         }, cancellationToken);
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(r => new object?[]
@@ -228,7 +212,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
     public async Task<IActionResult> CargaMasiva([FromBody] List<RolImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaRolesCommand(rows), cancellationToken);
-        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : result.ToProblemResult();
     }
 }
 

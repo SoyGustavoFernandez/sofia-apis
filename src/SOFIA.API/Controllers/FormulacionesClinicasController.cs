@@ -18,14 +18,14 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetPaginated([FromQuery] GetFormulacionesClinicasWithPaginationQuery query)
     {
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
     [HasPermission("FormulacionesClinicas", "Leer")]
     [HttpGet("medicamento/{productoId:guid}")]
     public async Task<IActionResult> GetByMedicamento(Guid productoId)
     {
         var result = await sender.Send(new GetFormulacionesByMedicamentoQuery(productoId));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("FormulacionesClinicas", "Leer")]
@@ -33,7 +33,7 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await sender.Send(new GetFormulacionByIdQuery(id));
-        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("FormulacionesClinicas", "Crear")]
@@ -43,7 +43,7 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
         var result = await sender.Send(command);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
-            : Problem(result.Error.Message, statusCode: result.StatusCode);
+            : result.ToProblemResult();
     }
 
     [HasPermission("FormulacionesClinicas", "Actualizar")]
@@ -57,7 +57,7 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
         }
 
         var result = await sender.Send(command);
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("FormulacionesClinicas", "Eliminar")]
@@ -65,7 +65,7 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await sender.Send(new DeleteFormulacionClinicaCommand(id));
-        return result.IsSuccess ? NoContent() : Problem(result.Error.Message, statusCode: result.StatusCode);
+        return result.ToActionResult();
     }
 
     [HasPermission("FormulacionesClinicas", "Leer")]
@@ -80,7 +80,7 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
         }, cancellationToken);
         if (!result.IsSuccess)
         {
-            return Problem(result.Error.Message, statusCode: result.StatusCode);
+            return result.ToProblemResult();
         }
 
         var rows = result.Value.Items.Select(f => new object?[]

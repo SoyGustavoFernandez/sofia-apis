@@ -28,6 +28,8 @@ public class GetVentaByIdQueryHandler(
             .Include(v => v.Detalles)
                 .ThenInclude(d => d.Lote)
                     .ThenInclude(l => l!.Producto)
+            .Include(v => v.Detalles)
+                .ThenInclude(d => d.PresentacionVenta)
             .FirstOrDefaultAsync(v => v.Id == request.Id, cancellationToken);
 
         var comprobante = await context.SUNATComprobantesEmitidos
@@ -66,7 +68,10 @@ public class GetVentaByIdQueryHandler(
                 d.Lote?.NumeroLoteMfr ?? "N/A",
                 d.CantidadVendida,
                 d.PrecioFijadoUnidad,
-                d.CantidadVendida * d.PrecioFijadoUnidad
+                d.CantidadVendida * d.PrecioFijadoUnidad,
+                d.PresentacionVentaId,
+                d.PresentacionVenta?.Descripcion,
+                d.CantidadEnPresentacion
             ))],
             comprobante != null ? new ComprobanteDto(
                 comprobante.Serie?.TipoComprobante.ToString() ?? "Boleta",

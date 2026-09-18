@@ -37,7 +37,10 @@ public record VentaDetalleDto(
     string NumeroLote,
     decimal Cantidad,
     decimal PrecioUnitario,
-    decimal Subtotal);
+    decimal Subtotal,
+    Guid? PresentacionVentaId,
+    string? PresentacionDescripcion,
+    decimal? CantidadEnPresentacion);
 
 public record VentaPagoDto(
     Guid Id,

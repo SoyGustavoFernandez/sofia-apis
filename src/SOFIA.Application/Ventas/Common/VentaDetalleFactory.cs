@@ -23,6 +23,7 @@ public static class VentaDetalleFactory
             }
 
             var inventario = await context.LotesEnSucursal
+                .Include(x => x.Lote)
                 .FirstOrDefaultAsync(x => x.LoteId == detailDto.LoteId && x.SucursalId == sucursalId, cancellationToken);
 
             if (inventario == null)
@@ -30,18 +31,45 @@ public static class VentaDetalleFactory
                 return Result.Failure<List<DetalleVenta>>(Error.NotFound("Venta.Lote", $"El lote {detailDto.LoteId} no existe en esta sucursal."));
             }
 
-            if (inventario.CantidadFisica < detailDto.Cantidad)
+            // Cantidad is expressed in base units unless a sale presentation (e.g. "Caja x10") was
+            // picked, in which case the backend — not the client — resolves the conversion factor,
+            // so a stale/tampered client can't misreport how much stock a sale actually consumes.
+            var cantidadBase = detailDto.Cantidad;
+            Guid? presentacionId = null;
+            decimal? cantidadEnPresentacion = null;
+
+            if (detailDto.PresentacionVentaId.HasValue)
+            {
+                var presentacion = await context.PresentacionesVenta
+                    .FirstOrDefaultAsync(p => p.Id == detailDto.PresentacionVentaId.Value && !p.IsDeleted, cancellationToken);
+
+                if (presentacion == null)
+                {
+                    return Result.Failure<List<DetalleVenta>>(Error.NotFound("Venta.Presentacion", $"La presentacion de venta {detailDto.PresentacionVentaId.Value} no existe."));
+                }
+
+                if (inventario.Lote != null && presentacion.ProductoId != inventario.Lote.ProductoId)
+                {
+                    return Result.Failure<List<DetalleVenta>>(Error.Validation("Venta.Presentacion", "La presentacion seleccionada no corresponde al producto del lote."));
+                }
+
+                cantidadBase = detailDto.Cantidad * presentacion.CantidadUnidadesBase;
+                presentacionId = presentacion.Id;
+                cantidadEnPresentacion = detailDto.Cantidad;
+            }
+
+            if (inventario.CantidadFisica < cantidadBase)
             {
                 return Result.Failure<List<DetalleVenta>>(Error.Validation("Venta.Stock", $"Stock insuficiente para el lote {detailDto.LoteId}. Disponible: {inventario.CantidadFisica}"));
             }
 
-            var detailResult = DetalleVenta.Create(detailDto.LoteId, detailDto.Cantidad, detailDto.PrecioUnitario, detailDto.CostoHistorico, detailDto.RecetaId);
+            var detailResult = DetalleVenta.Create(detailDto.LoteId, cantidadBase, detailDto.PrecioUnitario, detailDto.CostoHistorico, detailDto.RecetaId, presentacionId, cantidadEnPresentacion);
             if (!detailResult.IsSuccess)
             {
                 return Result.Failure<List<DetalleVenta>>(detailResult.Error);
             }
 
-            inventario.UpdateStock(inventario.CantidadFisica - detailDto.Cantidad);
+            inventario.UpdateStock(inventario.CantidadFisica - cantidadBase);
             detallesVenta.Add(detailResult.Value);
         }
 

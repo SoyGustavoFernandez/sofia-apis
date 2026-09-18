@@ -15,6 +15,7 @@ public interface IApplicationDbContext
     DbSet<IngredienteActivo> IngredientesActivos { get; }
     DbSet<Medicamento> Medicamentos { get; }
     DbSet<JerarquiaUoM> JerarquiasUoM { get; }
+    DbSet<PresentacionVenta> PresentacionesVenta { get; }
     DbSet<FormulacionClinica> FormulacionesClinicas { get; }
     DbSet<Cuenta> Cuentas { get; }
     DbSet<Rol> Roles { get; }

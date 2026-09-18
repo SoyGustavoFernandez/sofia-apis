@@ -28,4 +28,5 @@ public record CreateVentaDetailDto(
     decimal Cantidad,
     decimal PrecioUnitario,
     decimal CostoHistorico,
-    Guid? RecetaId = null);
+    Guid? RecetaId = null,
+    Guid? PresentacionVentaId = null);

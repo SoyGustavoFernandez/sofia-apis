@@ -13,6 +13,7 @@ public class CreateVentaCommandHandlerTests
     private readonly Mock<IApplicationDbContext> _dbContextMock;
     private readonly Mock<ICurrentUser> _currentUserMock;
     private readonly CreateVentaCommandHandler _handler;
+    private readonly List<Venta> _ventasList = [];
 
     private readonly Guid _sucursalId = Guid.NewGuid();
     private readonly Guid _empleadoId = Guid.NewGuid();
@@ -264,6 +265,109 @@ public class CreateVentaCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldCreateVenta_WithPresentacion_WhenValid()
+    {
+        // Arrange
+        var sesionCajaResult = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
+        var sesiones = new List<PosSesionCaja> { sesionCajaResult.Value! };
+        sesiones[0].SetId(_sesionId);
+
+        var inventarioItemResult = InventarioSucursal.Create(_sucursalId, _loteId, 30);
+        var inventarioItem = inventarioItemResult.Value!;
+        var inventario = new List<InventarioSucursal> { inventarioItem };
+
+        var presentacion = PresentacionVenta.Create(Guid.NewGuid(), Guid.NewGuid(), "Caja x10", 10m, 45m).Value!;
+
+        SetupMocks(sesionesCaja: sesiones, inventario: inventario, presentaciones: [presentacion]);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+        [
+            // PrecioUnitario is always per base unit (45 per Caja x10 = 4.5 per unidad); 2 Cajas = 20 unidades base, total 90
+            new CreateVentaDetailDto(_loteId, 2, 4.5m, 5, null, presentacion.Id)
+        ],
+        [
+            new CreateVentaPagoDto(MetodoPago.Efectivo, 90, null)
+        ]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = inventarioItem.CantidadFisica.Should().Be(10); // 30 - (2 * 10)
+
+        var detalle = _ventasList[0].Detalles.Single();
+        _ = detalle.CantidadVendida.Should().Be(20);
+        _ = detalle.PresentacionVentaId.Should().Be(presentacion.Id);
+        _ = detalle.CantidadEnPresentacion.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnError_WhenPresentacionDoesNotExist()
+    {
+        // Arrange
+        var sesionCajaResult = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
+        var sesiones = new List<PosSesionCaja> { sesionCajaResult.Value! };
+        sesiones[0].SetId(_sesionId);
+
+        var inventarioItemResult = InventarioSucursal.Create(_sucursalId, _loteId, 30);
+        var inventario = new List<InventarioSucursal> { inventarioItemResult.Value! };
+
+        SetupMocks(sesionesCaja: sesiones, inventario: inventario, presentaciones: []);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+        [
+            new CreateVentaDetailDto(_loteId, 2, 45, 5, null, Guid.NewGuid())
+        ],
+        [
+            new CreateVentaPagoDto(MetodoPago.Efectivo, 90, null)
+        ]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Presentacion");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreateVenta_WithoutPresentacion_WhenNotProvided()
+    {
+        // Regression: a sale without a presentación keeps behaving exactly as before this feature.
+        // Arrange
+        var sesionCajaResult = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
+        var sesiones = new List<PosSesionCaja> { sesionCajaResult.Value! };
+        sesiones[0].SetId(_sesionId);
+
+        var inventarioItemResult = InventarioSucursal.Create(_sucursalId, _loteId, 20);
+        var inventarioItem = inventarioItemResult.Value!;
+        var inventario = new List<InventarioSucursal> { inventarioItem };
+
+        SetupMocks(sesionesCaja: sesiones, inventario: inventario);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+        [
+            new CreateVentaDetailDto(_loteId, 2, 10, 5)
+        ],
+        [
+            new CreateVentaPagoDto(MetodoPago.Efectivo, 20, null)
+        ]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = inventarioItem.CantidadFisica.Should().Be(18);
+
+        var detalle = _ventasList[0].Detalles.Single();
+        _ = detalle.CantidadVendida.Should().Be(2);
+        _ = detalle.PresentacionVentaId.Should().BeNull();
+        _ = detalle.CantidadEnPresentacion.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Handle_ShouldReturnError_WhenChangeIsGivenWithoutCashPayment()
     {
         // Arrange
@@ -296,22 +400,24 @@ public class CreateVentaCommandHandlerTests
         List<PosSesionCaja>? sesionesCaja = null,
         List<DigemidInventarioCuarentena>? cuarentenas = null,
         List<InventarioSucursal>? inventario = null,
-        List<SunatSerieFiscal>? series = null)
+        List<SunatSerieFiscal>? series = null,
+        List<PresentacionVenta>? presentaciones = null)
     {
         sesionesCaja ??= [];
         cuarentenas ??= [];
         inventario ??= [];
         series ??= [];
+        presentaciones ??= [];
 
         _ = _dbContextMock.Setup(c => c.POSSesionesCaja).Returns(sesionesCaja.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.DigemidInventarioCuarentena).Returns(cuarentenas.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.LotesEnSucursal).Returns(inventario.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.SUNATSeriesFiscales).Returns(series.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.PresentacionesVenta).Returns(presentaciones.BuildMockDbSet().Object);
 
         // Setup Add for Ventas
-        var ventasList = new List<Venta>();
-        var ventasDbSetMock = ventasList.BuildMockDbSet();
-        _ = ventasDbSetMock.Setup(d => d.Add(It.IsAny<Venta>())).Callback<Venta>(ventasList.Add);
+        var ventasDbSetMock = _ventasList.BuildMockDbSet();
+        _ = ventasDbSetMock.Setup(d => d.Add(It.IsAny<Venta>())).Callback<Venta>(_ventasList.Add);
         _ = _dbContextMock.Setup(c => c.Ventas).Returns(ventasDbSetMock.Object);
 
         // Setup Add for Comprobantes

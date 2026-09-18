@@ -12,17 +12,22 @@ public sealed class DetalleVenta : BaseEntity
     public decimal CantidadVendida { get; private set; }
     public decimal PrecioFijadoUnidad { get; private set; }
     public decimal CostoUnitarioHistorico { get; private set; }
+    public Guid? PresentacionVentaId { get; private set; }
+    public decimal? CantidadEnPresentacion { get; private set; }
 
     // Navigation Properties
     public Venta? Venta { get; }
     public LoteInventario? Lote { get; }
+    public PresentacionVenta? PresentacionVenta { get; }
 
     public static Result<DetalleVenta> Create(
         Guid loteId,
         decimal cantidad,
         decimal precioUnitario,
         decimal costoHistorico,
-        Guid? recetaId = null)
+        Guid? recetaId = null,
+        Guid? presentacionVentaId = null,
+        decimal? cantidadEnPresentacion = null)
     {
         if (loteId == Guid.Empty)
         {
@@ -45,7 +50,9 @@ public sealed class DetalleVenta : BaseEntity
             CantidadVendida = cantidad,
             PrecioFijadoUnidad = precioUnitario,
             CostoUnitarioHistorico = costoHistorico,
-            RecetaId = recetaId
+            RecetaId = recetaId,
+            PresentacionVentaId = presentacionVentaId,
+            CantidadEnPresentacion = cantidadEnPresentacion
         });
     }
 

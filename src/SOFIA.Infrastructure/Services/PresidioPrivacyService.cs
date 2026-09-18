@@ -26,13 +26,18 @@ public class PresidioPrivacyService(HttpClient httpClient, ILogger<PresidioPriva
 
             var result = await response.Content.ReadFromJsonAsync<PresidioAnonymizerResponse>(cancellationToken: cancellationToken);
 
-            return result?.TextoLimpio ?? rawText;
+            if (string.IsNullOrEmpty(result?.TextoLimpio))
+            {
+                throw new InvalidOperationException("Presidio returned an empty anonymization result.");
+            }
+
+            return result.TextoLimpio;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Critical error connecting to Microsoft Presidio. Returning original text.");
-            // In production this could throw (Fail-Closed). For dev safety we return the original.
-            return rawText;
+            // Fail-closed: patient text must never reach an external LLM unanonymized.
+            _logger.LogError(ex, "Critical error connecting to Microsoft Presidio; refusing to process unanonymized patient data.");
+            throw new InvalidOperationException("Failed to anonymize patient text via Presidio.", ex);
         }
     }
 

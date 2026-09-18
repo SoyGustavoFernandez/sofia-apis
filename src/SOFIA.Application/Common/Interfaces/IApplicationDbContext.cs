@@ -59,4 +59,7 @@ public interface IApplicationDbContext
     DbSet<RefreshToken> RefreshTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
+
+    // Atomic "increment and return the new value" for SunatSerieFiscal.CorrelativoActual — a read-then-write from the Application layer would race under concurrent requests.
+    Task<int> IncrementarCorrelativoSunatAsync(Guid serieId, CancellationToken cancellationToken);
 }

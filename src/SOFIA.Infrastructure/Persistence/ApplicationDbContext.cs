@@ -161,6 +161,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         return await base.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<int> IncrementarCorrelativoSunatAsync(Guid serieId, CancellationToken cancellationToken)
+    {
+        // ToListAsync (not Single/First) — EF can't compose further SQL around an UPDATE ... OUTPUT statement.
+        var rows = await Database
+            .SqlQuery<int>($"UPDATE SUNAT_Series_Fiscales SET Correlativo_Actual = Correlativo_Actual + 1 OUTPUT INSERTED.Correlativo_Actual WHERE Serie_ID = {serieId}")
+            .ToListAsync(cancellationToken);
+
+        return rows.Single();
+    }
 }
 
 sealed file class UtcDateTimeConverter() : ValueConverter<DateTime, DateTime>(

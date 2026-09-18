@@ -45,6 +45,7 @@ public class GetMedicamentoByIdQueryHandler(IApplicationDbContext context) : IRe
             entity.UnidadBaseId,
             entity.UnidadBase?.Descripcion ?? "Unknown",
             entity.CondicionVenta,
+            entity.PrecioVentaBase,
             totalStock,
             stockPorSucursal);
 

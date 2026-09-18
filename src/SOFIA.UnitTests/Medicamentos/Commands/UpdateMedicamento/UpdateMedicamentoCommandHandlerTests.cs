@@ -28,7 +28,7 @@ public class UpdateMedicamentoCommandHandlerTests
             .Returns(ValueTask.FromResult(entity));
 
     private static UpdateMedicamentoCommand Command(Guid id, string codigo = "COD-002") => new(
-        id, codigo, "Nombre Nuevo", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.RecetaRetenida);
+        id, codigo, "Nombre Nuevo", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.RecetaRetenida, 25m);
 
     [Fact]
     public async Task Handle_ShouldReturnNotFound_WhenMedicamentoDoesNotExist()

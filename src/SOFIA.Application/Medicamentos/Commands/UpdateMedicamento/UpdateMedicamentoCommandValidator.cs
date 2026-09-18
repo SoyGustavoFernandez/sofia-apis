@@ -29,5 +29,8 @@ public class UpdateMedicamentoCommandValidator : AbstractValidator<UpdateMedicam
 
         _ = RuleFor(v => v.CondicionVenta)
             .IsInEnum().WithMessage("Invalid CondiciÃ³n de Venta.");
+
+        _ = RuleFor(v => v.PrecioVentaBase)
+            .GreaterThanOrEqualTo(0).WithMessage("Precio de Venta Base cannot be negative.");
     }
 }

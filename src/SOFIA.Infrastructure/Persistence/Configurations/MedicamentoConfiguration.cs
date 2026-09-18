@@ -42,6 +42,10 @@ public class MedicamentoConfiguration : IEntityTypeConfiguration<Medicamento>
             .HasMaxLength(20)
             .IsRequired();
 
+        _ = builder.Property(x => x.PrecioVentaBase)
+            .HasColumnName("Precio_Venta_Base")
+            .HasColumnType("DECIMAL(10,2)");
+
         _ = builder.HasOne(x => x.Laboratorio)
             .WithMany()
             .HasForeignKey(x => x.LaboratorioId)

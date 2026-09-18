@@ -15,7 +15,8 @@ public class CreateMedicamentoCommandHandler(IApplicationDbContext context) : IR
             request.NombreComercial,
             request.LaboratorioId,
             request.UnidadBaseId,
-            request.CondicionVenta);
+            request.CondicionVenta,
+            request.PrecioVentaBase);
 
         if (!result.IsSuccess)
         {

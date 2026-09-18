@@ -9,4 +9,5 @@ public record StockPorSucursalDto(
     Guid ProductoId,
     string ProductoNombre,
     DateTimeOffset FechaCaducidad,
-    decimal CantidadFisica);
+    decimal CantidadFisica,
+    decimal? PrecioVentaBase);

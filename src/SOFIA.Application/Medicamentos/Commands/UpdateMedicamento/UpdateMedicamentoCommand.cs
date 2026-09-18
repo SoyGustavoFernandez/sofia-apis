@@ -12,6 +12,7 @@ public record UpdateMedicamentoCommand(
     string NombreComercial,
     Guid LaboratorioId,
     Guid UnidadBaseId,
-    Domain.Enums.CondicionVenta CondicionVenta) : ICommand;
+    Domain.Enums.CondicionVenta CondicionVenta,
+    decimal PrecioVentaBase) : ICommand;
 
 // Validator = pipeline fast-fail; entity method = domain invariant. Both layers are intentional.

@@ -109,4 +109,54 @@ public class MedicamentoTests
     [Fact]
     public void CondicionesValidas_ShouldMatchEnumDescriptions() => _ = Medicamento.CondicionesValidas.Should().ContainInOrder(
             "Venta Libre (OTC)", "Receta Simple", "Receta Retenida", "Estupefaciente");
+
+    [Fact]
+    public void Create_ShouldSetPrecioVentaBase_WhenProvided()
+    {
+        var result = Medicamento.Create("COD-001", "Nombre", LabId, UnidadId, CondicionVenta.VentaLibreOTC, 12.50m);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value!.PrecioVentaBase.Should().Be(12.50m);
+    }
+
+    [Fact]
+    public void Create_ShouldLeavePrecioVentaBaseNull_WhenNotProvided()
+    {
+        var result = Medicamento.Create("COD-001", "Nombre", LabId, UnidadId, CondicionVenta.VentaLibreOTC);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value!.PrecioVentaBase.Should().BeNull();
+    }
+
+    [Fact]
+    public void Create_ShouldFail_WhenPrecioVentaBaseIsNegative()
+    {
+        var result = Medicamento.Create("COD-001", "Nombre", LabId, UnidadId, CondicionVenta.VentaLibreOTC, -1m);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Medicamento.PrecioVentaBase");
+    }
+
+    [Fact]
+    public void Update_ShouldChangePrecioVentaBase_WhenValid()
+    {
+        var medicamento = Medicamento.Create("COD-001", "Old", LabId, UnidadId, CondicionVenta.VentaLibreOTC).Value!;
+
+        var result = medicamento.Update("COD-001", "Old", LabId, UnidadId, CondicionVenta.VentaLibreOTC, 20m);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = medicamento.PrecioVentaBase.Should().Be(20m);
+    }
+
+    [Fact]
+    public void Update_ShouldFail_WhenPrecioVentaBaseIsNegative()
+    {
+        var medicamento = Medicamento.Create("COD-001", "Old", LabId, UnidadId, CondicionVenta.VentaLibreOTC, 10m).Value!;
+
+        var result = medicamento.Update("COD-001", "Old", LabId, UnidadId, CondicionVenta.VentaLibreOTC, -5m);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Medicamento.PrecioVentaBase");
+        _ = medicamento.PrecioVentaBase.Should().Be(10m);
+    }
 }

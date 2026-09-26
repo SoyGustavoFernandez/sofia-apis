@@ -83,11 +83,16 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
             LaboratorioNombre = request.LaboratorioNombre,
             UnidadBaseNombre = request.UnidadBaseNombre,
             CondicionVenta = request.CondicionVenta.HasValue ? (CondicionVenta)request.CondicionVenta.Value : null,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         }, cancellationToken);
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(m => new object?[]

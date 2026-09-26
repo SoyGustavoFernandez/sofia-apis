@@ -135,11 +135,16 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
         {
             CodProd = request.CodProd,
             NomProd = request.NomProd,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         });
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(p => new object?[]

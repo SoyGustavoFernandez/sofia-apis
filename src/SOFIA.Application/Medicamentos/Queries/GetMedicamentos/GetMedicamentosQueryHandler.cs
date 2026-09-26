@@ -110,7 +110,7 @@ public class GetMedicamentosQueryHandler(IApplicationDbContext context, ICurrent
             totalCount = paginatedEntities.TotalCount;
         }
 
-        // Skipped unless requested — the Excel export reuses this query at PageSize = int.MaxValue and never reads StockTotal.
+        // Skipped unless requested — the Excel export reuses this query at PageSize = PaginationLimits.MaxPageSize and never reads StockTotal.
         Dictionary<Guid, decimal> stockPorProducto = [];
         if (request.IncluirStock)
         {

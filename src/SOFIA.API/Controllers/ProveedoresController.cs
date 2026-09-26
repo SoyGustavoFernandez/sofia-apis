@@ -75,11 +75,16 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
             TaxId = request.TaxId,
             TasaCumplimientoDesde = request.TasaCumplimientoDesde,
             TasaCumplimientoHasta = request.TasaCumplimientoHasta,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         });
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(p => new object?[]

@@ -64,11 +64,16 @@ public class PresentacionesVentaController(ISender sender) : ControllerBase
         {
             ProductoNombre = request.ProductoNombre,
             Descripcion = request.Descripcion,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         }, cancellationToken);
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(p => new object?[]

@@ -76,11 +76,16 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
         {
             ProductoNombre = request.ProductoNombre,
             IngredienteNombre = request.IngredienteNombre,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         }, cancellationToken);
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(f => new object?[]

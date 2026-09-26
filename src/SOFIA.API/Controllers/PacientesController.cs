@@ -68,11 +68,16 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
             NombreApellidos = request.NombreApellidos,
             FechaNacimientoDesde = request.FechaNacimientoDesde,
             FechaNacimientoHasta = request.FechaNacimientoHasta,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         });
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(p => new object?[]

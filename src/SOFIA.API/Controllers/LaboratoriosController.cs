@@ -71,11 +71,16 @@ public class LaboratoriosController(ISender sender, IExcelReaderService excelRea
         {
             NombreCompania = request.NombreCompania,
             CodigoIdentificador = request.CodigoIdentificador,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         }, cancellationToken);
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(l => new object?[]

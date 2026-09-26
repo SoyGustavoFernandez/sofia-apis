@@ -92,11 +92,16 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
             Estado = request.Estado,
             FechaVencimientoDesde = request.FechaVencimientoDesde,
             FechaVencimientoHasta = request.FechaVencimientoHasta,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         }, cancellationToken);
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(e => new object?[]

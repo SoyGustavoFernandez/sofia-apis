@@ -167,11 +167,16 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
             Descripcion = request.Descripcion,
             NivelJerarquiaDesde = request.NivelJerarquiaDesde,
             NivelJerarquiaHasta = request.NivelJerarquiaHasta,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         }, cancellationToken);
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(r => new object?[]

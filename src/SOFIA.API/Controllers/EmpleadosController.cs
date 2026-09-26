@@ -71,11 +71,16 @@ public class EmpleadosController(ISender sender) : ControllerBase
             ApellidoMaterno = request.ApellidoMaterno,
             Licencia = request.Licencia,
             SucursalNombre = request.SucursalNombre,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         }, cancellationToken);
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(e => new object?[]

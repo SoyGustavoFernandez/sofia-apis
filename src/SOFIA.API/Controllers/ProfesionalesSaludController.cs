@@ -99,11 +99,16 @@ public class ProfesionalesSaludController(ISender sender, IExcelReaderService ex
         {
             NumeroRegistro = request.NumeroRegistro,
             NombrePrescriptor = request.NombrePrescriptor,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         });
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(p => new object?[]

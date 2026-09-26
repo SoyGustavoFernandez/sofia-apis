@@ -84,11 +84,16 @@ public class RecetasController(ISender sender) : ControllerBase
     public async Task<IActionResult> ExportarRecetas([FromBody] RecetaExportRequest request, CancellationToken cancellationToken)
     {
         var query = new Application.Recetas.Queries.GetRecetas.GetRecetasQuery(
-            request.ClienteId, request.MedicoId, request.FechaInicio, request.FechaFin, 1, int.MaxValue);
+            request.ClienteId, request.MedicoId, request.FechaInicio, request.FechaFin, 1, PaginationLimits.MaxPageSize);
         var result = await sender.Send(query, cancellationToken);
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(r => new object?[]

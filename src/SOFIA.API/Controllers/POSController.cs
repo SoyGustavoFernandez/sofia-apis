@@ -47,11 +47,16 @@ public class PosController(ISender sender) : ControllerBase
     public async Task<IActionResult> ExportarSesiones([FromBody] SesionCajaExportRequest request, CancellationToken cancellationToken)
     {
         var query = new Application.POS.Queries.GetSesiones.GetSesionesQuery(
-            request.SucursalId, request.EstadoSesion, request.FechaInicio, request.FechaFin, 1, int.MaxValue);
+            request.SucursalId, request.EstadoSesion, request.FechaInicio, request.FechaFin, 1, PaginationLimits.MaxPageSize);
         var result = await sender.Send(query, cancellationToken);
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(s => new object?[]

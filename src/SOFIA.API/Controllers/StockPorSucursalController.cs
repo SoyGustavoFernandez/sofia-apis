@@ -49,12 +49,17 @@ public class StockPorSucursalController(ISender sender) : ControllerBase
             CantidadMin = request.CantidadMin,
             CantidadMax = request.CantidadMax,
             SoloConStock = request.SoloConStock,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         }, cancellationToken);
 
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(s => new object?[]

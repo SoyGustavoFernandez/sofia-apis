@@ -73,12 +73,17 @@ public class SucursalesController(ISender sender, IExcelReaderService excelReade
             Nombre = request.Nombre,
             NumeroLicencia = request.NumeroLicencia,
             DireccionFisica = request.DireccionFisica,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         }, cancellationToken);
 
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(s => new object?[]

@@ -64,11 +64,16 @@ public class SegurosController(ISender sender, IExcelReaderService excelReader) 
         {
             NombreComercial = request.NombreComercial,
             CodigoIdentificadorNacional = request.CodigoIdentificadorNacional,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         });
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(a => new object?[]

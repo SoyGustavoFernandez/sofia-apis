@@ -85,11 +85,16 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
             UnidadMenorNombre = request.UnidadMenorNombre,
             MultiplicadorMin = request.MultiplicadorMin,
             MultiplicadorMax = request.MultiplicadorMax,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         }, cancellationToken);
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(j => new object?[]

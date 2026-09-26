@@ -104,11 +104,16 @@ public class UnidadesMedidaController(ISender sender, IExcelReaderService excelR
         {
             Codigo = request.Codigo,
             Descripcion = request.Descripcion,
-            PageSize = int.MaxValue,
+            PageSize = PaginationLimits.MaxPageSize,
         });
         if (!result.IsSuccess)
         {
             return result.ToProblemResult();
+        }
+
+        if (result.Value.ExceedsExportLimit())
+        {
+            return ExportExtensions.TooManyRowsResult();
         }
 
         var rows = result.Value.Items.Select(u => new object?[]

@@ -69,6 +69,5 @@ public class HistorialPrecioProveedorConfiguration : IEntityTypeConfiguration<Hi
         _ = builder.HasIndex(x => x.ProductoId);
 
         // Soft delete query filter
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

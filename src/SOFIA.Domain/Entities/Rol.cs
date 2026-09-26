@@ -35,7 +35,8 @@ public sealed class Rol : BaseEntity
     public static Result<Rol> Create(
         string nombreRol,
         string? descripcion,
-        int nivelJerarquia = 0)
+        int nivelJerarquia = 0,
+        Guid? tenantId = null)
     {
         if (string.IsNullOrWhiteSpace(nombreRol))
         {
@@ -51,7 +52,8 @@ public sealed class Rol : BaseEntity
         {
             NombreRol = nombreRol,
             Descripcion = descripcion,
-            NivelJerarquia = nivelJerarquia
+            NivelJerarquia = nivelJerarquia,
+            TenantId = tenantId
         });
     }
 

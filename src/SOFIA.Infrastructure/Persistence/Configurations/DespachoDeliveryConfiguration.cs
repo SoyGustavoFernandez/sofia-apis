@@ -63,7 +63,5 @@ public class DespachoDeliveryConfiguration : IEntityTypeConfiguration<DespachoDe
             .WithMany()
             .HasForeignKey(x => x.VentaId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

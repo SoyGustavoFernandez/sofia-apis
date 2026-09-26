@@ -47,7 +47,5 @@ public class JerarquiaUoMConfiguration : IEntityTypeConfiguration<JerarquiaUoM>
             .WithMany()
             .HasForeignKey(x => x.UnidadMenorId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

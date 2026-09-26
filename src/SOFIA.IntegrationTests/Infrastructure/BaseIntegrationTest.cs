@@ -13,11 +13,14 @@ public abstract class BaseIntegrationTest : IClassFixture<SofiaWebAppFactory>, I
     protected readonly SofiaWebAppFactory Factory;
     protected readonly ISender Sender;
     protected readonly ApplicationDbContext DbContext;
+    protected readonly TestCurrentUser CurrentUser;
     private readonly IServiceScope _scope;
 
     protected BaseIntegrationTest(SofiaWebAppFactory factory)
     {
         Factory = factory;
+        CurrentUser = factory.CurrentUser;
+        CurrentUser.Empresa = TestCurrentUser.DefaultEmpresaId;
         // Scope fresco por cada instancia de test — evita DbContext compartido entre tests paralelos
         _scope = factory.Services.CreateScope();
 

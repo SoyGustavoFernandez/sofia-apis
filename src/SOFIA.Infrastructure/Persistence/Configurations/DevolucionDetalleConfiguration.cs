@@ -55,7 +55,5 @@ public class DevolucionDetalleConfiguration : IEntityTypeConfiguration<Devolucio
             .WithMany()
             .HasForeignKey(x => x.DetalleVentaId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

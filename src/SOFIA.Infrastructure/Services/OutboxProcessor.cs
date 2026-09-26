@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using System.Text.Json;
 
 namespace SOFIA.Infrastructure.Services;
@@ -37,7 +38,9 @@ public class OutboxProcessor(IServiceProvider serviceProvider, ILogger<OutboxPro
         var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
         var publisher = scope.ServiceProvider.GetRequiredService<IPublisher>();
 
+        // Background job has no tenant in context; it processes events of every tenant
         var events = await dbContext.SistemaOutboxEventos
+            .IgnoreQueryFilters([QueryFilters.Tenant])
             .Where(e => !e.Procesado && e.ErrorPublicacion == null && !e.IsDeleted)
             .OrderBy(e => e.FechaCreacion)
             .Take(20)

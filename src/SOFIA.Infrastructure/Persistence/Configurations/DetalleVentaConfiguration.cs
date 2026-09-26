@@ -57,7 +57,5 @@ public class DetalleVentaConfiguration : IEntityTypeConfiguration<DetalleVenta>
             .WithMany()
             .HasForeignKey(x => x.PresentacionVentaId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

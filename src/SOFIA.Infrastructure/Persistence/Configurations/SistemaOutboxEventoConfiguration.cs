@@ -49,6 +49,5 @@ public sealed class SistemaOutboxEventoConfiguration : IEntityTypeConfiguration<
         _ = builder.Property(x => x.DeletedBy).HasColumnName("DeletedBy");
 
         // Soft delete query filter
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

@@ -48,7 +48,5 @@ public class PresentacionVentaConfiguration : IEntityTypeConfiguration<Presentac
             .WithMany()
             .HasForeignKey(x => x.UnidadVentaId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

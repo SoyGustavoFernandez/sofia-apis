@@ -93,7 +93,5 @@ public class ServicioClinicoInmunizacionConfiguration : IEntityTypeConfiguration
             .WithMany()
             .HasForeignKey(x => x.LoteId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

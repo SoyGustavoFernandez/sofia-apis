@@ -61,6 +61,5 @@ public class RecetaMedicaConfiguration : IEntityTypeConfiguration<RecetaMedica>
         _ = builder.HasIndex(x => x.MedicoId);
 
         // Soft delete query filter
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

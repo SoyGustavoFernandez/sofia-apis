@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 
@@ -18,7 +19,7 @@ public class AssignPermissionToRolCommandHandler(IApplicationDbContext context) 
 
         // Check including soft-deleted rows to avoid unique constraint violations on restore
         var existing = await context.PermisosRol
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([QueryFilters.SoftDelete])
             .FirstOrDefaultAsync(p => p.RolId == request.RolId &&
                                       p.ModuloSistema == request.ModuloSistema &&
                                       p.Accion == request.Accion, cancellationToken);

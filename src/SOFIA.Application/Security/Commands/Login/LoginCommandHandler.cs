@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
 using DomainRefreshToken = SOFIA.Domain.Entities.RefreshToken;
 
@@ -20,7 +21,9 @@ public class LoginCommandHandler(
     {
         var ip = currentUser.ClientIpAddress ?? "unknown";
 
+        // Anonymous request: the tenant is resolved from the account itself
         var cuenta = await context.Cuentas
+            .IgnoreQueryFilters([QueryFilters.Tenant])
             .Include(c => c.Roles)
             .Include(c => c.Empleado).ThenInclude(e => e!.Sucursal_Base).ThenInclude(s => s!.Empresa)
             .FirstOrDefaultAsync(c => c.NombreUsuario == request.NombreUsuario && !c.IsDeleted, cancellationToken);

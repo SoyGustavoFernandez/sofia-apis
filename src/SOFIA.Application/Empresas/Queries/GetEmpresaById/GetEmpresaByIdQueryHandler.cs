@@ -12,7 +12,6 @@ public class GetEmpresaByIdQueryHandler(IApplicationDbContext context)
     {
         var empresa = await context.Empresas
             .AsNoTracking()
-            .IgnoreQueryFilters()
             .Include(e => e.Sucursales)
             .FirstOrDefaultAsync(e => e.Id == request.Id && !e.IsDeleted, cancellationToken);
 

@@ -44,11 +44,10 @@ public class PacienteClienteConfiguration : IEntityTypeConfiguration<PacienteCli
         _ = builder.Property(x => x.DeletedBy).HasColumnName("DeletedBy");
 
         // Indexes
-        _ = builder.HasIndex(x => x.DocIdentidadGub)
+        _ = builder.HasIndex(x => new { x.TenantId, x.DocIdentidadGub })
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
 
         // Soft delete query filter
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

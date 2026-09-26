@@ -50,6 +50,5 @@ public sealed class DigemidActaDetalleConfiguration : IEntityTypeConfiguration<D
             .OnDelete(DeleteBehavior.Restrict);
 
         // Soft delete query filter
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

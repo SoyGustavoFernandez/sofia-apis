@@ -36,9 +36,16 @@ public sealed class PermissionAuthorizationHandler(
             return;
         }
 
+        // Role names repeat across tenants, so the cache must be partitioned by company
+        var empresaId = context.User.FindFirstValue("empresaId");
+        if (string.IsNullOrEmpty(empresaId))
+        {
+            return;
+        }
+
         foreach (var roleName in roles)
         {
-            var permissions = await GetPermissionsForRoleAsync(roleName);
+            var permissions = await GetPermissionsForRoleAsync(empresaId, roleName);
 
             if (permissions.Any(p =>
                 p.Modulo.Equals(requirement.Module, StringComparison.OrdinalIgnoreCase) &&
@@ -50,9 +57,9 @@ public sealed class PermissionAuthorizationHandler(
         }
     }
 
-    private async Task<HashSet<(string Modulo, string Accion)>> GetPermissionsForRoleAsync(string roleName)
+    private async Task<HashSet<(string Modulo, string Accion)>> GetPermissionsForRoleAsync(string empresaId, string roleName)
     {
-        var cacheKey = $"permissions-{roleName}";
+        var cacheKey = $"permissions-{empresaId}-{roleName}";
 
         if (memoryCache.TryGetValue(cacheKey, out HashSet<(string Modulo, string Accion)>? permissions) && permissions is not null)
         {

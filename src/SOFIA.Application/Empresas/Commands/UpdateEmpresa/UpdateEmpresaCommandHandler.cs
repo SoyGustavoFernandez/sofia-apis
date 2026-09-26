@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.ValueObjects;
 
@@ -23,7 +24,9 @@ public class UpdateEmpresaCommandHandler(IApplicationDbContext context)
         if (request.RUC is not null)
         {
             var rucVo = Ruc.Create(request.RUC).Value!;
+            // RUC is unique across tenants (SUNAT identifier), not only within the current company
             var rucTomado = await context.Empresas
+                .IgnoreQueryFilters([QueryFilters.Tenant])
                 .AnyAsync(e => e.RUC == rucVo && e.Id != request.Id && !e.IsDeleted, cancellationToken);
             if (rucTomado)
             {

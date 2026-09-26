@@ -76,6 +76,5 @@ public sealed class DigemidInventarioCuarentenaConfiguration : IEntityTypeConfig
             .OnDelete(DeleteBehavior.Restrict);
 
         // Soft delete query filter
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

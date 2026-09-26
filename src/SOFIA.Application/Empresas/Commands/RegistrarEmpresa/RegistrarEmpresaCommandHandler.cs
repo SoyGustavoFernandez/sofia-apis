@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 using SOFIA.Domain.ValueObjects;
@@ -13,12 +14,16 @@ public class RegistrarEmpresaCommandHandler(
     IPasswordHasher passwordHasher,
     IJwtProvider jwtProvider) : IRequestHandler<RegistrarEmpresaCommand, Result<string>>
 {
+    private const string AdminRoleName = "Admin";
+
     public async Task<Result<string>> Handle(RegistrarEmpresaCommand request, CancellationToken cancellationToken)
     {
         if (request.RUC is not null)
         {
             var rucVo = Ruc.Create(request.RUC).Value!;
+            // Anonymous sign-up: RUC and username uniqueness are global, not per tenant
             var rucTomado = await context.Empresas
+                .IgnoreQueryFilters([QueryFilters.Tenant])
                 .AnyAsync(e => e.RUC == rucVo && !e.IsDeleted, cancellationToken);
             if (rucTomado)
             {
@@ -27,6 +32,7 @@ public class RegistrarEmpresaCommandHandler(
         }
 
         var usuarioTomado = await context.Cuentas
+            .IgnoreQueryFilters([QueryFilters.Tenant])
             .AnyAsync(c => c.NombreUsuario == request.Usuario && !c.IsDeleted, cancellationToken);
         if (usuarioTomado)
         {
@@ -39,14 +45,11 @@ public class RegistrarEmpresaCommandHandler(
             return Result.Failure<string>(entityResult.Error);
         }
 
-        var (empresa, sucursal, empleado, cuenta) = entityResult.Value;
+        var (empresa, sucursal, empleado, cuenta, rolAdmin) = entityResult.Value;
 
-        var rolAdmin = await context.Roles.FirstOrDefaultAsync(r => r.NombreRol == "Admin", cancellationToken);
-        if (rolAdmin is not null)
-        {
-            cuenta.AddRol(rolAdmin);
-        }
+        cuenta.AddRol(rolAdmin);
 
+        _ = context.Roles.Add(rolAdmin);
         _ = context.Empresas.Add(empresa);
         _ = context.Sucursales.Add(sucursal);
         _ = context.Empleados.Add(empleado);
@@ -56,12 +59,12 @@ public class RegistrarEmpresaCommandHandler(
         return Result.Success(jwtProvider.Generate(cuenta, empresa.Id, sucursal.Id), 201);
     }
 
-    private static Result<(Empresa, Sucursal, Empleado, Cuenta)> CreateEntityChain(RegistrarEmpresaCommand request, IPasswordHasher passwordHasher)
+    private static Result<(Empresa, Sucursal, Empleado, Cuenta, Rol)> CreateEntityChain(RegistrarEmpresaCommand request, IPasswordHasher passwordHasher)
     {
         var empresaResult = Empresa.Create(request.NombreEmpresa, request.RUC);
         if (empresaResult.IsFailure)
         {
-            return Result.Failure<(Empresa, Sucursal, Empleado, Cuenta)>(empresaResult.Error);
+            return Result.Failure<(Empresa, Sucursal, Empleado, Cuenta, Rol)>(empresaResult.Error);
         }
 
         var empresa = empresaResult.Value!;
@@ -73,7 +76,7 @@ public class RegistrarEmpresaCommandHandler(
         var sucursalResult = Sucursal.Create(nombreSede, direccionSede, numeroLicencia, empresaId: empresa.Id);
         if (sucursalResult.IsFailure)
         {
-            return Result.Failure<(Empresa, Sucursal, Empleado, Cuenta)>(sucursalResult.Error);
+            return Result.Failure<(Empresa, Sucursal, Empleado, Cuenta, Rol)>(sucursalResult.Error);
         }
 
         var sucursal = sucursalResult.Value!;
@@ -85,15 +88,22 @@ public class RegistrarEmpresaCommandHandler(
         var empleadoResult = Empleado.Create(sucursal.Id, adminNombres, adminApPat, adminApMat, tenantId: empresa.Id);
         if (empleadoResult.IsFailure)
         {
-            return Result.Failure<(Empresa, Sucursal, Empleado, Cuenta)>(empleadoResult.Error);
+            return Result.Failure<(Empresa, Sucursal, Empleado, Cuenta, Rol)>(empleadoResult.Error);
         }
 
         var empleado = empleadoResult.Value!;
 
         var passwordHash = passwordHasher.Hash(request.Password);
         var cuentaResult = Cuenta.Create(empleado.Id, request.Usuario, passwordHash, tenantId: empresa.Id, requiereCambioClave: false);
-        return cuentaResult.IsFailure
-            ? Result.Failure<(Empresa, Sucursal, Empleado, Cuenta)>(cuentaResult.Error)
-            : Result.Success<(Empresa, Sucursal, Empleado, Cuenta)>((empresa, sucursal, empleado, cuentaResult.Value!));
+        if (cuentaResult.IsFailure)
+        {
+            return Result.Failure<(Empresa, Sucursal, Empleado, Cuenta, Rol)>(cuentaResult.Error);
+        }
+
+        // Each company gets its own Admin role so its privileges never reach other tenants
+        var rolResult = Rol.Create(AdminRoleName, "Administrador de la empresa", tenantId: empresa.Id);
+        return rolResult.IsFailure
+            ? Result.Failure<(Empresa, Sucursal, Empleado, Cuenta, Rol)>(rolResult.Error)
+            : Result.Success<(Empresa, Sucursal, Empleado, Cuenta, Rol)>((empresa, sucursal, empleado, cuentaResult.Value!, rolResult.Value!));
     }
 }

@@ -72,6 +72,5 @@ public sealed class SistemaNotificacionInternaConfiguration : IEntityTypeConfigu
             .OnDelete(DeleteBehavior.Restrict);
 
         // Soft delete query filter
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

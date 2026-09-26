@@ -14,7 +14,6 @@ public class GetEmpresasQueryHandler(IApplicationDbContext context)
     {
         var query = context.Empresas
             .AsNoTracking()
-            .IgnoreQueryFilters()
             .Include(e => e.Sucursales)
             .Where(e => !e.IsDeleted);
 

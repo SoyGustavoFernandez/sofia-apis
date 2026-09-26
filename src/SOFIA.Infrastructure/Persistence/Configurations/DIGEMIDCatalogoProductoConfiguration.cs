@@ -50,7 +50,7 @@ public class DigemidCatalogoProductoConfiguration : IEntityTypeConfiguration<Dig
             .HasMaxLength(50)
             .IsRequired();
 
-        _ = builder.HasIndex(x => x.CodProd).IsUnique();
+        _ = builder.HasIndex(x => new { x.TenantId, x.CodProd }).IsUnique();
         _ = builder.HasIndex(x => x.NomProd); // Index for searching
     }
 }

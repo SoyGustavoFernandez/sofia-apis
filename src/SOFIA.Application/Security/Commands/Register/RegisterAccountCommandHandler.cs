@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 
@@ -18,7 +19,9 @@ public class RegisterAccountCommandHandler(
             .AnyAsync(e => e.Id == request.EmpleadoId && !e.IsDeleted, cancellationToken);
         var cuentaExists = await context.Cuentas
             .AnyAsync(c => c.EmpleadoId == request.EmpleadoId && !c.IsDeleted, cancellationToken);
+        // Usernames are unique across tenants because login does not ask for the company
         var usernameTaken = await context.Cuentas
+            .IgnoreQueryFilters([QueryFilters.Tenant])
             .AnyAsync(c => c.NombreUsuario == request.NombreUsuario && !c.IsDeleted, cancellationToken);
 
         if (!empleadoExists)

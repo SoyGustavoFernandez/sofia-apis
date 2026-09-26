@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using SOFIA.Application.Security.Commands.Login;
 using SOFIA.Domain.Common;
 using DomainRefreshToken = SOFIA.Domain.Entities.RefreshToken;
@@ -18,7 +19,9 @@ public class RefreshTokenCommandHandler(
     {
         var hash = TokenHasher.HashToken(request.Token);
 
+        // Anonymous request (cookie only): the tenant is resolved from the account itself
         var stored = await context.RefreshTokens
+            .IgnoreQueryFilters([QueryFilters.Tenant])
             .FirstOrDefaultAsync(
                 rt => rt.TokenHash == hash && !rt.IsRevoked && rt.ExpiresAt > DateTimeOffset.UtcNow,
                 cancellationToken);
@@ -30,6 +33,7 @@ public class RefreshTokenCommandHandler(
         }
 
         var cuenta = await context.Cuentas
+            .IgnoreQueryFilters([QueryFilters.Tenant])
             .Include(c => c.Roles)
             .Include(c => c.Empleado).ThenInclude(e => e!.Sucursal_Base)
             .FirstOrDefaultAsync(c => c.Id == stored.CuentaId && c.CuentaActiva && !c.IsDeleted, cancellationToken);

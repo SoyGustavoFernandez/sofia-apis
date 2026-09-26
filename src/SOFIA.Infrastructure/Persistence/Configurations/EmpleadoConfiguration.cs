@@ -46,6 +46,5 @@ public class EmpleadoConfiguration : IEntityTypeConfiguration<Empleado>
             .OnDelete(DeleteBehavior.Restrict);
 
         // Soft delete filter
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

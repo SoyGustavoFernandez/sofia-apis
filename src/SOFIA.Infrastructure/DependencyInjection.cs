@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SOFIA.Application.Common.Excel;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using SOFIA.Infrastructure.Authentication;
 using SOFIA.Infrastructure.Excel;
 using SOFIA.Infrastructure.Persistence;
@@ -80,7 +81,9 @@ public static class DependencyInjection
                             return;
                         }
 
+                        // HttpContext.User is not populated yet at this point, so the tenant filter cannot apply
                         var securityStampValid = await dbContext.Cuentas
+                            .IgnoreQueryFilters([QueryFilters.Tenant])
                             .AnyAsync(c => c.Id == userId &&
                                            c.SecurityStamp == securityStamp &&
                                            c.CuentaActiva &&

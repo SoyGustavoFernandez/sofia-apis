@@ -1,0 +1,185 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
+using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
+using SOFIA.Application.Security.Commands.Login;
+using SOFIA.Domain.Entities;
+using SOFIA.Infrastructure.Authentication;
+using SOFIA.IntegrationTests.Infrastructure;
+
+namespace SOFIA.IntegrationTests.Security;
+
+public class TenantIsolationIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationTest(factory)
+{
+    private static readonly Guid EmpresaA = Guid.NewGuid();
+    private static readonly Guid EmpresaB = Guid.NewGuid();
+
+    [Fact]
+    public async Task SaveChanges_ShouldAssignCurrentTenant_WhenEntityIsAdded()
+    {
+        // Arrange
+        CurrentUser.Empresa = EmpresaA;
+        var laboratorio = Laboratorio.Create($"Lab{Guid.NewGuid():N}"[..20], null).Value!;
+
+        // Act
+        _ = DbContext.Laboratorios.Add(laboratorio);
+        _ = await DbContext.SaveChangesAsync();
+
+        // Assert
+        _ = laboratorio.TenantId.Should().Be(EmpresaA);
+    }
+
+    [Fact]
+    public async Task Query_ShouldHideRows_WhenTheyBelongToAnotherTenant()
+    {
+        // Arrange
+        CurrentUser.Empresa = EmpresaA;
+        var laboratorio = Laboratorio.Create($"Lab{Guid.NewGuid():N}"[..20], null).Value!;
+        _ = DbContext.Laboratorios.Add(laboratorio);
+        _ = await DbContext.SaveChangesAsync();
+
+        // Act
+        CurrentUser.Empresa = EmpresaB;
+        var visibleFromB = await DbContext.Laboratorios.AsNoTracking().AnyAsync(l => l.Id == laboratorio.Id);
+
+        CurrentUser.Empresa = EmpresaA;
+        var visibleFromA = await DbContext.Laboratorios.AsNoTracking().AnyAsync(l => l.Id == laboratorio.Id);
+
+        // Assert
+        _ = visibleFromB.Should().BeFalse(because: "a company must never read another company's data");
+        _ = visibleFromA.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Query_ShouldHideRowsWithoutTenant_ForAnyCompanyAndForAnonymousContext()
+    {
+        // Arrange: row written with no tenant in context keeps TenantId = NULL (legacy data)
+        CurrentUser.Empresa = null;
+        var laboratorio = Laboratorio.Create($"Lab{Guid.NewGuid():N}"[..20], null).Value!;
+        _ = DbContext.Laboratorios.Add(laboratorio);
+        _ = await DbContext.SaveChangesAsync();
+
+        // Act
+        var visibleAnonymous = await DbContext.Laboratorios.AsNoTracking().AnyAsync(l => l.Id == laboratorio.Id);
+
+        CurrentUser.Empresa = EmpresaA;
+        var visibleFromA = await DbContext.Laboratorios.AsNoTracking().AnyAsync(l => l.Id == laboratorio.Id);
+
+        // Assert
+        _ = visibleAnonymous.Should().BeFalse(because: "no tenant in context must not mean every tenant");
+        _ = visibleFromA.Should().BeFalse(because: "NULL-tenant rows are not shared across companies");
+    }
+
+    [Fact]
+    public async Task UniqueIndex_ShouldAllowSameDocument_WhenPatientsBelongToDifferentTenants()
+    {
+        // Arrange
+        var documento = $"{Random.Shared.Next(10_000_000, 99_999_999)}";
+
+        CurrentUser.Empresa = EmpresaA;
+        _ = DbContext.Pacientes.Add(PacienteCliente.Create(documento, "Paciente A", new DateOnly(1990, 1, 1), null).Value!);
+        _ = await DbContext.SaveChangesAsync();
+
+        // Act
+        CurrentUser.Empresa = EmpresaB;
+        _ = DbContext.Pacientes.Add(PacienteCliente.Create(documento, "Paciente B", new DateOnly(1990, 1, 1), null).Value!);
+        var act = () => DbContext.SaveChangesAsync();
+
+        // Assert
+        _ = await act.Should().NotThrowAsync(because: "the same person can be a patient of two different pharmacies");
+    }
+
+    [Fact]
+    public async Task RegistrarEmpresa_ShouldCreateOwnAdminRole_WhenTwoCompaniesSignUp()
+    {
+        // Arrange: public sign-up runs without any tenant in context
+        CurrentUser.Empresa = null;
+        var comandoA = NewRegistro();
+        var comandoB = NewRegistro();
+
+        // Act
+        var resultA = await Sender.Send(comandoA);
+        var resultB = await Sender.Send(comandoB);
+
+        // Assert
+        _ = resultA.IsSuccess.Should().BeTrue();
+        _ = resultB.IsSuccess.Should().BeTrue(because: "each company gets its own 'Admin' role, so the name does not collide");
+
+        var admins = await DbContext.Roles
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(r => r.Cuentas.Any(c => c.NombreUsuario == comandoA.Usuario || c.NombreUsuario == comandoB.Usuario))
+            .ToListAsync();
+
+        _ = admins.Should().HaveCount(2);
+        _ = admins.Should().OnlyContain(r => r.NombreRol == "Admin" && r.TenantId != null);
+        _ = admins.Select(r => r.TenantId).Distinct().Should().HaveCount(2, because: "Admin privileges must not be shared between companies");
+    }
+
+    [Fact]
+    public async Task Login_ShouldSucceed_WhenAccountBelongsToATenantAndRequestIsAnonymous()
+    {
+        // Arrange
+        CurrentUser.Empresa = null;
+        var registro = NewRegistro();
+        _ = (await Sender.Send(registro)).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = await Sender.Send(new LoginCommand(registro.Usuario, registro.Password));
+
+        // Assert
+        _ = result.IsSuccess.Should().BeTrue(because: "login resolves the tenant from the account, not from the request");
+    }
+
+    [Fact]
+    public async Task PermissionHandler_ShouldNotShareCachedPermissions_WhenRoleNameRepeatsAcrossTenants()
+    {
+        // Arrange: both companies have a "Cajero" role, only company A grants Ventas:Crear
+        var rolName = $"Cajero{Guid.NewGuid():N}"[..20];
+
+        CurrentUser.Empresa = EmpresaA;
+        var rolA = Rol.Create(rolName, null).Value!;
+        _ = DbContext.Roles.Add(rolA);
+        _ = DbContext.PermisosRol.Add(PermisoRol.Create(rolA.Id, "Ventas", "Crear").Value!);
+        _ = await DbContext.SaveChangesAsync();
+
+        CurrentUser.Empresa = EmpresaB;
+        _ = DbContext.Roles.Add(Rol.Create(rolName, null).Value!);
+        _ = await DbContext.SaveChangesAsync();
+
+        var handler = new PermissionAuthorizationHandler(
+            Factory.Services.GetRequiredService<IServiceScopeFactory>(),
+            Factory.Services.GetRequiredService<IMemoryCache>());
+
+        // Act: company A warms the cache first, then company B asks with the same role name
+        CurrentUser.Empresa = EmpresaA;
+        var grantedA = await AuthorizeAsync(handler, EmpresaA, rolName);
+
+        CurrentUser.Empresa = EmpresaB;
+        var grantedB = await AuthorizeAsync(handler, EmpresaB, rolName);
+
+        // Assert
+        _ = grantedA.Should().BeTrue();
+        _ = grantedB.Should().BeFalse(because: "a role in company B must not inherit permissions cached for company A");
+    }
+
+    private static async Task<bool> AuthorizeAsync(PermissionAuthorizationHandler handler, Guid empresaId, string rolName)
+    {
+        var user = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim(ClaimTypes.Role, rolName), new Claim("empresaId", empresaId.ToString())], "test"));
+        var requirement = new PermissionRequirement("Ventas", "Crear");
+        var context = new AuthorizationHandlerContext([requirement], user, null);
+
+        await handler.HandleAsync(context);
+        return context.HasSucceeded;
+    }
+
+    private static RegistrarEmpresaCommand NewRegistro() => new()
+    {
+        NombreEmpresa = $"Farmacia {Guid.NewGuid():N}"[..30],
+        Usuario = $"u{Guid.NewGuid():N}"[..20],
+        Password = "TestPassword123!"
+    };
+}

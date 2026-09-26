@@ -54,7 +54,5 @@ public sealed class InventarioSucursalConfiguration : IEntityTypeConfiguration<I
             .HasDatabaseName("UX_Inventario_Sucursal_Lote")
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

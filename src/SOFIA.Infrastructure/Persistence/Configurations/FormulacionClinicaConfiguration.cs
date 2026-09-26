@@ -61,7 +61,5 @@ public class FormulacionClinicaConfiguration : IEntityTypeConfiguration<Formulac
         _ = builder.Property(x => x.IsDeleted).HasColumnName("IsDeleted");
         _ = builder.Property(x => x.DeletedAt).HasColumnName("DeletedAt");
         _ = builder.Property(x => x.DeletedBy).HasColumnName("DeletedBy");
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

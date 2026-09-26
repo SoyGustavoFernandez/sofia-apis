@@ -60,7 +60,5 @@ public class DevolucionCabeceraConfiguration : IEntityTypeConfiguration<Devoluci
             .WithOne(d => d.Devolucion)
             .HasForeignKey(d => d.DevolucionId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

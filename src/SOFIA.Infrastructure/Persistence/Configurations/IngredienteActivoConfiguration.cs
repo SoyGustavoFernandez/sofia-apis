@@ -26,9 +26,7 @@ public class IngredienteActivoConfiguration : IEntityTypeConfiguration<Ingredien
             .HasMaxLength(15)
             .IsRequired();
 
-        _ = builder.HasIndex(x => x.DenominacionDci).IsUnique();
+        _ = builder.HasIndex(x => new { x.TenantId, x.DenominacionDci }).IsUnique();
         _ = builder.HasIndex(x => x.CodigoAtc);
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

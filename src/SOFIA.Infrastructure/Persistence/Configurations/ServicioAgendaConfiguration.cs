@@ -54,7 +54,5 @@ public class ServicioAgendaConfiguration : IEntityTypeConfiguration<ServicioAgen
             .WithMany()
             .HasForeignKey(x => x.VentaId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

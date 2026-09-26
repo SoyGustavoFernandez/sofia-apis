@@ -51,7 +51,5 @@ public class EmpresaConfiguration : IEntityTypeConfiguration<Empresa>
             .HasForeignKey(x => x.EmpresaId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

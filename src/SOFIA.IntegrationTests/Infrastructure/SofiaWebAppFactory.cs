@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using SOFIA.Application.Common.Interfaces;
 using SOFIA.Infrastructure.Persistence;
 using Testcontainers.MsSql;
 
@@ -22,6 +24,8 @@ public class SofiaWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
         .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
         .WithPassword(_testDbPassword)
         .Build();
+
+    public TestCurrentUser CurrentUser { get; } = new();
 
     private static string ResolveTestDbPassword()
     {
@@ -64,6 +68,11 @@ public class SofiaWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
             _ = services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(_dbContainer.GetConnectionString()));
+
+            // Tests have no HttpContext, so the tenant comes from a controllable fake user
+            _ = services.RemoveAll<ICurrentUser>();
+            _ = services.AddSingleton(CurrentUser);
+            _ = services.AddSingleton<ICurrentUser>(CurrentUser);
 
             // Ejecuta las migraciones/schema contra la BD de test
             using var scope = services.BuildServiceProvider().CreateScope();

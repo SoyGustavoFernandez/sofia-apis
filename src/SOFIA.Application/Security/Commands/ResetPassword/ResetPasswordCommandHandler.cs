@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Security.Commands.ResetPassword;
@@ -12,6 +13,7 @@ public class ResetPasswordCommandHandler(
     public async Task<Result> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
     {
         var cuenta = await context.Cuentas
+            .IgnoreQueryFilters([QueryFilters.Tenant])
             .FirstOrDefaultAsync(c => c.NombreUsuario == request.NombreUsuario && !c.IsDeleted, cancellationToken);
 
         if (cuenta is null)

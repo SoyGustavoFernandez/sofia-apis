@@ -81,6 +81,5 @@ public class PosSesionCajaConfiguration : IEntityTypeConfiguration<PosSesionCaja
         _ = builder.HasIndex(x => x.EmpleadoId);
 
         // Soft delete query filter
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

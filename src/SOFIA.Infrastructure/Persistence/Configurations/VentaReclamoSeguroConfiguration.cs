@@ -61,7 +61,5 @@ public class VentaReclamoSeguroConfiguration : IEntityTypeConfiguration<VentaRec
             .WithMany(a => a.Reclamos)
             .HasForeignKey(x => x.AseguradoraId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

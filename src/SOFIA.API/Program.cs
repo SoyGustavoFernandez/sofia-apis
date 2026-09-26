@@ -103,6 +103,16 @@ _ = builder.Services.AddRateLimiter(options =>
         o.QueueLimit = 2;
     });
 
+    // Public company sign-up: 5 registrations/hour per IP to curb mass tenant creation
+    _ = options.AddPolicy("signup", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromHours(1),
+            QueueLimit = 0
+        }));
+
     // AI endpoints (prescription digitization): strict limit due to processing cost
     _ = options.AddFixedWindowLimiter("ai-endpoints", o =>
     {

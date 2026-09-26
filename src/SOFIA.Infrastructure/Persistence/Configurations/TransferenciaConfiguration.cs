@@ -78,7 +78,5 @@ public sealed class TransferenciaConfiguration : IEntityTypeConfiguration<Transf
             .WithOne(x => x.Transferencia)
             .HasForeignKey(x => x.TransferenciaId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

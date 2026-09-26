@@ -29,8 +29,6 @@ public class RolConfiguration : IEntityTypeConfiguration<Rol>
             .HasColumnName("Nivel_Jerarquia")
             .IsRequired();
 
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
-
         _ = builder.HasMany(x => x.Sucursales)
             .WithMany()
             .UsingEntity<RolSucursal>(

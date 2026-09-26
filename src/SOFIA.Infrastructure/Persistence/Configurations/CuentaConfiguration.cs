@@ -65,8 +65,6 @@ public class CuentaConfiguration : IEntityTypeConfiguration<Cuenta>
             .HasDatabaseName("IX_Cuentas_Login")
             .HasFilter("IsDeleted = 0 AND Cuenta_Activa = 1");
 
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
-
         // Many-to-Many via CuentaRol
         _ = builder.HasMany(x => x.Roles)
             .WithMany(r => r.Cuentas)

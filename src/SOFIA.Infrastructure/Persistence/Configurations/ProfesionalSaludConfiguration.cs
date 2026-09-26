@@ -40,11 +40,10 @@ public class ProfesionalSaludConfiguration : IEntityTypeConfiguration<Profesiona
         _ = builder.Property(x => x.DeletedBy).HasColumnName("DeletedBy");
 
         // Indexes
-        _ = builder.HasIndex(x => x.NumeroRegistro)
+        _ = builder.HasIndex(x => new { x.TenantId, x.NumeroRegistro })
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
 
         // Soft delete query filter
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

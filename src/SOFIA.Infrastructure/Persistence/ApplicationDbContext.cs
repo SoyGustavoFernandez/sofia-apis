@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Entities;
 
 namespace SOFIA.Infrastructure.Persistence;
@@ -92,19 +93,20 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         var parameter = Expression.Parameter(clrType, "e");
 
         var notDeleted = Expression.Not(Expression.Property(parameter, nameof(Domain.Common.BaseEntity.IsDeleted)));
+        _ = modelBuilder.Entity(clrType).HasQueryFilter(QueryFilters.SoftDelete, Expression.Lambda(notDeleted, parameter));
+
+        // Strict isolation: no tenant in context (anonymous/background) or NULL TenantId rows match nothing
         var tenantId = Expression.Property(parameter, nameof(Domain.Common.BaseEntity.TenantId));
         var nullGuid = Expression.Constant(null, typeof(Guid?));
 
         Expression<Func<Guid?>> captureEmpresaId = () => CurrentEmpresaId;
         var empresaIdExpr = captureEmpresaId.Body;
 
-        var tenantIsNull = Expression.Equal(tenantId, nullGuid);
-        var empresaIsNull = Expression.Equal(empresaIdExpr, nullGuid);
+        var empresaIsKnown = Expression.NotEqual(empresaIdExpr, nullGuid);
         var tenantsMatch = Expression.Equal(tenantId, empresaIdExpr);
-        var tenantCheck = Expression.OrElse(tenantIsNull, Expression.OrElse(empresaIsNull, tenantsMatch));
+        var tenantCheck = Expression.AndAlso(empresaIsKnown, tenantsMatch);
 
-        var filter = Expression.Lambda(Expression.AndAlso(notDeleted, tenantCheck), parameter);
-        _ = modelBuilder.Entity(clrType).HasQueryFilter(filter);
+        _ = modelBuilder.Entity(clrType).HasQueryFilter(QueryFilters.Tenant, Expression.Lambda(tenantCheck, parameter));
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -132,6 +134,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             switch (entry.State)
             {
                 case EntityState.Added:
+                    AssignTenant(entry);
                     entry.Entity.CreatedBy = currentUser.Name ?? "SYSTEM";
                     entry.Entity.CreatedAt = DateTimeOffset.UtcNow;
                     break;
@@ -160,6 +163,18 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         }
 
         return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void AssignTenant(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<Domain.Common.IAuditableEntity> entry)
+    {
+        if (entry.Entity is not Domain.Common.BaseEntity || CurrentEmpresaId is null)
+        {
+            return;
+        }
+
+        // TenantId has a protected setter, so it is written through EF's change tracker
+        var tenant = entry.Property(nameof(Domain.Common.BaseEntity.TenantId));
+        tenant.CurrentValue ??= CurrentEmpresaId;
     }
 
     public async Task<int> IncrementarCorrelativoSunatAsync(Guid serieId, CancellationToken cancellationToken)

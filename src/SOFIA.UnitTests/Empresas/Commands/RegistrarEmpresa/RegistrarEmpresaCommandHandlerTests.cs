@@ -49,6 +49,7 @@ public class RegistrarEmpresaCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.Empleados).Returns(empleadosDbSet.Object);
 
         var rolesDbSet = new List<Rol>().BuildMockDbSet();
+        _ = rolesDbSet.Setup(d => d.Add(It.IsAny<Rol>()));
         _ = _dbContextMock.Setup(c => c.Roles).Returns(rolesDbSet.Object);
 
         _ = _dbContextMock
@@ -119,7 +120,43 @@ public class RegistrarEmpresaCommandHandlerTests
         _dbContextMock.Verify(c => c.Sucursales.Add(It.IsAny<Sucursal>()), Times.Once);
         _dbContextMock.Verify(c => c.Empleados.Add(It.IsAny<Empleado>()), Times.Once);
         _dbContextMock.Verify(c => c.Cuentas.Add(It.IsAny<Cuenta>()), Times.Once);
+        _dbContextMock.Verify(c => c.Roles.Add(It.IsAny<Rol>()), Times.Once);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreateAdminRoleScopedToNewCompany_WhenSuccessful()
+    {
+        SetupEmptyContext();
+        Empresa? capturedEmpresa = null;
+        Rol? capturedRol = null;
+        Cuenta? capturedCuenta = null;
+        _ = _dbContextMock.Setup(c => c.Empresas.Add(It.IsAny<Empresa>())).Callback<Empresa>(e => capturedEmpresa = e);
+        _ = _dbContextMock.Setup(c => c.Roles.Add(It.IsAny<Rol>())).Callback<Rol>(r => capturedRol = r);
+        _ = _dbContextMock.Setup(c => c.Cuentas.Add(It.IsAny<Cuenta>())).Callback<Cuenta>(c => capturedCuenta = c);
+
+        _ = await _handler.Handle(MinimalCommand(), CancellationToken.None);
+
+        _ = capturedRol.Should().NotBeNull();
+        _ = capturedRol!.NombreRol.Should().Be("Admin");
+        _ = capturedRol.TenantId.Should().Be(capturedEmpresa!.Id);
+        _ = capturedCuenta!.Roles.Should().ContainSingle().Which.Should().BeSameAs(capturedRol);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotReuseExistingAdminRole_WhenOneAlreadyExists()
+    {
+        SetupEmptyContext();
+        var adminGlobal = Rol.Create("Admin", "Legacy global admin").Value!;
+        var rolesDbSet = new List<Rol> { adminGlobal }.BuildMockDbSet();
+        _ = _dbContextMock.Setup(c => c.Roles).Returns(rolesDbSet.Object);
+        Cuenta? capturedCuenta = null;
+        _ = _dbContextMock.Setup(c => c.Cuentas.Add(It.IsAny<Cuenta>())).Callback<Cuenta>(c => capturedCuenta = c);
+
+        _ = await _handler.Handle(MinimalCommand(), CancellationToken.None);
+
+        _ = capturedCuenta!.Roles.Should().NotContain(adminGlobal);
+        rolesDbSet.Verify(d => d.Add(It.Is<Rol>(r => r != adminGlobal)), Times.Once);
     }
 
     [Fact]

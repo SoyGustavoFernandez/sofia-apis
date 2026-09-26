@@ -39,6 +39,5 @@ public class SucursalConfiguration : IEntityTypeConfiguration<Sucursal>
             .IsRequired(false);
 
         // Soft delete filter
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

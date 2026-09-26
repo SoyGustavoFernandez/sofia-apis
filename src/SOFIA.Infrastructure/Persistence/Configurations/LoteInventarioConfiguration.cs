@@ -52,7 +52,5 @@ public sealed class LoteInventarioConfiguration : IEntityTypeConfiguration<LoteI
             .HasDatabaseName("UX_Lotes_Producto_NumeroLote")
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

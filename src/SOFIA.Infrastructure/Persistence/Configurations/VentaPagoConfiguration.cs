@@ -60,6 +60,5 @@ public class VentaPagoConfiguration : IEntityTypeConfiguration<VentaPago>
         _ = builder.HasIndex(x => x.TransaccionId);
 
         // Soft delete query filter
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

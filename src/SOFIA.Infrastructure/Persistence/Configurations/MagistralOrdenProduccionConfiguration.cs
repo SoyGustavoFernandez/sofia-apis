@@ -83,6 +83,5 @@ public sealed class MagistralOrdenProduccionConfiguration : IEntityTypeConfigura
             .OnDelete(DeleteBehavior.Cascade);
 
         // Soft delete query filter
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

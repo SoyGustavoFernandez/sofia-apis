@@ -25,9 +25,7 @@ public class LaboratorioConfiguration : IEntityTypeConfiguration<Laboratorio>
             .HasColumnName("Codigo_Identificador")
             .HasMaxLength(50);
 
-        _ = builder.HasIndex(x => x.NombreCompania).IsUnique();
-        _ = builder.HasIndex(x => x.CodigoIdentificador).IsUnique().HasFilter("[Codigo_Identificador] IS NOT NULL");
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
+        _ = builder.HasIndex(x => new { x.TenantId, x.NombreCompania }).IsUnique();
+        _ = builder.HasIndex(x => new { x.TenantId, x.CodigoIdentificador }).IsUnique().HasFilter("[Codigo_Identificador] IS NOT NULL");
     }
 }

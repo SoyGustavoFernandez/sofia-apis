@@ -66,7 +66,5 @@ public class VentaConfiguration : IEntityTypeConfiguration<Venta>
             .WithMany()
             .HasForeignKey(x => x.SesionId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        _ = builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

@@ -3,20 +3,24 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
+using SOFIA.Application.Security;
+using SOFIA.Application.Security.Commands.Login;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 using SOFIA.Domain.ValueObjects;
+using DomainRefreshToken = SOFIA.Domain.Entities.RefreshToken;
 
 namespace SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 
 public class RegistrarEmpresaCommandHandler(
     IApplicationDbContext context,
     IPasswordHasher passwordHasher,
-    IJwtProvider jwtProvider) : IRequestHandler<RegistrarEmpresaCommand, Result<string>>
+    IJwtProvider jwtProvider) : IRequestHandler<RegistrarEmpresaCommand, Result<LoginResult>>
 {
     private const string AdminRoleName = "Admin";
+    private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);
 
-    public async Task<Result<string>> Handle(RegistrarEmpresaCommand request, CancellationToken cancellationToken)
+    public async Task<Result<LoginResult>> Handle(RegistrarEmpresaCommand request, CancellationToken cancellationToken)
     {
         if (request.RUC is not null)
         {
@@ -27,7 +31,7 @@ public class RegistrarEmpresaCommandHandler(
                 .AnyAsync(e => e.RUC == rucVo && !e.IsDeleted, cancellationToken);
             if (rucTomado)
             {
-                return Result.Failure<string>(Error.Conflict("Empresa.RUC.Duplicado", "Ya existe una empresa registrada con este RUC."), 409);
+                return Result.Failure<LoginResult>(Error.Conflict("Empresa.RUC.Duplicado", "Ya existe una empresa registrada con este RUC."), 409);
             }
         }
 
@@ -36,13 +40,13 @@ public class RegistrarEmpresaCommandHandler(
             .AnyAsync(c => c.NombreUsuario == request.Usuario && !c.IsDeleted, cancellationToken);
         if (usuarioTomado)
         {
-            return Result.Failure<string>(Error.Conflict("Auth.DuplicateUsername", "Username is already in use."), 409);
+            return Result.Failure<LoginResult>(Error.Conflict("Auth.DuplicateUsername", "Username is already in use."), 409);
         }
 
         var entityResult = CreateEntityChain(request, passwordHasher);
         if (entityResult.IsFailure)
         {
-            return Result.Failure<string>(entityResult.Error);
+            return Result.Failure<LoginResult>(entityResult.Error);
         }
 
         var (empresa, sucursal, empleado, cuenta, rolAdmin) = entityResult.Value;
@@ -54,9 +58,16 @@ public class RegistrarEmpresaCommandHandler(
         _ = context.Sucursales.Add(sucursal);
         _ = context.Empleados.Add(empleado);
         _ = context.Cuentas.Add(cuenta);
+
+        // Same session pair as login, so the new admin can silently refresh instead of re-logging in
+        var (rawToken, tokenHash) = TokenHasher.GenerateRefreshToken();
+        var expiry = DateTimeOffset.UtcNow.Add(RefreshTokenLifetime);
+        _ = context.RefreshTokens.Add(DomainRefreshToken.Create(cuenta.Id, tokenHash, expiry));
+
         _ = await context.SaveChangesAsync(cancellationToken);
 
-        return Result.Success(jwtProvider.Generate(cuenta, empresa.Id, sucursal.Id), 201);
+        var accessToken = jwtProvider.Generate(cuenta, empresa.Id, sucursal.Id);
+        return Result.Success(new LoginResult(accessToken, rawToken, expiry), 201);
     }
 
     private static Result<(Empresa, Sucursal, Empleado, Cuenta, Rol)> CreateEntityChain(RegistrarEmpresaCommand request, IPasswordHasher passwordHasher)

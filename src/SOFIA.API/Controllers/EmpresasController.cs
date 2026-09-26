@@ -26,9 +26,13 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
     public async Task<IActionResult> Registrar([FromBody] RegistrarEmpresaCommand command)
     {
         var result = await sender.Send(command);
-        return result.IsSuccess
-            ? StatusCode(201, new { token = result.Value })
-            : result.ToProblemResult();
+        if (!result.IsSuccess)
+        {
+            return result.ToProblemResult();
+        }
+
+        Response.AppendRefreshTokenCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiry);
+        return StatusCode(201, new { token = result.Value.AccessToken });
     }
 
     [HasPermission("Empresas", "Leer")]

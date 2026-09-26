@@ -52,6 +52,10 @@ public class RegistrarEmpresaCommandHandlerTests
         _ = rolesDbSet.Setup(d => d.Add(It.IsAny<Rol>()));
         _ = _dbContextMock.Setup(c => c.Roles).Returns(rolesDbSet.Object);
 
+        var refreshTokensDbSet = new List<RefreshToken>().BuildMockDbSet();
+        _ = refreshTokensDbSet.Setup(d => d.Add(It.IsAny<RefreshToken>()));
+        _ = _dbContextMock.Setup(c => c.RefreshTokens).Returns(refreshTokensDbSet.Object);
+
         _ = _dbContextMock
             .Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
@@ -106,7 +110,26 @@ public class RegistrarEmpresaCommandHandlerTests
         var result = await _handler.Handle(MinimalCommand(), CancellationToken.None);
 
         _ = result.IsSuccess.Should().BeTrue();
-        _ = result.Value.Should().Be(FakeToken);
+        _ = result.Value!.AccessToken.Should().Be(FakeToken);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldIssueRefreshTokenForNewAccount_WhenSuccessful()
+    {
+        SetupEmptyContext();
+        Cuenta? capturedCuenta = null;
+        RefreshToken? capturedRefreshToken = null;
+        _ = _dbContextMock.Setup(c => c.Cuentas.Add(It.IsAny<Cuenta>())).Callback<Cuenta>(c => capturedCuenta = c);
+        _ = _dbContextMock.Setup(c => c.RefreshTokens.Add(It.IsAny<RefreshToken>())).Callback<RefreshToken>(rt => capturedRefreshToken = rt);
+
+        var result = await _handler.Handle(MinimalCommand(), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value!.RefreshToken.Should().NotBeNullOrWhiteSpace();
+        _ = result.Value!.RefreshTokenExpiry.Should().BeAfter(DateTimeOffset.UtcNow.AddDays(6));
+        _ = capturedRefreshToken.Should().NotBeNull();
+        _ = capturedRefreshToken!.CuentaId.Should().Be(capturedCuenta!.Id);
+        _ = capturedRefreshToken.TokenHash.Should().NotBe(result.Value!.RefreshToken);
     }
 
     [Fact]

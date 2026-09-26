@@ -2,13 +2,14 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Security.Commands.Login;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 using SOFIA.Domain.ValueObjects;
 
 namespace SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 
-public record RegistrarEmpresaCommand : ICommand<string>
+public record RegistrarEmpresaCommand : ICommand<LoginResult>
 {
     // Minimum required
     public string NombreEmpresa { get; init; } = string.Empty;

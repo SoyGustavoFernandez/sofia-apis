@@ -16,8 +16,6 @@ namespace SOFIA.API.Controllers;
 [EnableRateLimiting("auth")]
 public class AuthController(ISender sender) : ControllerBase
 {
-    private const string RefreshTokenCookieName = "refresh_token";
-
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginCommand command)
@@ -28,7 +26,7 @@ public class AuthController(ISender sender) : ControllerBase
             return result.ToProblemResult();
         }
 
-        SetRefreshTokenCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiry);
+        Response.AppendRefreshTokenCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiry);
         return Ok(new { result.Value.AccessToken });
     }
 
@@ -36,7 +34,7 @@ public class AuthController(ISender sender) : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Refresh()
     {
-        var rawToken = Request.Cookies[RefreshTokenCookieName];
+        var rawToken = Request.Cookies[RefreshTokenCookieExtensions.CookieName];
         if (rawToken is null)
         {
             return Unauthorized();
@@ -48,7 +46,7 @@ public class AuthController(ISender sender) : ControllerBase
             return result.ToProblemResult();
         }
 
-        SetRefreshTokenCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiry);
+        Response.AppendRefreshTokenCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiry);
         return Ok(new { result.Value.AccessToken });
     }
 
@@ -76,7 +74,7 @@ public class AuthController(ISender sender) : ControllerBase
             return Unauthorized();
         }
 
-        Response.Cookies.Delete(RefreshTokenCookieName);
+        Response.DeleteRefreshTokenCookie();
         var result = await sender.Send(new LogoutCommand(cuentaId));
         return result.ToActionResult();
     }
@@ -106,12 +104,4 @@ public class AuthController(ISender sender) : ControllerBase
             ? CreatedAtAction(nameof(Login), new { id = result.Value }, result.Value)
             : result.ToProblemResult();
     }
-
-    private void SetRefreshTokenCookie(string token, DateTimeOffset expiry) => Response.Cookies.Append(RefreshTokenCookieName, token, new CookieOptions
-    {
-        HttpOnly = true,
-        Secure = true,
-        SameSite = SameSiteMode.Strict,
-        Expires = expiry.UtcDateTime
-    });
 }

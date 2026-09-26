@@ -1,7 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
-using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Security.Commands.Logout;
@@ -18,16 +17,7 @@ public class LogoutCommandHandler(IApplicationDbContext context) : IRequestHandl
             return Result.Failure(Error.NotFound("Auth.CuentaNotFound", "The specified account does not exist."));
         }
 
-        // Tokens are issued anonymously (login/sign-up) with no tenant, so the tenant filter would hide them all
-        var activeTokens = await context.RefreshTokens
-            .IgnoreQueryFilters([QueryFilters.Tenant])
-            .Where(rt => rt.CuentaId == request.CuentaId && !rt.IsRevoked)
-            .ToListAsync(cancellationToken);
-
-        foreach (var token in activeTokens)
-        {
-            token.Revoke();
-        }
+        await context.RevokeAllRefreshTokensAsync(request.CuentaId, cancellationToken);
 
         cuenta.InvalidateSecurityStamp();
         _ = await context.SaveChangesAsync(cancellationToken);

@@ -1,9 +1,13 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
+using SOFIA.Application.Security.Commands.ForgotPassword;
 using SOFIA.Application.Security.Commands.Login;
 using SOFIA.Application.Security.Commands.Logout;
 using SOFIA.Application.Security.Commands.RefreshToken;
 using SOFIA.Application.Security.Commands.Register;
+using SOFIA.Application.Security.Commands.ResetPassword;
 using SOFIA.IntegrationTests.Infrastructure;
 
 namespace SOFIA.IntegrationTests.Security;
@@ -92,7 +96,71 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
         _ = refresh.StatusCode.Should().Be(401);
     }
 
+    [Fact]
+    public async Task ResetPassword_ShouldRevokeRefreshToken_WhenIssuedDuringAnonymousSignUp()
+    {
+        // Arrange — the whole recovery flow is anonymous, like sign-up
+        var (usuario, refreshToken) = await RegistrarEmpresaAnonimaAsync();
+        _ = await Sender.Send(new ForgotPasswordCommand(usuario));
+        var recoveryToken = await DbContext.Cuentas
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(c => c.NombreUsuario == usuario)
+            .Select(c => c.RecoveryToken)
+            .SingleAsync();
+
+        // Act
+        var reset = await Sender.Send(new ResetPasswordCommand(usuario, recoveryToken!, "NuevaClave123!"));
+        var refresh = await Sender.Send(new RefreshTokenCommand(refreshToken));
+
+        // Assert
+        _ = reset.IsSuccess.Should().BeTrue();
+        _ = refresh.IsFailure.Should().BeTrue(because: "a refresh token must stop working after a password reset");
+        _ = refresh.StatusCode.Should().Be(401);
+    }
+
+    [Fact]
+    public async Task Refresh_ShouldRevokeCurrentSession_WhenRotatedTokenIsReplayed()
+    {
+        // Arrange — rotate once, then age the rotated token past the concurrent-refresh grace period
+        var (_, tokenRobado) = await RegistrarEmpresaAnonimaAsync();
+        var rotacion = await Sender.Send(new RefreshTokenCommand(tokenRobado));
+        _ = rotacion.IsSuccess.Should().BeTrue();
+
+        var hashRobado = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(tokenRobado)));
+        _ = await DbContext.RefreshTokens
+            .IgnoreQueryFilters()
+            .Where(rt => rt.TokenHash == hashRobado)
+            .ExecuteUpdateAsync(s => s.SetProperty(rt => rt.RevokedAt, DateTimeOffset.UtcNow.AddMinutes(-5)));
+        // The handlers share this DbContext, so the tracked token would hide the aged RevokedAt
+        DbContext.ChangeTracker.Clear();
+
+        // Act
+        var replay = await Sender.Send(new RefreshTokenCommand(tokenRobado));
+        var sesionLegitima = await Sender.Send(new RefreshTokenCommand(rotacion.Value!.RefreshToken));
+
+        // Assert
+        _ = replay.StatusCode.Should().Be(401);
+        _ = sesionLegitima.IsFailure.Should().BeTrue(because: "replaying a rotated token must end every session of the account");
+        _ = sesionLegitima.StatusCode.Should().Be(401);
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────────
+
+    private async Task<(string usuario, string refreshToken)> RegistrarEmpresaAnonimaAsync()
+    {
+        CurrentUser.Empresa = null;
+        var usuario = $"reuse_{Guid.NewGuid():N}"[..20];
+        var registro = await Sender.Send(new RegistrarEmpresaCommand
+        {
+            NombreEmpresa = $"Farmacia {usuario}",
+            Usuario = usuario,
+            Password = "TestPassword123!",
+        });
+        _ = registro.IsSuccess.Should().BeTrue();
+
+        return (usuario, registro.Value!.RefreshToken);
+    }
 
     private async Task<(Guid empleadoId, string username, string password)> SeedCuentaAsync()
     {

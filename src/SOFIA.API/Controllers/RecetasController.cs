@@ -46,7 +46,7 @@ public class RecetasController(ISender sender) : ControllerBase
 
     [HttpPost("analizar")]
     [HasPermission("Recetas", "Analizar")]
-    [EnableRateLimiting("ai-endpoints")]
+    [EnableRateLimiting(RateLimitingExtensions.AiPolicy)]
     [RequestSizeLimit(10 * 1024 * 1024)]
     [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)]
     public async Task<IActionResult> Analizar(IFormFile imagen, [FromQuery] string? especialidadContexto)

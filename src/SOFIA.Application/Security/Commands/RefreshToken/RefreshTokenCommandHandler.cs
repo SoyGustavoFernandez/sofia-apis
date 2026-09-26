@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
 using SOFIA.Application.Security.Commands.Login;
@@ -11,25 +12,34 @@ namespace SOFIA.Application.Security.Commands.RefreshToken;
 
 public class RefreshTokenCommandHandler(
     IApplicationDbContext context,
-    IJwtProvider jwtProvider) : IRequestHandler<RefreshTokenCommand, Result<LoginResult>>
+    IJwtProvider jwtProvider,
+    ILogger<RefreshTokenCommandHandler> logger) : IRequestHandler<RefreshTokenCommand, Result<LoginResult>>
 {
     private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);
 
     public async Task<Result<LoginResult>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
         var hash = TokenHasher.HashToken(request.Token);
+        var now = DateTimeOffset.UtcNow;
 
         // Anonymous request (cookie only): the tenant is resolved from the account itself
         var stored = await context.RefreshTokens
             .IgnoreQueryFilters([QueryFilters.Tenant])
-            .FirstOrDefaultAsync(
-                rt => rt.TokenHash == hash && !rt.IsRevoked && rt.ExpiresAt > DateTimeOffset.UtcNow,
-                cancellationToken);
+            .FirstOrDefaultAsync(rt => rt.TokenHash == hash, cancellationToken);
 
-        if (stored is null)
+        if (stored is null || stored.ExpiresAt <= now)
         {
-            return Result.Failure<LoginResult>(
-                Error.Unauthorized("Auth.InvalidRefreshToken", "Refresh token is invalid or expired."), 401);
+            return InvalidToken();
+        }
+
+        if (stored.IsRevoked)
+        {
+            if (stored.IsReuseAttempt(now))
+            {
+                await RevokeSessionAsync(stored.CuentaId, cancellationToken);
+            }
+
+            return InvalidToken();
         }
 
         var cuenta = await context.Cuentas
@@ -40,8 +50,7 @@ public class RefreshTokenCommandHandler(
 
         if (cuenta is null)
         {
-            return Result.Failure<LoginResult>(
-                Error.Unauthorized("Auth.InvalidRefreshToken", "Refresh token is invalid or expired."), 401);
+            return InvalidToken();
         }
 
         // Rotate: revoke old token and issue a new pair
@@ -57,4 +66,22 @@ public class RefreshTokenCommandHandler(
 
         return Result.Success(new LoginResult(accessToken, rawToken, expiry));
     }
+
+    // A replayed rotated token means the cookie was copied: end every session of the account, including live access tokens
+    private async Task RevokeSessionAsync(Guid cuentaId, CancellationToken cancellationToken)
+    {
+        logger.LogWarning("Refresh token reuse detected for account {CuentaId}; revoking all sessions.", cuentaId);
+
+        await context.RevokeAllRefreshTokensAsync(cuentaId, cancellationToken);
+
+        var cuenta = await context.Cuentas
+            .IgnoreQueryFilters([QueryFilters.Tenant])
+            .FirstOrDefaultAsync(c => c.Id == cuentaId, cancellationToken);
+        cuenta?.InvalidateSecurityStamp();
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+    }
+
+    private static Result<LoginResult> InvalidToken() => Result.Failure<LoginResult>(
+        Error.Unauthorized("Auth.InvalidRefreshToken", "Refresh token is invalid or expired."), 401);
 }

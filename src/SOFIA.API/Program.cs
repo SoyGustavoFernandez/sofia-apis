@@ -7,8 +7,6 @@ using SOFIA.Domain;
 using SOFIA.SharedKernel;
 using Serilog;
 using Serilog.Formatting.Compact;
-using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
 
 using System.IdentityModel.Tokens.Jwt;
 
@@ -78,50 +76,7 @@ _ = builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 _ = builder.Services.AddProblemDetails();
 
 // --- Rate Limiting ---
-_ = builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-    // Catch-all: 200 req/min per IP for any endpoint without a named policy
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 200,
-                Window = TimeSpan.FromMinutes(1),
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                QueueLimit = 10
-            }));
-
-    // Auth: 10 attempts/min per IP — brute-force protection for login/register
-    _ = options.AddFixedWindowLimiter("auth", o =>
-    {
-        o.PermitLimit = 10;
-        o.Window = TimeSpan.FromMinutes(1);
-        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        o.QueueLimit = 2;
-    });
-
-    // Public company sign-up: 5 registrations/hour per IP to curb mass tenant creation
-    _ = options.AddPolicy("signup", ctx => RateLimitPartition.GetFixedWindowLimiter(
-        partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        factory: _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 5,
-            Window = TimeSpan.FromHours(1),
-            QueueLimit = 0
-        }));
-
-    // AI endpoints (prescription digitization): strict limit due to processing cost
-    _ = options.AddFixedWindowLimiter("ai-endpoints", o =>
-    {
-        o.PermitLimit = 10;
-        o.Window = TimeSpan.FromMinutes(1);
-        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        o.QueueLimit = 2;
-    });
-});
+_ = builder.Services.AddSofiaRateLimiting();
 
 // Infrastructure Services
 _ = builder.Services.AddHttpContextAccessor();

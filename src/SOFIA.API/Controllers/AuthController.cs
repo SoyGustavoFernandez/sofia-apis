@@ -13,10 +13,10 @@ namespace SOFIA.API.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-[EnableRateLimiting("auth")]
 public class AuthController(ISender sender) : ControllerBase
 {
     [HttpPost("login")]
+    [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginCommand command)
     {
@@ -80,6 +80,7 @@ public class AuthController(ISender sender) : ControllerBase
     }
 
     [HttpPost("forgot-password")]
+    [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
     [AllowAnonymous]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
     {
@@ -88,6 +89,7 @@ public class AuthController(ISender sender) : ControllerBase
     }
 
     [HttpPost("reset-password")]
+    [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
     [AllowAnonymous]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
     {
@@ -96,6 +98,7 @@ public class AuthController(ISender sender) : ControllerBase
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
     [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] RegisterAccountCommand command)
     {

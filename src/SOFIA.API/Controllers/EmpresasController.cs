@@ -21,7 +21,7 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
     /// Public registration: creates the company, main branch, admin user, and returns a JWT for immediate login.
     /// </summary>
     [AllowAnonymous]
-    [EnableRateLimiting("signup")]
+    [EnableRateLimiting(RateLimitingExtensions.SignUpPolicy)]
     [HttpPost("registrar")]
     public async Task<IActionResult> Registrar([FromBody] RegistrarEmpresaCommand command)
     {

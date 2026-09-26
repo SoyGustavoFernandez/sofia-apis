@@ -30,6 +30,9 @@ public class ResetPasswordCommandHandler(
             return result;
         }
 
+        // A stolen refresh token must not outlive the password it was obtained with
+        await context.RevokeAllRefreshTokensAsync(cuenta.Id, cancellationToken);
+
         _ = await context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();

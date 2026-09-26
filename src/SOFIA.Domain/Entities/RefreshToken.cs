@@ -4,6 +4,9 @@ namespace SOFIA.Domain.Entities;
 
 public sealed class RefreshToken : BaseEntity
 {
+    // Two tabs refreshing at once legitimately present the same token; only later replays count as theft
+    public static readonly TimeSpan ReuseGracePeriod = TimeSpan.FromSeconds(30);
+
     private RefreshToken() { }
 
     public Guid CuentaId { get; private set; }
@@ -25,4 +28,6 @@ public sealed class RefreshToken : BaseEntity
         IsRevoked = true;
         RevokedAt = DateTimeOffset.UtcNow;
     }
+
+    public bool IsReuseAttempt(DateTimeOffset now) => IsRevoked && RevokedAt < now - ReuseGracePeriod;
 }

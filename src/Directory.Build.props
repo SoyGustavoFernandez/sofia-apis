@@ -6,10 +6,10 @@
   -->
   <PropertyGroup>
     <IsTestProject Condition="$(MSBuildProjectName.EndsWith('Tests'))">true</IsTestProject>
-    <IsTestProject Condition="$(MSBuildProjectName.Contains('DbUp'))">true</IsTestProject>
+    <SkipSonarAnalyzer Condition="'$(IsTestProject)' == 'true' Or $(MSBuildProjectName.Contains('DbUp'))">true</SkipSonarAnalyzer>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(IsTestProject)' != 'true'">
+  <ItemGroup Condition="'$(SkipSonarAnalyzer)' != 'true'">
     <PackageReference Include="SonarAnalyzer.CSharp"
                       Version="9.32.0.97167"
                       PrivateAssets="all"

@@ -80,6 +80,7 @@ public class SegurosController(ISender sender, IExcelReaderService excelReader) 
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "aseguradoras.xlsx");
     }
 
+    [HasPermission("Seguros", "Crear")]
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -88,6 +89,7 @@ public class SegurosController(ISender sender, IExcelReaderService excelReader) 
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-seguros.xlsx");
     }
 
+    [HasPermission("Seguros", "Crear")]
     [HttpPost("previsualizar")]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
@@ -103,6 +105,7 @@ public class SegurosController(ISender sender, IExcelReaderService excelReader) 
         return Ok(result);
     }
 
+    [HasPermission("Seguros", "Crear")]
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<SeguroImportRow> rows, CancellationToken cancellationToken)
     {

@@ -63,6 +63,7 @@ public class UnidadesMedidaController(ISender sender, IExcelReaderService excelR
         return result.ToActionResult();
     }
 
+    [HasPermission("UnidadesMedida", "Crear")]
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -71,6 +72,7 @@ public class UnidadesMedidaController(ISender sender, IExcelReaderService excelR
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-unidadesmedida.xlsx");
     }
 
+    [HasPermission("UnidadesMedida", "Crear")]
     [HttpPost("previsualizar")]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
@@ -86,6 +88,7 @@ public class UnidadesMedidaController(ISender sender, IExcelReaderService excelR
         return Ok(result);
     }
 
+    [HasPermission("UnidadesMedida", "Crear")]
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<UnidadMedidaImportRow> rows, CancellationToken cancellationToken)
     {

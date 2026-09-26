@@ -103,6 +103,7 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "medicamentos.xlsx");
     }
 
+    [HasPermission("Medicamentos", "Crear")]
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -110,6 +111,7 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-medicamentos.xlsx");
     }
 
+    [HasPermission("Medicamentos", "Crear")]
     [HttpPost("previsualizar")]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
@@ -124,6 +126,7 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
         return Ok(result);
     }
 
+    [HasPermission("Medicamentos", "Crear")]
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<MedicamentoImportRow> rows, CancellationToken cancellationToken)
     {

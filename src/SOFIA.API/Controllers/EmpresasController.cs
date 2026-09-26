@@ -110,6 +110,7 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
 
     public record EmpresaExportRequest(string[] Headers, string YesLabel, string NoLabel, string? Nombre, EstadoEmpresa? Estado, DateTimeOffset? FechaVencimientoDesde, DateTimeOffset? FechaVencimientoHasta);
 
+    [HasPermission("Empresas", "Crear")]
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -118,6 +119,7 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-empresas.xlsx");
     }
 
+    [HasPermission("Empresas", "Crear")]
     [HttpPost("previsualizar")]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
@@ -133,6 +135,7 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
         return Ok(result);
     }
 
+    [HasPermission("Empresas", "Crear")]
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<EmpresaImportRow> rows, CancellationToken cancellationToken)
     {

@@ -86,6 +86,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "pacientes.xlsx");
     }
 
+    [HasPermission("Pacientes", "Crear")]
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -94,6 +95,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-pacientes.xlsx");
     }
 
+    [HasPermission("Pacientes", "Crear")]
     [HttpPost("previsualizar")]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
@@ -109,6 +111,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
         return Ok(result);
     }
 
+    [HasPermission("Pacientes", "Crear")]
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<PacienteImportRow> rows, CancellationToken cancellationToken)
     {

@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using NetArchTest.Rules;
 using System.Reflection;
 
@@ -52,4 +55,24 @@ public class ArchitectureTests
 
         Assert.True(result.IsSuccessful, "Application layer should only depend on Domain.");
     }
+
+    [Fact]
+    public void Controller_Actions_Should_Declare_Authorization()
+    {
+        // Arrange
+        var assembly = Assembly.Load(ApiNamespace);
+
+        // Act
+        var unprotected = assembly.GetTypes()
+            .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract && !HasAuthMetadata(t))
+            .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Where(m => m.GetCustomAttributes<HttpMethodAttribute>().Any() && !HasAuthMetadata(m))
+                .Select(m => $"{t.Name}.{m.Name}"))
+            .ToList();
+
+        Assert.True(unprotected.Count == 0, $"Actions without [HasPermission], [Authorize] or [AllowAnonymous]: {string.Join(", ", unprotected)}");
+    }
+
+    private static bool HasAuthMetadata(MemberInfo member) =>
+        member.GetCustomAttributes(inherit: true).Any(a => a is IAuthorizeData or IAllowAnonymous);
 }

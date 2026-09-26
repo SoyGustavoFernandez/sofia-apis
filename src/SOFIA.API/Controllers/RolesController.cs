@@ -185,6 +185,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "roles.xlsx");
     }
 
+    [HasPermission("Seguridad", "Crear")]
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -193,6 +194,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-roles.xlsx");
     }
 
+    [HasPermission("Seguridad", "Crear")]
     [HttpPost("previsualizar")]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
@@ -208,6 +210,7 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
         return Ok(result);
     }
 
+    [HasPermission("Seguridad", "Crear")]
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<RolImportRow> rows, CancellationToken cancellationToken)
     {

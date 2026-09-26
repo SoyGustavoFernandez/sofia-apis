@@ -88,6 +88,7 @@ public class IngredientesActivosController(ISender sender, IExcelReaderService e
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ingredientes-activos.xlsx");
     }
 
+    [HasPermission("IngredientesActivos", "Crear")]
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -96,6 +97,7 @@ public class IngredientesActivosController(ISender sender, IExcelReaderService e
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-ingredientesactivos.xlsx");
     }
 
+    [HasPermission("IngredientesActivos", "Crear")]
     [HttpPost("previsualizar")]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
@@ -111,6 +113,7 @@ public class IngredientesActivosController(ISender sender, IExcelReaderService e
         return Ok(result);
     }
 
+    [HasPermission("IngredientesActivos", "Crear")]
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<IngredienteActivoImportRow> rows, CancellationToken cancellationToken)
     {

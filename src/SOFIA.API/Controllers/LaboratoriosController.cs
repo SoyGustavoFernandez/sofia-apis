@@ -88,6 +88,7 @@ public class LaboratoriosController(ISender sender, IExcelReaderService excelRea
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "laboratorios.xlsx");
     }
 
+    [HasPermission("Laboratorios", "Crear")]
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -96,6 +97,7 @@ public class LaboratoriosController(ISender sender, IExcelReaderService excelRea
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-laboratorios.xlsx");
     }
 
+    [HasPermission("Laboratorios", "Crear")]
     [HttpPost("previsualizar")]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
@@ -111,6 +113,7 @@ public class LaboratoriosController(ISender sender, IExcelReaderService excelRea
         return Ok(result);
     }
 
+    [HasPermission("Laboratorios", "Crear")]
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<LaboratorioImportRow> rows, CancellationToken cancellationToken)
     {

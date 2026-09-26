@@ -94,6 +94,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
         return result.ToActionResult();
     }
 
+    [HasPermission("DIGEMID", "Crear")]
     [HttpGet("catalogo/plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -102,6 +103,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-digemid.xlsx");
     }
 
+    [HasPermission("DIGEMID", "Crear")]
     [HttpPost("catalogo/previsualizar")]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
@@ -117,6 +119,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
         return Ok(result);
     }
 
+    [HasPermission("DIGEMID", "Crear")]
     [HttpPost("catalogo/carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<DigemidImportRow> rows, CancellationToken cancellationToken)
     {

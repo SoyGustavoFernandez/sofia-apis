@@ -104,6 +104,7 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "jerarquias-uom.xlsx");
     }
 
+    [HasPermission("JerarquiasUoM", "Crear")]
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -111,6 +112,7 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-jerarquias-uom.xlsx");
     }
 
+    [HasPermission("JerarquiasUoM", "Crear")]
     [HttpPost("previsualizar")]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
@@ -125,6 +127,7 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
         return Ok(result);
     }
 
+    [HasPermission("JerarquiasUoM", "Crear")]
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<JerarquiaUoMImportRow> rows, CancellationToken cancellationToken)
     {

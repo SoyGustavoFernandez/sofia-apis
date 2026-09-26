@@ -92,6 +92,7 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "proveedores.xlsx");
     }
 
+    [HasPermission("Proveedores", "Crear")]
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -100,6 +101,7 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-proveedores.xlsx");
     }
 
+    [HasPermission("Proveedores", "Crear")]
     [HttpPost("previsualizar")]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
@@ -115,6 +117,7 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
         return Ok(result);
     }
 
+    [HasPermission("Proveedores", "Crear")]
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<ProveedorImportRow> rows, CancellationToken cancellationToken)
     {

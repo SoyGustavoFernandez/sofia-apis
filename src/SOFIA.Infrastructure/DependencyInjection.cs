@@ -108,7 +108,10 @@ public static class DependencyInjection
         _ = services.AddHttpClient<IRecetaAnalyzer, GeminiRecetaAnalyzer>();
         _ = services.AddScoped<IBuscadorService, BuscadorFuzzyService>();
 
-        _ = services.AddAuthorization();
+        // Deny by default: endpoints without auth metadata require an authenticated user
+        _ = services.AddAuthorization(options => options.FallbackPolicy = new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .Build());
 
         return services;
     }

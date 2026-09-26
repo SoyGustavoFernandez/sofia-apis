@@ -58,6 +58,7 @@ public class ProfesionalesSaludController(ISender sender, IExcelReaderService ex
         return result.ToActionResult();
     }
 
+    [HasPermission("ProfesionalesSalud", "Crear")]
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
@@ -66,6 +67,7 @@ public class ProfesionalesSaludController(ISender sender, IExcelReaderService ex
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-profesionalessalud.xlsx");
     }
 
+    [HasPermission("ProfesionalesSalud", "Crear")]
     [HttpPost("previsualizar")]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
@@ -81,6 +83,7 @@ public class ProfesionalesSaludController(ISender sender, IExcelReaderService ex
         return Ok(result);
     }
 
+    [HasPermission("ProfesionalesSalud", "Crear")]
     [HttpPost("carga-masiva")]
     public async Task<IActionResult> CargaMasiva([FromBody] List<ProfesionalSaludImportRow> rows, CancellationToken cancellationToken)
     {

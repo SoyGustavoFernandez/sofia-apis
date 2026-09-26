@@ -159,6 +159,7 @@ _ = app.MapGet("/health", () => Results.Ok(new
     Timestamp = DateTimeOffset.UtcNow,
     Environment = app.Environment.EnvironmentName
 }))
-.WithName("GetHealth");
+.WithName("GetHealth")
+.AllowAnonymous();
 
 await app.RunAsync();

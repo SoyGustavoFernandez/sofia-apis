@@ -17,6 +17,7 @@ public class SucursalesController(ISender sender, IExcelReaderService excelReade
 {
     private static readonly string[] Columns = ["Nombre", "DireccionFisica", "NumeroLicencia"];
 
+    [HasPermission("Sucursales", "Crear")]
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {

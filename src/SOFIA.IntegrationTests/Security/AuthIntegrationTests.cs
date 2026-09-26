@@ -1,4 +1,8 @@
+using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 using SOFIA.Application.Security.Commands.Login;
+using SOFIA.Application.Security.Commands.Logout;
+using SOFIA.Application.Security.Commands.RefreshToken;
 using SOFIA.Application.Security.Commands.Register;
 using SOFIA.IntegrationTests.Infrastructure;
 
@@ -54,6 +58,38 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
         // Assert
         _ = result.IsFailure.Should().BeTrue();
         _ = result.StatusCode.Should().Be(409, because: "username duplicado debe retornar Conflict");
+    }
+
+    [Fact]
+    public async Task Logout_ShouldRevokeRefreshToken_WhenIssuedDuringAnonymousSignUp()
+    {
+        // Arrange — sign-up runs anonymously, so its refresh token is stored without tenant
+        CurrentUser.Empresa = null;
+        var usuario = $"logout_{Guid.NewGuid():N}"[..20];
+        var registro = await Sender.Send(new RegistrarEmpresaCommand
+        {
+            NombreEmpresa = $"Farmacia {usuario}",
+            Usuario = usuario,
+            Password = "TestPassword123!",
+        });
+        _ = registro.IsSuccess.Should().BeTrue();
+
+        var cuenta = await DbContext.Cuentas
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .SingleAsync(c => c.NombreUsuario == usuario);
+
+        // Act — logout runs authenticated, inside the company's tenant
+        CurrentUser.Empresa = cuenta.TenantId;
+        var logout = await Sender.Send(new LogoutCommand(cuenta.Id));
+
+        CurrentUser.Empresa = null;
+        var refresh = await Sender.Send(new RefreshTokenCommand(registro.Value!.RefreshToken));
+
+        // Assert
+        _ = logout.IsSuccess.Should().BeTrue();
+        _ = refresh.IsFailure.Should().BeTrue(because: "a refresh token must stop working after logout");
+        _ = refresh.StatusCode.Should().Be(401);
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────

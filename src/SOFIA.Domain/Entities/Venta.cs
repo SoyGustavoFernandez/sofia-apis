@@ -127,6 +127,24 @@ public sealed class Venta : BaseEntity
         return Result.Success();
     }
 
+    // A parked sale is collected into the drawer of whoever completes it, so its cash counts in that session's arqueo
+    public Result AsignarSesion(Guid sesionId)
+    {
+        if (Estado != EstadoVenta.Pendiente)
+        {
+            return Result.Failure(Error.Validation("Venta.Caja", "Only a pending sale can be moved to another cash register session."));
+        }
+
+        if (sesionId == Guid.Empty)
+        {
+            return Result.Failure(Error.Validation("Venta.Caja", "A cash register session is required to process the sale."));
+        }
+
+        SesionId = sesionId;
+
+        return Result.Success();
+    }
+
     public Result RegistrarPagos(List<VentaPago> pagos, decimal montoCubiertoSeguro = 0)
     {
         if (Estado == EstadoVenta.Anulada || Estado == EstadoVenta.Devuelta)

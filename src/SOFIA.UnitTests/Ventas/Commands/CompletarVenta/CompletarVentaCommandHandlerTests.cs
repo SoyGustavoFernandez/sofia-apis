@@ -18,6 +18,7 @@ public class CompletarVentaCommandHandlerTests
 
     private readonly Guid _sucursalId = Guid.NewGuid();
     private readonly Guid _empleadoId = Guid.NewGuid();
+    private readonly PosSesionCaja _sesionPropia;
 
     public CompletarVentaCommandHandlerTests()
     {
@@ -28,6 +29,8 @@ public class CompletarVentaCommandHandlerTests
         _ = _currentUserMock.Setup(c => c.SucursalId).Returns(_sucursalId.ToString());
         _ = _currentUserMock.Setup(c => c.Id).Returns(_empleadoId.ToString());
 
+        _sesionPropia = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100).Value!;
+
         _handler = new CompletarVentaCommandHandler(_dbContextMock.Object, _currentUserMock.Object);
     }
 
@@ -37,10 +40,12 @@ public class CompletarVentaCommandHandlerTests
         return Venta.Create(sucursalId ?? _sucursalId, _empleadoId, null, Guid.NewGuid(), [detalle], EstadoVenta.Pendiente).Value!;
     }
 
-    private void SetupMocks(List<Venta> ventas, List<SunatSerieFiscal>? series = null, List<AseguradoraMedica>? aseguradoras = null)
+    private void SetupMocks(List<Venta> ventas, List<SunatSerieFiscal>? series = null, List<AseguradoraMedica>? aseguradoras = null, List<PosSesionCaja>? sesiones = null)
     {
         var ventasDbSetMock = ventas.BuildMockDbSet();
         _ = _dbContextMock.Setup(c => c.Ventas).Returns(ventasDbSetMock.Object);
+
+        _ = _dbContextMock.Setup(c => c.POSSesionesCaja).Returns((sesiones ?? [_sesionPropia]).BuildMockDbSet().Object);
 
         _ = _dbContextMock.Setup(c => c.Aseguradoras).Returns((aseguradoras ?? []).BuildMockDbSet().Object);
 
@@ -223,5 +228,65 @@ public class CompletarVentaCommandHandlerTests
         // Assert
         _ = result.IsSuccess.Should().BeTrue();
         _ = _reclamosList.Should().ContainSingle().Which.MontoCopagoPaciente.Should().Be(5);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCollectIntoCallersOpenSession_WhenSaleWasParkedInAnotherSession()
+    {
+        // Arrange
+        var venta = CrearVentaPendiente();
+        SetupMocks([venta]);
+        var command = new CompletarVentaCommand(venta.Id, [new CreateVentaPagoDto(MetodoPago.Efectivo, 20, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = venta.SesionId.Should().Be(_sesionPropia.Id);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnError_WhenCallerHasNoOpenSession()
+    {
+        // Arrange
+        var venta = CrearVentaPendiente();
+        var sesionOriginal = venta.SesionId;
+        var sesionCerrada = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow.AddHours(-1), 100).Value!;
+        _ = sesionCerrada.Cerrar(DateTime.UtcNow, 100, 100);
+        SetupMocks([venta], sesiones: [sesionCerrada]);
+        var command = new CompletarVentaCommand(venta.Id, [new CreateVentaPagoDto(MetodoPago.Efectivo, 20, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Caja.SinSesionAbierta");
+        _ = venta.Estado.Should().Be(EstadoVenta.Pendiente);
+        _ = venta.SesionId.Should().Be(sesionOriginal);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_ShouldReturnError_WhenOnlyOpenSessionBelongsToAnotherCashierOrBranch(bool otroCajero)
+    {
+        // Arrange
+        var venta = CrearVentaPendiente();
+        var sesionAjena = otroCajero
+            ? PosSesionCaja.Create(_sucursalId, Guid.NewGuid(), DateTime.UtcNow, 100).Value!
+            : PosSesionCaja.Create(Guid.NewGuid(), _empleadoId, DateTime.UtcNow, 100).Value!;
+        SetupMocks([venta], sesiones: [sesionAjena]);
+        var command = new CompletarVentaCommand(venta.Id, [new CreateVentaPagoDto(MetodoPago.Efectivo, 20, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Caja.SinSesionAbierta");
+        _ = venta.Estado.Should().Be(EstadoVenta.Pendiente);
     }
 }

@@ -81,6 +81,66 @@ public class CreateVentaCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldReturnError_WhenSesionCajaIsClosed()
+    {
+        // Arrange
+        var sesion = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow.AddHours(-1), 100).Value!;
+        sesion.SetId(_sesionId);
+        _ = sesion.Cerrar(DateTime.UtcNow, 100, 100);
+        SetupMocks(sesionesCaja: [sesion]);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId, [new CreateVentaDetailDto(_loteId, 1)], [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Caja");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnForbidden_WhenSesionCajaBelongsToAnotherCashier()
+    {
+        // Arrange
+        var sesionAjena = PosSesionCaja.Create(_sucursalId, Guid.NewGuid(), DateTime.UtcNow, 100).Value!;
+        sesionAjena.SetId(_sesionId);
+        var inventario = new List<InventarioSucursal> { InventarioSucursal.Create(_sucursalId, _loteId, 20).Value! };
+        SetupMocks(sesionesCaja: [sesionAjena], inventario: inventario);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId, [new CreateVentaDetailDto(_loteId, 1)], [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Caja.NoPropia");
+        _ = result.StatusCode.Should().Be(403);
+        _ = _ventasList.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnForbidden_WhenSesionCajaBelongsToAnotherBranch()
+    {
+        // Arrange
+        var sesionOtraSucursal = PosSesionCaja.Create(Guid.NewGuid(), _empleadoId, DateTime.UtcNow, 100).Value!;
+        sesionOtraSucursal.SetId(_sesionId);
+        var inventario = new List<InventarioSucursal> { InventarioSucursal.Create(_sucursalId, _loteId, 20).Value! };
+        SetupMocks(sesionesCaja: [sesionOtraSucursal], inventario: inventario);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId, [new CreateVentaDetailDto(_loteId, 1)], [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Caja.NoPropia");
+        _ = _ventasList.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Handle_ShouldReturnError_WhenLoteIsInCuarentena()
     {
         // Arrange

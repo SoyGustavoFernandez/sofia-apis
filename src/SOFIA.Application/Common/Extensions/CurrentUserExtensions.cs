@@ -1,5 +1,6 @@
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Common.Extensions;
 
@@ -48,5 +49,17 @@ public static class CurrentUserExtensions
         }
 
         return Result.Success(empresaId);
+    }
+
+    // Admins read every branch (null scope); anyone else only the branch of their session
+    public static Result<Guid?> GetSucursalScope(this ICurrentUser currentUser)
+    {
+        if (currentUser.IsInRole(Rol.AdminRoleName))
+        {
+            return Result.Success<Guid?>(null);
+        }
+
+        var sucursalResult = currentUser.GetSucursalId();
+        return sucursalResult.IsFailure ? Result.Failure<Guid?>(sucursalResult.Error) : Result.Success<Guid?>(sucursalResult.Value);
     }
 }

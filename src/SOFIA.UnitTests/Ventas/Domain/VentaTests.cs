@@ -138,4 +138,40 @@ public class VentaTests
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Venta.Detalles");
     }
+
+    [Fact]
+    public void AsignarSesion_ShouldMoveThePendingSaleToTheGivenSession()
+    {
+        var venta = CrearVenta(EstadoVenta.Pendiente);
+        var sesionId = Guid.NewGuid();
+
+        var result = venta.AsignarSesion(sesionId);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = venta.SesionId.Should().Be(sesionId);
+    }
+
+    [Fact]
+    public void AsignarSesion_ShouldFail_WhenVentaIsNotPendiente()
+    {
+        var venta = CrearVenta(EstadoVenta.Completada);
+        var sesionOriginal = venta.SesionId;
+
+        var result = venta.AsignarSesion(Guid.NewGuid());
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Caja");
+        _ = venta.SesionId.Should().Be(sesionOriginal);
+    }
+
+    [Fact]
+    public void AsignarSesion_ShouldFail_WhenSesionIdIsEmpty()
+    {
+        var venta = CrearVenta(EstadoVenta.Pendiente);
+
+        var result = venta.AsignarSesion(Guid.Empty);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Caja");
+    }
 }

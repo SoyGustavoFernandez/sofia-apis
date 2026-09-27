@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
@@ -7,12 +8,19 @@ using SOFIA.Application.POS.Queries.GetSesiones;
 
 namespace SOFIA.Application.POS.Queries.GetSesionById;
 
-public class GetSesionByIdQueryHandler(IApplicationDbContext context) : IRequestHandler<GetSesionByIdQuery, Result<SesionResumenDto>>
+public class GetSesionByIdQueryHandler(IApplicationDbContext context, ICurrentUser currentUser) : IRequestHandler<GetSesionByIdQuery, Result<SesionResumenDto>>
 {
     public async Task<Result<SesionResumenDto>> Handle(GetSesionByIdQuery request, CancellationToken cancellationToken)
     {
+        var scopeResult = currentUser.GetSucursalScope();
+        if (scopeResult.IsFailure)
+        {
+            return Result.Failure<SesionResumenDto>(scopeResult.Error);
+        }
+
+        var sucursalScope = scopeResult.Value;
         var dto = await (
-            from s in context.POSSesionesCaja.AsNoTracking().Where(o => o.Id == request.Id && !o.IsDeleted)
+            from s in context.POSSesionesCaja.AsNoTracking().Where(o => o.Id == request.Id && !o.IsDeleted && (sucursalScope == null || o.SucursalId == sucursalScope))
             join suc in context.Sucursales on s.SucursalId equals suc.Id into sucGroup
             from suc in sucGroup.DefaultIfEmpty()
             join emp in context.Empleados on s.EmpleadoId equals emp.Id into empGroup

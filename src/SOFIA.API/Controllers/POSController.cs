@@ -27,9 +27,9 @@ public class PosController(ISender sender) : ControllerBase
 
     [HasPermission("POS", "Leer")]
     [HttpGet("sesiones")]
-    public async Task<IActionResult> GetSesiones([FromQuery] Guid? sucursalId, [FromQuery] Domain.Enums.EstadoSesion? estadoSesion, [FromQuery] DateTime? fechaInicio, [FromQuery] DateTime? fechaFin, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    public async Task<IActionResult> GetSesiones([FromQuery] Guid? sucursalId, [FromQuery] Domain.Enums.EstadoSesion? estadoSesion, [FromQuery] DateTime? fechaInicio, [FromQuery] DateTime? fechaFin, [FromQuery] Guid? empleadoId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
-        var query = new Application.POS.Queries.GetSesiones.GetSesionesQuery(sucursalId, estadoSesion, fechaInicio, fechaFin, pageNumber, pageSize);
+        var query = new Application.POS.Queries.GetSesiones.GetSesionesQuery(sucursalId, estadoSesion, fechaInicio, fechaFin, pageNumber, pageSize, empleadoId);
         var result = await sender.Send(query);
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }

@@ -6,6 +6,7 @@ using SOFIA.Application.Ventas.Commands.CreateVenta;
 using SOFIA.Application.Ventas.Common;
 using SOFIA.Application.Ventas.Events;
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Entities;
 using SOFIA.Domain.Enums;
 
 namespace SOFIA.Application.Ventas.Commands.CompletarVenta;
@@ -41,6 +42,12 @@ public class CompletarVentaCommandHandler(
         if (venta.Estado != EstadoVenta.Pendiente)
         {
             return Result.Failure<VentaCreadaDto>(Error.Validation("Venta.Completar", "Only a pending sale can be completed."));
+        }
+
+        var sesionResult = await AsignarSesionPropiaAsync(venta, sucursalId, cancellationToken);
+        if (sesionResult.IsFailure)
+        {
+            return Result.Failure<VentaCreadaDto>(sesionResult.Error);
         }
 
         var coberturaResult = await VentaSeguroProcessor.ResolveCoberturaAsync(context, request.AseguradoraId, request.MontoCubiertoSeguro, cancellationToken);
@@ -90,5 +97,22 @@ public class CompletarVentaCommandHandler(
         _ = await context.SaveChangesAsync(cancellationToken);
 
         return Result.Success(new VentaCreadaDto(venta.Id, dtoComprobante));
+    }
+
+    // The payment is collected into the caller's own open drawer, whoever parked the sale
+    private async Task<Result> AsignarSesionPropiaAsync(Venta venta, Guid sucursalId, CancellationToken cancellationToken)
+    {
+        var empleadoResult = currentUser.GetEmpleadoId();
+        if (empleadoResult.IsFailure)
+        {
+            return Result.Failure(empleadoResult.Error);
+        }
+
+        var sesionCaja = await context.POSSesionesCaja
+            .FirstOrDefaultAsync(s => s.EmpleadoId == empleadoResult.Value && s.SucursalId == sucursalId && s.EstadoSesion == EstadoSesion.Abierta && !s.IsDeleted, cancellationToken);
+
+        return sesionCaja == null
+            ? Result.Failure(Error.Validation("Venta.Caja.SinSesionAbierta", "You need an open cash register session to collect the sale."))
+            : venta.AsignarSesion(sesionCaja.Id);
     }
 }

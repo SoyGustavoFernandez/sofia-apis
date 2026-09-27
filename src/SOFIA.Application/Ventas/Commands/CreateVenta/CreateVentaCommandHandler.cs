@@ -33,10 +33,10 @@ public class CreateVentaCommandHandler(
 
         var empleadoId = empleadoResult.Value;
 
-        var sesionResult = await ValidateSesionCajaAsync(request.SesionId, cancellationToken);
+        var sesionResult = await ValidateSesionCajaAsync(request.SesionId, empleadoId, sucursalId, cancellationToken);
         if (sesionResult.IsFailure)
         {
-            return Result.Failure<VentaCreadaDto>(sesionResult.Error);
+            return Result.Failure<VentaCreadaDto>(sesionResult.Error, sesionResult.StatusCode);
         }
 
         var coberturaResult = await VentaSeguroProcessor.ResolveCoberturaAsync(context, request.AseguradoraId, request.MontoCubiertoSeguro, cancellationToken);
@@ -92,7 +92,7 @@ public class CreateVentaCommandHandler(
         return Result.Success(new VentaCreadaDto(ventaResult.Value.Id, dtoComprobante), 201);
     }
 
-    private async Task<Result> ValidateSesionCajaAsync(Guid? sesionId, CancellationToken cancellationToken)
+    private async Task<Result> ValidateSesionCajaAsync(Guid? sesionId, Guid empleadoId, Guid sucursalId, CancellationToken cancellationToken)
     {
         if (sesionId == null)
         {
@@ -102,8 +102,14 @@ public class CreateVentaCommandHandler(
         var sesionCaja = await context.POSSesionesCaja
             .FirstOrDefaultAsync(x => x.Id == sesionId && !x.IsDeleted, cancellationToken);
 
-        return sesionCaja == null || sesionCaja.EstadoSesion != EstadoSesion.Abierta
-            ? Result.Failure(Error.Validation("Venta.Caja", "The cash register session is not open or does not exist."))
+        if (sesionCaja == null || sesionCaja.EstadoSesion != EstadoSesion.Abierta)
+        {
+            return Result.Failure(Error.Validation("Venta.Caja", "The cash register session is not open or does not exist."));
+        }
+
+        // The sale's cash must land in the caller's own drawer at their current branch
+        return sesionCaja.EmpleadoId != empleadoId || sesionCaja.SucursalId != sucursalId
+            ? Result.Failure(Error.Forbidden("Venta.Caja.NoPropia", "The cash register session belongs to another cashier or branch."), 403)
             : Result.Success();
     }
 

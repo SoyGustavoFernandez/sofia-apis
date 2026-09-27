@@ -20,4 +20,4 @@ public record SesionResumenDto(
     decimal? DiferenciaArqueo,
     Domain.Enums.EstadoSesion EstadoSesion);
 
-public record GetSesionesQuery(Guid? SucursalId, Domain.Enums.EstadoSesion? EstadoSesion, DateTime? FechaInicio, DateTime? FechaFin, int PageNumber = 1, int PageSize = 10) : IRequest<Result<PaginatedList<SesionResumenDto>>>;
+public record GetSesionesQuery(Guid? SucursalId, Domain.Enums.EstadoSesion? EstadoSesion, DateTime? FechaInicio, DateTime? FechaFin, int PageNumber = 1, int PageSize = 10, Guid? EmpleadoId = null) : IRequest<Result<PaginatedList<SesionResumenDto>>>;

@@ -20,7 +20,6 @@ public class CreateVentaCommandValidator : AbstractValidator<CreateVentaCommand>
         {
             _ = detail.RuleFor(d => d.LoteId).NotEmpty();
             _ = detail.RuleFor(d => d.Cantidad).GreaterThan(0);
-            _ = detail.RuleFor(d => d.PrecioUnitario).GreaterThanOrEqualTo(0);
         });
 
         _ = RuleFor(v => v.Pagos)

@@ -21,4 +21,9 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUse
 
     // UseForwardedHeaders already rewrote this from X-Forwarded-For, but only for trusted proxies
     public string? ClientIpAddress => httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+
+    // Same claim lookup as PermissionAuthorizationHandler, so both agree on who is an Admin
+    public bool IsInRole(string roleName) =>
+        httpContextAccessor.HttpContext?.User?.Claims
+            .Any(c => c.Type == ClaimTypes.Role && c.Value.Equals(roleName, StringComparison.OrdinalIgnoreCase)) ?? false;
 }

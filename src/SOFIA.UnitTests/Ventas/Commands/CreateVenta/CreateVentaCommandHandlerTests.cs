@@ -20,6 +20,7 @@ public class CreateVentaCommandHandlerTests
     private readonly Guid _sesionId = Guid.NewGuid();
     private readonly Guid _loteId = Guid.NewGuid();
     private readonly Guid _clienteId = Guid.NewGuid();
+    private readonly Guid _productoId = Guid.NewGuid();
 
     public CreateVentaCommandHandlerTests()
     {
@@ -93,7 +94,7 @@ public class CreateVentaCommandHandlerTests
 
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
-            new CreateVentaDetailDto(_loteId, 1, 10, 5)
+            new CreateVentaDetailDto(_loteId, 1)
         ],
         [
             new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)
@@ -119,7 +120,7 @@ public class CreateVentaCommandHandlerTests
 
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
-            new CreateVentaDetailDto(_loteId, 1, 10, 5)
+            new CreateVentaDetailDto(_loteId, 1)
         ],
         [
             new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)
@@ -149,7 +150,7 @@ public class CreateVentaCommandHandlerTests
 
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
-            new CreateVentaDetailDto(_loteId, 10, 10, 5) // Requesting 10
+            new CreateVentaDetailDto(_loteId, 10) // Requesting 10
         ],
         [
             new CreateVentaPagoDto(MetodoPago.Efectivo, 100, null)
@@ -179,7 +180,7 @@ public class CreateVentaCommandHandlerTests
 
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
-            new CreateVentaDetailDto(_loteId, 2, 10, 5)
+            new CreateVentaDetailDto(_loteId, 2)
         ],
         [
             new CreateVentaPagoDto(MetodoPago.Efectivo, 12, null),
@@ -217,7 +218,7 @@ public class CreateVentaCommandHandlerTests
 
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
-            new CreateVentaDetailDto(_loteId, 2, 10, 5)
+            new CreateVentaDetailDto(_loteId, 2)
         ],
         [],
         Estado: EstadoVenta.Pendiente);
@@ -250,7 +251,7 @@ public class CreateVentaCommandHandlerTests
 
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
-            new CreateVentaDetailDto(_loteId, 2, 10, 5) // Total = 20
+            new CreateVentaDetailDto(_loteId, 2) // Total = 20
         ],
         [
             new CreateVentaPagoDto(MetodoPago.Efectivo, 15, null) // Only 15 paid
@@ -276,14 +277,14 @@ public class CreateVentaCommandHandlerTests
         var inventarioItem = inventarioItemResult.Value!;
         var inventario = new List<InventarioSucursal> { inventarioItem };
 
-        var presentacion = PresentacionVenta.Create(Guid.NewGuid(), Guid.NewGuid(), "Caja x10", 10m, 45m).Value!;
+        var presentacion = PresentacionVenta.Create(_productoId, Guid.NewGuid(), "Caja x10", 10m, 45m).Value!;
 
         SetupMocks(sesionesCaja: sesiones, inventario: inventario, presentaciones: [presentacion]);
 
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
-            // PrecioUnitario is always per base unit (45 per Caja x10 = 4.5 per unidad); 2 Cajas = 20 unidades base, total 90
-            new CreateVentaDetailDto(_loteId, 2, 4.5m, 5, null, presentacion.Id)
+            // Server price is per base unit (45 per Caja x10 = 4.5 per unidad); 2 Cajas = 20 unidades base, total 90
+            new CreateVentaDetailDto(_loteId, 2, null, presentacion.Id)
         ],
         [
             new CreateVentaPagoDto(MetodoPago.Efectivo, 90, null)
@@ -300,6 +301,8 @@ public class CreateVentaCommandHandlerTests
         _ = detalle.CantidadVendida.Should().Be(20);
         _ = detalle.PresentacionVentaId.Should().Be(presentacion.Id);
         _ = detalle.CantidadEnPresentacion.Should().Be(2);
+        _ = detalle.PrecioFijadoUnidad.Should().Be(4.5m);
+        _ = _ventasList[0].MontoTotalBruto.Should().Be(90);
     }
 
     [Fact]
@@ -317,7 +320,7 @@ public class CreateVentaCommandHandlerTests
 
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
-            new CreateVentaDetailDto(_loteId, 2, 45, 5, null, Guid.NewGuid())
+            new CreateVentaDetailDto(_loteId, 2, null, Guid.NewGuid())
         ],
         [
             new CreateVentaPagoDto(MetodoPago.Efectivo, 90, null)
@@ -348,7 +351,7 @@ public class CreateVentaCommandHandlerTests
 
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
-            new CreateVentaDetailDto(_loteId, 2, 10, 5)
+            new CreateVentaDetailDto(_loteId, 2)
         ],
         [
             new CreateVentaPagoDto(MetodoPago.Efectivo, 20, null)
@@ -363,6 +366,7 @@ public class CreateVentaCommandHandlerTests
 
         var detalle = _ventasList[0].Detalles.Single();
         _ = detalle.CantidadVendida.Should().Be(2);
+        _ = detalle.PrecioFijadoUnidad.Should().Be(10);
         _ = detalle.PresentacionVentaId.Should().BeNull();
         _ = detalle.CantidadEnPresentacion.Should().BeNull();
     }
@@ -382,7 +386,7 @@ public class CreateVentaCommandHandlerTests
 
         var command = new CreateVentaCommand(_clienteId, _sesionId,
         [
-            new CreateVentaDetailDto(_loteId, 2, 10, 5) // Total = 20
+            new CreateVentaDetailDto(_loteId, 2) // Total = 20
         ],
         [
             new CreateVentaPagoDto(MetodoPago.Tarjeta, 25, "AUTH-001") // Overpaid by card, no cash line
@@ -396,18 +400,117 @@ public class CreateVentaCommandHandlerTests
         _ = result.Error.Code.Should().Be("Venta.Pagos");
     }
 
+    [Fact]
+    public async Task Handle_ShouldChargeCatalogPrice_WhenSellingBaseUnits()
+    {
+        // Arrange
+        var inventario = new List<InventarioSucursal> { InventarioSucursal.Create(_sucursalId, _loteId, 20).Value! };
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: inventario, precioCatalogo: 12.5m);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+            [new CreateVentaDetailDto(_loteId, 2)],
+            [new CreateVentaPagoDto(MetodoPago.Efectivo, 25, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = _ventasList[0].Detalles.Single().PrecioFijadoUnidad.Should().Be(12.5m);
+        _ = _ventasList[0].MontoTotalBruto.Should().Be(25);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnSinPrecio_WhenProductHasNoCatalogPrice()
+    {
+        // Arrange
+        var inventarioItem = InventarioSucursal.Create(_sucursalId, _loteId, 20).Value!;
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: [inventarioItem], precioCatalogo: null);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+            [new CreateVentaDetailDto(_loteId, 2)],
+            [new CreateVentaPagoDto(MetodoPago.Efectivo, 20, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.SinPrecio");
+        _ = inventarioItem.CantidadFisica.Should().Be(20);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSnapshotCurrentSupplierCost_WhenCreatingDetalle()
+    {
+        // Arrange
+        var inventario = new List<InventarioSucursal> { InventarioSucursal.Create(_sucursalId, _loteId, 20).Value! };
+        var vencido = HistorialPrecioProveedor.Create(Guid.NewGuid(), _productoId, 4, DateTime.UtcNow.AddMonths(-6), DateTime.UtcNow.AddMonths(-1), 3).Value!;
+        var vigente = HistorialPrecioProveedor.Create(Guid.NewGuid(), _productoId, 6, DateTime.UtcNow.AddMonths(-1), null, 3).Value!;
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: inventario, historialPrecios: [vencido, vigente]);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+            [new CreateVentaDetailDto(_loteId, 2)],
+            [new CreateVentaPagoDto(MetodoPago.Efectivo, 20, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = _ventasList[0].Detalles.Single().CostoUnitarioHistorico.Should().Be(6);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnError_WhenPresentacionBelongsToAnotherProduct()
+    {
+        // Arrange
+        var inventario = new List<InventarioSucursal> { InventarioSucursal.Create(_sucursalId, _loteId, 30).Value! };
+        var presentacionAjena = PresentacionVenta.Create(Guid.NewGuid(), Guid.NewGuid(), "Caja x10", 10m, 1m).Value!;
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: inventario, presentaciones: [presentacionAjena]);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+            [new CreateVentaDetailDto(_loteId, 1, null, presentacionAjena.Id)],
+            [new CreateVentaPagoDto(MetodoPago.Efectivo, 1, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Presentacion");
+    }
+
+    private List<PosSesionCaja> SesionAbierta()
+    {
+        var sesion = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100).Value!;
+        sesion.SetId(_sesionId);
+        return [sesion];
+    }
+
     private void SetupMocks(
         List<PosSesionCaja>? sesionesCaja = null,
         List<DigemidInventarioCuarentena>? cuarentenas = null,
         List<InventarioSucursal>? inventario = null,
         List<SunatSerieFiscal>? series = null,
-        List<PresentacionVenta>? presentaciones = null)
+        List<PresentacionVenta>? presentaciones = null,
+        decimal? precioCatalogo = 10,
+        List<HistorialPrecioProveedor>? historialPrecios = null)
     {
         sesionesCaja ??= [];
         cuarentenas ??= [];
         inventario ??= [];
         series ??= [];
         presentaciones ??= [];
+        historialPrecios ??= [];
+
+        var lote = LoteInventario.Create(_productoId, "L-001", null, DateTimeOffset.UtcNow.AddYears(1)).Value!;
+        lote.SetId(_loteId);
+        var medicamento = Medicamento.Create("COD-1", "Producto", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.VentaLibreOTC, precioCatalogo).Value!;
+        medicamento.SetId(_productoId);
+        _ = _dbContextMock.Setup(c => c.LotesInventario).Returns(new List<LoteInventario> { lote }.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.Medicamentos).Returns(new List<Medicamento> { medicamento }.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.HistorialPreciosProveedor).Returns(historialPrecios.BuildMockDbSet().Object);
 
         _ = _dbContextMock.Setup(c => c.POSSesionesCaja).Returns(sesionesCaja.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.DigemidInventarioCuarentena).Returns(cuarentenas.BuildMockDbSet().Object);

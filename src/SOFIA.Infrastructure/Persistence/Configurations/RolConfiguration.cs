@@ -29,6 +29,8 @@ public class RolConfiguration : IEntityTypeConfiguration<Rol>
             .HasColumnName("Nivel_Jerarquia")
             .IsRequired();
 
+        _ = builder.Ignore(x => x.EsAdmin);
+
         _ = builder.HasMany(x => x.Sucursales)
             .WithMany()
             .UsingEntity<RolSucursal>(

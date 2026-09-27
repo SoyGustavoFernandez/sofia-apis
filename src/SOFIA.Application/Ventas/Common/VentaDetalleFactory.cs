@@ -23,10 +23,19 @@ public static class VentaDetalleFactory
             }
 
             var inventario = await context.LotesEnSucursal
-                .Include(x => x.Lote)
                 .FirstOrDefaultAsync(x => x.LoteId == detailDto.LoteId && x.SucursalId == sucursalId, cancellationToken);
 
             if (inventario == null)
+            {
+                return Result.Failure<List<DetalleVenta>>(Error.NotFound("Venta.Lote", $"El lote {detailDto.LoteId} no existe en esta sucursal."));
+            }
+
+            var productoId = await context.LotesInventario
+                .Where(l => l.Id == detailDto.LoteId)
+                .Select(l => (Guid?)l.ProductoId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (productoId is null)
             {
                 return Result.Failure<List<DetalleVenta>>(Error.NotFound("Venta.Lote", $"El lote {detailDto.LoteId} no existe en esta sucursal."));
             }
@@ -37,6 +46,7 @@ public static class VentaDetalleFactory
             var cantidadBase = detailDto.Cantidad;
             Guid? presentacionId = null;
             decimal? cantidadEnPresentacion = null;
+            decimal? precioUnitarioBase;
 
             if (detailDto.PresentacionVentaId.HasValue)
             {
@@ -48,7 +58,7 @@ public static class VentaDetalleFactory
                     return Result.Failure<List<DetalleVenta>>(Error.NotFound("Venta.Presentacion", $"La presentacion de venta {detailDto.PresentacionVentaId.Value} no existe."));
                 }
 
-                if (inventario.Lote != null && presentacion.ProductoId != inventario.Lote.ProductoId)
+                if (presentacion.ProductoId != productoId)
                 {
                     return Result.Failure<List<DetalleVenta>>(Error.Validation("Venta.Presentacion", "La presentacion seleccionada no corresponde al producto del lote."));
                 }
@@ -56,6 +66,20 @@ public static class VentaDetalleFactory
                 cantidadBase = detailDto.Cantidad * presentacion.CantidadUnidadesBase;
                 presentacionId = presentacion.Id;
                 cantidadEnPresentacion = detailDto.Cantidad;
+                precioUnitarioBase = presentacion.PrecioVenta / presentacion.CantidadUnidadesBase;
+            }
+            else
+            {
+                precioUnitarioBase = await context.Medicamentos
+                    .Where(m => m.Id == productoId)
+                    .Select(m => m.PrecioVentaBase)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            // Price always comes from the catalog, never from the client
+            if (precioUnitarioBase is null)
+            {
+                return Result.Failure<List<DetalleVenta>>(Error.Validation("Venta.SinPrecio", $"El producto del lote {detailDto.LoteId} no tiene precio de venta configurado."));
             }
 
             if (inventario.CantidadFisica < cantidadBase)
@@ -63,7 +87,9 @@ public static class VentaDetalleFactory
                 return Result.Failure<List<DetalleVenta>>(Error.Validation("Venta.Stock", $"Stock insuficiente para el lote {detailDto.LoteId}. Disponible: {inventario.CantidadFisica}"));
             }
 
-            var detailResult = DetalleVenta.Create(detailDto.LoteId, cantidadBase, detailDto.PrecioUnitario, detailDto.CostoHistorico, detailDto.RecetaId, presentacionId, cantidadEnPresentacion);
+            var costoHistorico = await GetCostoVigenteAsync(context, productoId.Value, cancellationToken);
+
+            var detailResult = DetalleVenta.Create(detailDto.LoteId, cantidadBase, precioUnitarioBase.Value, costoHistorico, detailDto.RecetaId, presentacionId, cantidadEnPresentacion);
             if (!detailResult.IsSuccess)
             {
                 return Result.Failure<List<DetalleVenta>>(detailResult.Error);
@@ -74,5 +100,19 @@ public static class VentaDetalleFactory
         }
 
         return Result.Success(detallesVenta);
+    }
+
+    // Cost snapshot from the supplier price in force at sale time; 0 when the product has no supplier price yet
+    private static async Task<decimal> GetCostoVigenteAsync(IApplicationDbContext context, Guid productoId, CancellationToken cancellationToken)
+    {
+        var ahora = DateTime.UtcNow;
+
+        return await context.HistorialPreciosProveedor
+            .Where(h => h.ProductoId == productoId
+                     && h.FechaInicioVigencia <= ahora
+                     && (h.FechaFinVigencia == null || h.FechaFinVigencia >= ahora))
+            .OrderByDescending(h => h.FechaInicioVigencia)
+            .Select(h => (decimal?)h.CostoPorUnidadBase)
+            .FirstOrDefaultAsync(cancellationToken) ?? 0m;
     }
 }

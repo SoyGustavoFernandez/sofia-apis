@@ -6,6 +6,9 @@ public sealed class Rol : BaseEntity
 {
     private Rol() { } // Required for EF Core
 
+    // Built-in role that bypasses every permission check
+    public const string AdminRoleName = "Admin";
+
     public string NombreRol { get; private set; } = string.Empty;
     public string? Descripcion { get; private set; }
     public int NivelJerarquia { get; private set; }
@@ -14,6 +17,8 @@ public sealed class Rol : BaseEntity
     public ICollection<Cuenta> Cuentas { get; private set; } = [];
     public ICollection<PermisoRol> Permisos { get; private set; } = [];
     public ICollection<Sucursal> Sucursales { get; private set; } = [];
+
+    public bool EsAdmin => NombreRol.Equals(AdminRoleName, StringComparison.OrdinalIgnoreCase);
 
     public void AddSucursal(Sucursal sucursal)
     {

@@ -38,7 +38,7 @@ public class CreateVentaCommandValidatorTests
             SesionId: Guid.NewGuid(),
             Detalles:
             [
-                new CreateVentaDetailDto(Guid.Empty, 1, 10, 5)
+                new CreateVentaDetailDto(Guid.Empty, 1)
             ],
             Pagos: [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)]
         );
@@ -61,7 +61,7 @@ public class CreateVentaCommandValidatorTests
             SesionId: Guid.NewGuid(),
             Detalles:
             [
-                new CreateVentaDetailDto(Guid.NewGuid(), cantidad, 10, 5)
+                new CreateVentaDetailDto(Guid.NewGuid(), cantidad)
             ],
             Pagos: [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)]
         );
@@ -74,27 +74,6 @@ public class CreateVentaCommandValidatorTests
     }
 
     [Fact]
-    public void Should_Have_Error_When_PrecioUnitario_Is_Less_Than_Zero()
-    {
-        // Arrange
-        var command = new CreateVentaCommand(
-            ClienteId: Guid.NewGuid(),
-            SesionId: Guid.NewGuid(),
-            Detalles:
-            [
-                new CreateVentaDetailDto(Guid.NewGuid(), 1, -1, 5)
-            ],
-            Pagos: [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)]
-        );
-
-        // Act
-        var result = _validator.TestValidate(command);
-
-        // Assert
-        _ = result.ShouldHaveValidationErrorFor("Detalles[0].PrecioUnitario");
-    }
-
-    [Fact]
     public void Should_Not_Have_Error_When_Command_Is_Valid()
     {
         // Arrange
@@ -103,7 +82,7 @@ public class CreateVentaCommandValidatorTests
             SesionId: Guid.NewGuid(),
             Detalles:
             [
-                new CreateVentaDetailDto(Guid.NewGuid(), 1, 10, 5)
+                new CreateVentaDetailDto(Guid.NewGuid(), 1)
             ],
             Pagos: [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)]
         );
@@ -122,7 +101,7 @@ public class CreateVentaCommandValidatorTests
         var command = new CreateVentaCommand(
             ClienteId: Guid.NewGuid(),
             SesionId: Guid.NewGuid(),
-            Detalles: [new CreateVentaDetailDto(Guid.NewGuid(), 1, 10, 5)],
+            Detalles: [new CreateVentaDetailDto(Guid.NewGuid(), 1)],
             Pagos: []
         );
 
@@ -141,7 +120,7 @@ public class CreateVentaCommandValidatorTests
         var command = new CreateVentaCommand(
             ClienteId: Guid.NewGuid(),
             SesionId: Guid.NewGuid(),
-            Detalles: [new CreateVentaDetailDto(Guid.NewGuid(), 1, 10, 5)],
+            Detalles: [new CreateVentaDetailDto(Guid.NewGuid(), 1)],
             Pagos: [],
             Estado: EstadoVenta.Pendiente
         );
@@ -160,7 +139,7 @@ public class CreateVentaCommandValidatorTests
         var command = new CreateVentaCommand(
             ClienteId: Guid.NewGuid(),
             SesionId: Guid.NewGuid(),
-            Detalles: [new CreateVentaDetailDto(Guid.NewGuid(), 1, 10, 5)],
+            Detalles: [new CreateVentaDetailDto(Guid.NewGuid(), 1)],
             Pagos: [new CreateVentaPagoDto(MetodoPago.Efectivo, 0, null)]
         );
 

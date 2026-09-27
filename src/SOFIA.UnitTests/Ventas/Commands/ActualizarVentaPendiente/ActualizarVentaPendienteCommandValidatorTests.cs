@@ -14,7 +14,7 @@ public class ActualizarVentaPendienteCommandValidatorTests
     public void Should_Have_Error_When_VentaId_Is_Empty()
     {
         // Arrange
-        var command = new ActualizarVentaPendienteCommand(Guid.Empty, [new CreateVentaDetailDto(Guid.NewGuid(), 1, 10, 5)]);
+        var command = new ActualizarVentaPendienteCommand(Guid.Empty, [new CreateVentaDetailDto(Guid.NewGuid(), 1)]);
 
         // Act
         var result = _validator.TestValidate(command);
@@ -41,7 +41,7 @@ public class ActualizarVentaPendienteCommandValidatorTests
     public void Should_Not_Have_Error_When_Command_Is_Valid()
     {
         // Arrange
-        var command = new ActualizarVentaPendienteCommand(Guid.NewGuid(), [new CreateVentaDetailDto(Guid.NewGuid(), 1, 10, 5)]);
+        var command = new ActualizarVentaPendienteCommand(Guid.NewGuid(), [new CreateVentaDetailDto(Guid.NewGuid(), 1)]);
 
         // Act
         var result = _validator.TestValidate(command);

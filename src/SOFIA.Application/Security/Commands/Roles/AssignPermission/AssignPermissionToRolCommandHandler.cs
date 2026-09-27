@@ -7,14 +7,24 @@ using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Security.Commands.Roles.AssignPermission;
 
-public class AssignPermissionToRolCommandHandler(IApplicationDbContext context) : IRequestHandler<AssignPermissionToRolCommand, Result<Guid>>
+public class AssignPermissionToRolCommandHandler(IApplicationDbContext context, ICurrentUser currentUser) : IRequestHandler<AssignPermissionToRolCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(AssignPermissionToRolCommand request, CancellationToken cancellationToken)
     {
-        var rolExists = await context.Roles.AnyAsync(r => r.Id == request.RolId && !r.IsDeleted, cancellationToken);
-        if (!rolExists)
+        var nombreRol = await context.Roles
+            .Where(r => r.Id == request.RolId && !r.IsDeleted)
+            .Select(r => r.NombreRol)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (nombreRol is null)
         {
             return Result.Failure<Guid>(Error.NotFound("Rol.NotFound", "El rol especificado no existe."));
+        }
+
+        // Granting permissions to a role you hold is self-promotion; only an Admin may do it
+        if (currentUser.IsInRole(nombreRol) && !currentUser.IsInRole(Rol.AdminRoleName))
+        {
+            return Result.Failure<Guid>(Error.Forbidden("Rol.PermisosPropios", "No puedes ampliar los permisos de un rol que tienes asignado."), 403);
         }
 
         // Check including soft-deleted rows to avoid unique constraint violations on restore

@@ -17,4 +17,5 @@ public sealed class TestCurrentUser : ICurrentUser
     public string? EmpresaId => Empresa?.ToString();
     public bool IsAuthenticated => Empresa is not null;
     public string? ClientIpAddress => "127.0.0.1";
+    public bool IsInRole(string roleName) => false;
 }

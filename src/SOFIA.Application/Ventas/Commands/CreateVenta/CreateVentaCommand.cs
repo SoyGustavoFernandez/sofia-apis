@@ -23,10 +23,9 @@ public record CreateVentaPagoDto(MetodoPago MetodoPago, decimal MontoPagado, str
 
 public record VentaCreadaDto(Guid VentaId, ComprobanteEmitidoDto? Comprobante);
 
+// Price and cost are resolved server-side from the catalog, so the client cannot send them
 public record CreateVentaDetailDto(
     Guid LoteId,
     decimal Cantidad,
-    decimal PrecioUnitario,
-    decimal CostoHistorico,
     Guid? RecetaId = null,
     Guid? PresentacionVentaId = null);

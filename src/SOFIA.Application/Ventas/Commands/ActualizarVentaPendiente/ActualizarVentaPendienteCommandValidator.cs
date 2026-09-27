@@ -15,7 +15,6 @@ public class ActualizarVentaPendienteCommandValidator : AbstractValidator<Actual
         {
             _ = detail.RuleFor(d => d.LoteId).NotEmpty();
             _ = detail.RuleFor(d => d.Cantidad).GreaterThan(0);
-            _ = detail.RuleFor(d => d.PrecioUnitario).GreaterThanOrEqualTo(0);
         });
     }
 }

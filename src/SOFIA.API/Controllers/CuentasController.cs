@@ -75,7 +75,7 @@ public class CuentasController(ISender sender) : ControllerBase
         return result.ToActionResult();
     }
 
-    [HasPermission("Seguridad", "Actualizar")]
+    [HasPermission("Seguridad", "AsignarRoles")]
     [HttpPost("{id:guid}/roles/{rolId:guid}")]
     public async Task<IActionResult> AssignRol(Guid id, Guid rolId)
     {
@@ -83,7 +83,7 @@ public class CuentasController(ISender sender) : ControllerBase
         return result.ToActionResult();
     }
 
-    [HasPermission("Seguridad", "Actualizar")]
+    [HasPermission("Seguridad", "AsignarRoles")]
     [HttpDelete("{id:guid}/roles/{rolId:guid}")]
     public async Task<IActionResult> RemoveRol(Guid id, Guid rolId)
     {

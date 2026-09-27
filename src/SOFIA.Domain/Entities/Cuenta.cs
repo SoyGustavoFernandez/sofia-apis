@@ -114,6 +114,8 @@ public sealed class Cuenta : BaseEntity
         return Result.Success();
     }
 
+    public bool EsAdmin => Roles.Any(r => r.EsAdmin);
+
     public void AddRol(Rol rol)
     {
         if (!Roles.Any(r => r.Id == rol.Id))

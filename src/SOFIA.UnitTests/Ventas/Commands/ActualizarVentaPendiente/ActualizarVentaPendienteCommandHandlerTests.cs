@@ -19,6 +19,7 @@ public class ActualizarVentaPendienteCommandHandlerTests
     private readonly Guid _empleadoId = Guid.NewGuid();
     private readonly Guid _loteOriginalId = Guid.NewGuid();
     private readonly Guid _loteNuevoId = Guid.NewGuid();
+    private readonly Guid _productoId = Guid.NewGuid();
 
     public ActualizarVentaPendienteCommandHandlerTests()
     {
@@ -44,6 +45,15 @@ public class ActualizarVentaPendienteCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.LotesEnSucursal).Returns(inventario.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.DigemidInventarioCuarentena).Returns((cuarentenas ?? []).BuildMockDbSet().Object);
 
+        // Catalog price is 6 per unit; the handler must charge it regardless of what the client sends
+        var lote = LoteInventario.Create(_productoId, "L-NUEVO", null, DateTimeOffset.UtcNow.AddYears(1)).Value!;
+        lote.SetId(_loteNuevoId);
+        var medicamento = Medicamento.Create("COD-1", "Producto", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.VentaLibreOTC, 6).Value!;
+        medicamento.SetId(_productoId);
+        _ = _dbContextMock.Setup(c => c.LotesInventario).Returns(new List<LoteInventario> { lote }.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.Medicamentos).Returns(new List<Medicamento> { medicamento }.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.HistorialPreciosProveedor).Returns(new List<HistorialPrecioProveedor>().BuildMockDbSet().Object);
+
         var detallesList = new List<DetalleVenta>();
         var detallesDbSetMock = detallesList.BuildMockDbSet();
         _ = detallesDbSetMock.Setup(d => d.Add(It.IsAny<DetalleVenta>())).Callback<DetalleVenta>(detallesList.Add);
@@ -56,7 +66,7 @@ public class ActualizarVentaPendienteCommandHandlerTests
     {
         // Arrange
         SetupMocks([], []);
-        var command = new ActualizarVentaPendienteCommand(Guid.NewGuid(), [new CreateVentaDetailDto(_loteNuevoId, 1, 10, 5)]);
+        var command = new ActualizarVentaPendienteCommand(Guid.NewGuid(), [new CreateVentaDetailDto(_loteNuevoId, 1)]);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -73,7 +83,7 @@ public class ActualizarVentaPendienteCommandHandlerTests
         var detalle = DetalleVenta.Create(_loteOriginalId, 2, 10, 5).Value!;
         var venta = Venta.Create(_sucursalId, _empleadoId, null, Guid.NewGuid(), [detalle]).Value!; // Completada
         SetupMocks([venta], []);
-        var command = new ActualizarVentaPendienteCommand(venta.Id, [new CreateVentaDetailDto(_loteNuevoId, 1, 10, 5)]);
+        var command = new ActualizarVentaPendienteCommand(venta.Id, [new CreateVentaDetailDto(_loteNuevoId, 1)]);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -92,7 +102,7 @@ public class ActualizarVentaPendienteCommandHandlerTests
         var inventarioNuevo = InventarioSucursal.Create(_sucursalId, _loteNuevoId, 20).Value!;
         SetupMocks([venta], [inventarioOriginal, inventarioNuevo]);
 
-        var command = new ActualizarVentaPendienteCommand(venta.Id, [new CreateVentaDetailDto(_loteNuevoId, 4, 6, 3)]);
+        var command = new ActualizarVentaPendienteCommand(venta.Id, [new CreateVentaDetailDto(_loteNuevoId, 4)]);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -116,7 +126,7 @@ public class ActualizarVentaPendienteCommandHandlerTests
         var inventarioNuevo = InventarioSucursal.Create(_sucursalId, _loteNuevoId, 2).Value!; // Only 2 available
         SetupMocks([venta], [inventarioOriginal, inventarioNuevo]);
 
-        var command = new ActualizarVentaPendienteCommand(venta.Id, [new CreateVentaDetailDto(_loteNuevoId, 4, 6, 3)]);
+        var command = new ActualizarVentaPendienteCommand(venta.Id, [new CreateVentaDetailDto(_loteNuevoId, 4)]);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);

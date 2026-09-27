@@ -17,7 +17,6 @@ public class RegistrarEmpresaCommandHandler(
     IPasswordHasher passwordHasher,
     IJwtProvider jwtProvider) : IRequestHandler<RegistrarEmpresaCommand, Result<LoginResult>>
 {
-    private const string AdminRoleName = "Admin";
     private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);
 
     public async Task<Result<LoginResult>> Handle(RegistrarEmpresaCommand request, CancellationToken cancellationToken)
@@ -112,7 +111,7 @@ public class RegistrarEmpresaCommandHandler(
         }
 
         // Each company gets its own Admin role so its privileges never reach other tenants
-        var rolResult = Rol.Create(AdminRoleName, "Administrador de la empresa", tenantId: empresa.Id);
+        var rolResult = Rol.Create(Rol.AdminRoleName, "Administrador de la empresa", tenantId: empresa.Id);
         return rolResult.IsFailure
             ? Result.Failure<(Empresa, Sucursal, Empleado, Cuenta, Rol)>(rolResult.Error)
             : Result.Success<(Empresa, Sucursal, Empleado, Cuenta, Rol)>((empresa, sucursal, empleado, cuentaResult.Value!, rolResult.Value!));

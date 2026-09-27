@@ -8,4 +8,5 @@ public interface ICurrentUser
     string? EmpresaId { get; }
     bool IsAuthenticated { get; }
     string? ClientIpAddress { get; }
+    bool IsInRole(string roleName);
 }

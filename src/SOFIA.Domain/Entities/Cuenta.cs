@@ -116,6 +116,10 @@ public sealed class Cuenta : BaseEntity
 
     public bool EsAdmin => Roles.Any(r => r.EsAdmin);
 
+    // Requires Empleado.Sucursal_Base loaded; a base branch of another company must never yield a token
+    public bool SucursalBasePerteneceAlTenant =>
+        TenantId is not null && Empleado?.Sucursal_Base?.TenantId == TenantId;
+
     public void AddRol(Rol rol)
     {
         if (!Roles.Any(r => r.Id == rol.Id))

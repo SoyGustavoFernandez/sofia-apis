@@ -17,7 +17,8 @@ public class RefreshTokenCommandHandlerTests
 
     private readonly Mock<IApplicationDbContext> _dbContextMock = new();
     private readonly Mock<IJwtProvider> _jwtProviderMock = new();
-    private readonly Cuenta _cuenta = Cuenta.Create(Guid.NewGuid(), "usuario", "hash").Value!;
+    private static readonly Guid TenantId = Guid.NewGuid();
+    private Cuenta _cuenta = CuentaFactory.WithBaseBranch(TenantId, TenantId);
     private readonly List<DomainRefreshToken> _tokens = [];
     private readonly RefreshTokenCommandHandler _handler;
 
@@ -73,6 +74,22 @@ public class RefreshTokenCommandHandlerTests
         _ = result.IsSuccess.Should().BeTrue();
         _ = result.Value.RefreshToken.Should().NotBe(RawToken);
         _ = stored.IsRevoked.Should().BeTrue(because: "the presented token must be rotated out");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnUnauthorizedAndIssueNoToken_WhenBaseBranchBelongsToAnotherTenant()
+    {
+        _cuenta = CuentaFactory.WithBaseBranch(TenantId, Guid.NewGuid());
+        var stored = AddToken(RawToken);
+        SetupContext();
+
+        var result = await _handler.Handle(new RefreshTokenCommand(RawToken), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.StatusCode.Should().Be(401);
+        _ = result.Error.Code.Should().Be("Auth.InvalidRefreshToken", because: "the rejection reason must not leak");
+        _ = stored.IsRevoked.Should().BeFalse();
+        _jwtProviderMock.Verify(j => j.Generate(It.IsAny<Cuenta>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
     }
 
     [Fact]

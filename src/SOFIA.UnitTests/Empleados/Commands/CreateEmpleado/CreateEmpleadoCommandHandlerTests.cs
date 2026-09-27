@@ -12,20 +12,22 @@ public class CreateEmpleadoCommandHandlerTests
     private readonly Mock<IApplicationDbContext> _dbContextMock = new();
     private readonly Mock<ICurrentUser> _currentUserMock = new();
     private readonly Mock<Microsoft.EntityFrameworkCore.DbSet<Empleado>> _empleadosMock;
+    private readonly Sucursal _sucursal = Sucursal.Create("Sede", "Av. Siempre Viva 123", "LIC-001").Value!;
     private readonly CreateEmpleadoCommandHandler _handler;
 
     public CreateEmpleadoCommandHandlerTests()
     {
         _empleadosMock = new List<Empleado>().BuildMockDbSet();
         _ = _dbContextMock.Setup(c => c.Empleados).Returns(_empleadosMock.Object);
+        _ = _dbContextMock.Setup(c => c.Sucursales).Returns(new List<Sucursal> { _sucursal }.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         _ = _currentUserMock.Setup(c => c.EmpresaId).Returns(Guid.NewGuid().ToString());
         _handler = new CreateEmpleadoCommandHandler(_dbContextMock.Object, _currentUserMock.Object);
     }
 
-    private static CreateEmpleadoCommand Command(string nombres = "Ana") => new()
+    private CreateEmpleadoCommand Command(string nombres = "Ana", Guid? sucursalId = null) => new()
     {
-        Sucursal_Base_ID = Guid.NewGuid(),
+        Sucursal_Base_ID = sucursalId ?? _sucursal.Id,
         Nombres = nombres,
         Apellido_Paterno = "Pérez",
         Apellido_Materno = "Gómez",
@@ -40,6 +42,18 @@ public class CreateEmpleadoCommandHandlerTests
         _ = result.StatusCode.Should().Be(201);
         _empleadosMock.Verify(m => m.Add(It.IsAny<Empleado>()), Times.Once);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnNotFoundAndNotSave_WhenSucursalIsNotInTenant()
+    {
+        var result = await _handler.Handle(Command(sucursalId: Guid.NewGuid()), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Sucursal.NotFound");
+        _ = result.StatusCode.Should().Be(404);
+        _empleadosMock.Verify(m => m.Add(It.IsAny<Empleado>()), Times.Never);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

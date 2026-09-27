@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
@@ -10,6 +11,13 @@ public class CreateEmpleadoCommandHandler(IApplicationDbContext context, ICurren
 {
     public async Task<Result<Guid>> Handle(CreateEmpleadoCommand request, CancellationToken cancellationToken)
     {
+        // Tenant-filtered lookup: a branch of another company is reported as missing
+        var sucursalExists = await context.Sucursales.AnyAsync(s => s.Id == request.Sucursal_Base_ID, cancellationToken);
+        if (!sucursalExists)
+        {
+            return Result.Failure<Guid>(Error.NotFound("Sucursal.NotFound", "La sucursal no existe."), 404);
+        }
+
         var tenantId = Guid.TryParse(currentUser.EmpresaId, out var id) ? id : (Guid?)null;
 
         var result = Empleado.Create(

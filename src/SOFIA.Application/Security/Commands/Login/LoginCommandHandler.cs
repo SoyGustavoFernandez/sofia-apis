@@ -57,6 +57,12 @@ public class LoginCommandHandler(
             return Result.Failure<LoginResult>(Error.Unauthorized("Auth.InvalidCredentials", "Invalid username or password."), 401);
         }
 
+        if (!cuenta.SucursalBasePerteneceAlTenant)
+        {
+            logger.LogWarning("Rejected login for username {Username} from IP {IpAddress}: base branch belongs to another tenant.", request.NombreUsuario, ip);
+            return Result.Failure<LoginResult>(Error.Unauthorized("Auth.InvalidCredentials", "Invalid username or password."), 401);
+        }
+
         cuenta.ResetFailedAttempts();
 
         var accessToken = jwtProvider.Generate(cuenta);

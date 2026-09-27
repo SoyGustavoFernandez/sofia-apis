@@ -53,6 +53,12 @@ public class RefreshTokenCommandHandler(
             return InvalidToken();
         }
 
+        if (!cuenta.SucursalBasePerteneceAlTenant)
+        {
+            logger.LogWarning("Rejected refresh for account {CuentaId}: base branch belongs to another tenant.", cuenta.Id);
+            return InvalidToken();
+        }
+
         // Rotate: revoke old token and issue a new pair
         stored.Revoke();
 

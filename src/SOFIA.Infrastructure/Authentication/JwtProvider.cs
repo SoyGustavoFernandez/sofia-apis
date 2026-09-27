@@ -14,7 +14,8 @@ public class JwtProvider(IOptions<JwtOptions> options) : IJwtProvider
 
     public string Generate(Cuenta cuenta, Guid? empresaId = null, Guid? sucursalId = null)
     {
-        var resolvedEmpresaId = empresaId ?? cuenta.Empleado?.Sucursal_Base?.EmpresaId;
+        // The tenant always comes from the account, never from its branch
+        var resolvedEmpresaId = empresaId ?? cuenta.TenantId;
         var resolvedSucursalId = sucursalId ?? cuenta.Empleado?.Sucursal_Base_ID;
 
         var claims = new List<Claim>

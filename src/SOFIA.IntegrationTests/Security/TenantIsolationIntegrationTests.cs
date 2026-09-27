@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using SOFIA.Application.Empleados.Commands.UpdateEmpleado;
 using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 using SOFIA.Application.Security.Commands.Login;
 using SOFIA.Domain.Entities;
@@ -163,6 +164,39 @@ public class TenantIsolationIntegrationTests(SofiaWebAppFactory factory) : BaseI
         // Assert
         _ = grantedA.Should().BeTrue();
         _ = grantedB.Should().BeFalse(because: "a role in company B must not inherit permissions cached for company A");
+    }
+
+    [Fact]
+    public async Task UpdateEmpleado_ShouldRejectBaseBranch_WhenItBelongsToAnotherTenant()
+    {
+        // Arrange: the branch lives in company B, the employee in company A
+        CurrentUser.Empresa = EmpresaB;
+        var sucursalB = Sucursal.Create($"Suc{Guid.NewGuid():N}"[..20], "Av. B 123", $"LIC{Guid.NewGuid():N}"[..10]).Value!;
+        _ = DbContext.Sucursales.Add(sucursalB);
+        _ = await DbContext.SaveChangesAsync();
+
+        CurrentUser.Empresa = EmpresaA;
+        var sucursalA = Sucursal.Create($"Suc{Guid.NewGuid():N}"[..20], "Av. A 123", $"LIC{Guid.NewGuid():N}"[..10]).Value!;
+        _ = DbContext.Sucursales.Add(sucursalA);
+        _ = await DbContext.SaveChangesAsync();
+        var empleado = Empleado.Create(sucursalA.Id, "Ana", "Perez", "Gomez").Value!;
+        _ = DbContext.Empleados.Add(empleado);
+        _ = await DbContext.SaveChangesAsync();
+
+        // Act
+        var result = await Sender.Send(new UpdateEmpleadoCommand
+        {
+            Id = empleado.Id,
+            Sucursal_Base_ID = sucursalB.Id,
+            Nombres = "Ana",
+            Apellido_Paterno = "Perez",
+            Apellido_Materno = "Gomez",
+        });
+
+        // Assert
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Sucursal.NotFound", because: "the FK has no tenant column, so the handler must reject foreign branches");
+        _ = empleado.Sucursal_Base_ID.Should().Be(sucursalA.Id);
     }
 
     private static async Task<bool> AuthorizeAsync(PermissionAuthorizationHandler handler, Guid empresaId, string rolName)

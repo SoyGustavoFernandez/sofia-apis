@@ -15,7 +15,8 @@ public class LoginCommandHandlerTests
     private readonly Mock<IPasswordHasher> _passwordHasherMock = new();
     private readonly Mock<IJwtProvider> _jwtProviderMock = new();
     private readonly Mock<ICurrentUser> _currentUserMock = new();
-    private readonly Cuenta _cuenta = Cuenta.Create(Guid.NewGuid(), "usuario", "real_hash").Value!;
+    private static readonly Guid TenantId = Guid.NewGuid();
+    private readonly Cuenta _cuenta = CuentaFactory.WithBaseBranch(TenantId, TenantId, passwordHash: "real_hash");
     private readonly LoginCommandHandler _handler;
 
     public LoginCommandHandlerTests()
@@ -62,6 +63,22 @@ public class LoginCommandHandlerTests
         _ = locked.IsFailure.Should().BeTrue();
         _ = locked.Error.Should().Be(unknown.Error, because: "the lock state must not confirm that the account exists");
         _ = locked.StatusCode.Should().Be(unknown.StatusCode);
+    }
+
+    [Fact]
+    public async Task Handle_BaseBranchOfAnotherTenant_ReturnsSameErrorAsWrongPasswordAndIssuesNoToken()
+    {
+        var cuenta = CuentaFactory.WithBaseBranch(TenantId, Guid.NewGuid(), "intruso", "intruso_hash");
+        _ = _dbContextMock.Setup(c => c.Cuentas).Returns(new List<Cuenta> { cuenta }.BuildMockDbSet().Object);
+        _ = _passwordHasherMock.Setup(p => p.Verify("Clave123", "intruso_hash")).Returns(true);
+
+        var result = await _handler.Handle(new LoginCommand("intruso", "Clave123"), CancellationToken.None);
+        var unknown = await _handler.Handle(new LoginCommand("no-existe", "Clave123"), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Should().Be(unknown.Error, because: "the rejection reason must not leak");
+        _ = result.StatusCode.Should().Be(401);
+        _jwtProviderMock.Verify(j => j.Generate(It.IsAny<Cuenta>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
     }
 
     [Fact]

@@ -43,6 +43,12 @@ public class CompletarVentaCommandHandler(
             return Result.Failure<VentaCreadaDto>(Error.Validation("Venta.Completar", "Only a pending sale can be completed."));
         }
 
+        var coberturaResult = await VentaSeguroProcessor.ResolveCoberturaAsync(context, request.AseguradoraId, request.MontoCubiertoSeguro, cancellationToken);
+        if (coberturaResult.IsFailure)
+        {
+            return Result.Failure<VentaCreadaDto>(coberturaResult.Error, coberturaResult.StatusCode);
+        }
+
         if (request.Detalles != null)
         {
             var updateResult = await VentaDetalleUpdater.ReplaceAsync(context, venta, request.Detalles, request.ClienteId, sucursalId, cancellationToken);
@@ -58,7 +64,7 @@ public class CompletarVentaCommandHandler(
             return Result.Failure<VentaCreadaDto>(pagosResult.Error);
         }
 
-        var registrarPagosResult = venta.RegistrarPagos(pagosResult.Value!, request.MontoCubiertoSeguro ?? 0);
+        var registrarPagosResult = venta.RegistrarPagos(pagosResult.Value!, coberturaResult.Value);
         if (!registrarPagosResult.IsSuccess)
         {
             return Result.Failure<VentaCreadaDto>(registrarPagosResult.Error);
@@ -73,9 +79,10 @@ public class CompletarVentaCommandHandler(
 
         var dtoComprobante = await VentaComprobanteGenerator.GenerateAsync(context, venta, sucursalId, cancellationToken);
 
-        if (request.AseguradoraId != null && request.MontoCubiertoSeguro != null && venta.Detalles.Count > 0)
+        var seguroResult = VentaSeguroProcessor.Process(context, venta, request.AseguradoraId, request.MontoCubiertoSeguro);
+        if (seguroResult.IsFailure)
         {
-            VentaSeguroProcessor.Process(context, venta.Detalles.First().Id, request.AseguradoraId.Value, request.MontoCubiertoSeguro.Value, venta.MontoTotalBruto);
+            return Result.Failure<VentaCreadaDto>(seguroResult.Error);
         }
 
         venta.AddDomainEvent(new VentaCompletadaEvent(venta.Id, sucursalId));

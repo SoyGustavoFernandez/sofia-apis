@@ -39,6 +39,45 @@ public class CompletarVentaCommandValidatorTests
     }
 
     [Fact]
+    public void Should_Have_Error_When_MontoCubiertoSeguro_Is_Negative()
+    {
+        // Arrange
+        var command = new CompletarVentaCommand(Guid.NewGuid(), [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)], AseguradoraId: Guid.NewGuid(), MontoCubiertoSeguro: -1);
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        _ = result.ShouldHaveValidationErrorFor(x => x.MontoCubiertoSeguro);
+    }
+
+    [Fact]
+    public void Should_Have_Error_When_Coverage_Has_No_Aseguradora()
+    {
+        // Arrange
+        var command = new CompletarVentaCommand(Guid.NewGuid(), [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)], MontoCubiertoSeguro: 5);
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        _ = result.ShouldHaveValidationErrorFor(x => x.AseguradoraId);
+    }
+
+    [Fact]
+    public void Should_Not_Have_Error_When_Coverage_Has_Aseguradora()
+    {
+        // Arrange
+        var command = new CompletarVentaCommand(Guid.NewGuid(), [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)], AseguradoraId: Guid.NewGuid(), MontoCubiertoSeguro: 5);
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Fact]
     public void Should_Not_Have_Error_When_Command_Is_Valid()
     {
         // Arrange

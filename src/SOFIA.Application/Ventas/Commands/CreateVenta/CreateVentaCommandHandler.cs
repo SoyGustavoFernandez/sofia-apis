@@ -39,6 +39,12 @@ public class CreateVentaCommandHandler(
             return Result.Failure<VentaCreadaDto>(sesionResult.Error);
         }
 
+        var coberturaResult = await VentaSeguroProcessor.ResolveCoberturaAsync(context, request.AseguradoraId, request.MontoCubiertoSeguro, cancellationToken);
+        if (coberturaResult.IsFailure)
+        {
+            return Result.Failure<VentaCreadaDto>(coberturaResult.Error, coberturaResult.StatusCode);
+        }
+
         var detallesResult = await VentaDetalleFactory.BuildAsync(context, request.Detalles, sucursalId, cancellationToken);
         if (detallesResult.IsFailure)
         {
@@ -64,7 +70,7 @@ public class CreateVentaCommandHandler(
                 return Result.Failure<VentaCreadaDto>(pagosResult.Error);
             }
 
-            var registrarPagosResult = ventaResult.Value.RegistrarPagos(pagosResult.Value!, request.MontoCubiertoSeguro ?? 0);
+            var registrarPagosResult = ventaResult.Value.RegistrarPagos(pagosResult.Value!, coberturaResult.Value);
             if (!registrarPagosResult.IsSuccess)
             {
                 return Result.Failure<VentaCreadaDto>(registrarPagosResult.Error);
@@ -72,9 +78,10 @@ public class CreateVentaCommandHandler(
 
             dtoComprobante = await VentaComprobanteGenerator.GenerateAsync(context, ventaResult.Value, sucursalId, cancellationToken);
 
-            if (request.AseguradoraId != null && request.MontoCubiertoSeguro != null && detallesResult.Value!.Count > 0)
+            var seguroResult = VentaSeguroProcessor.Process(context, ventaResult.Value, request.AseguradoraId, request.MontoCubiertoSeguro);
+            if (seguroResult.IsFailure)
             {
-                VentaSeguroProcessor.Process(context, detallesResult.Value![0].Id, request.AseguradoraId.Value, request.MontoCubiertoSeguro.Value, ventaResult.Value.MontoTotalBruto);
+                return Result.Failure<VentaCreadaDto>(seguroResult.Error);
             }
 
             ventaResult.Value.AddDomainEvent(new VentaCompletadaEvent(ventaResult.Value.Id, sucursalId));

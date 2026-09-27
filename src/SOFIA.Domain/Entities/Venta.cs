@@ -139,6 +139,11 @@ public sealed class Venta : BaseEntity
             return Result.Failure(Error.Validation("Venta.Pagos", "At least one payment is required."));
         }
 
+        if (montoCubiertoSeguro < 0 || montoCubiertoSeguro > MontoTotalBruto)
+        {
+            return Result.Failure(Error.Validation("Venta.Seguro.MontoInvalido", "The insurance coverage must be between zero and the sale total."));
+        }
+
         var montoAPagar = MontoTotalBruto - montoCubiertoSeguro;
         var totalPagado = pagos.Sum(p => p.MontoPagado);
 

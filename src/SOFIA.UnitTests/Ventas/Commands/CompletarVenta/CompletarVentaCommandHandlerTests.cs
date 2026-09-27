@@ -14,6 +14,7 @@ public class CompletarVentaCommandHandlerTests
     private readonly Mock<IApplicationDbContext> _dbContextMock;
     private readonly Mock<ICurrentUser> _currentUserMock;
     private readonly CompletarVentaCommandHandler _handler;
+    private readonly List<VentaReclamoSeguro> _reclamosList = [];
 
     private readonly Guid _sucursalId = Guid.NewGuid();
     private readonly Guid _empleadoId = Guid.NewGuid();
@@ -36,10 +37,12 @@ public class CompletarVentaCommandHandlerTests
         return Venta.Create(sucursalId ?? _sucursalId, _empleadoId, null, Guid.NewGuid(), [detalle], EstadoVenta.Pendiente).Value!;
     }
 
-    private void SetupMocks(List<Venta> ventas, List<SunatSerieFiscal>? series = null)
+    private void SetupMocks(List<Venta> ventas, List<SunatSerieFiscal>? series = null, List<AseguradoraMedica>? aseguradoras = null)
     {
         var ventasDbSetMock = ventas.BuildMockDbSet();
         _ = _dbContextMock.Setup(c => c.Ventas).Returns(ventasDbSetMock.Object);
+
+        _ = _dbContextMock.Setup(c => c.Aseguradoras).Returns((aseguradoras ?? []).BuildMockDbSet().Object);
 
         _ = _dbContextMock.Setup(c => c.SUNATSeriesFiscales).Returns((series ?? []).BuildMockDbSet().Object);
 
@@ -53,9 +56,8 @@ public class CompletarVentaCommandHandlerTests
         _ = comprobantesDbSetMock.Setup(d => d.Add(It.IsAny<SunatComprobanteEmitido>())).Callback<SunatComprobanteEmitido>(comprobantesList.Add);
         _ = _dbContextMock.Setup(c => c.SUNATComprobantesEmitidos).Returns(comprobantesDbSetMock.Object);
 
-        var reclamosList = new List<VentaReclamoSeguro>();
-        var reclamosDbSetMock = reclamosList.BuildMockDbSet();
-        _ = reclamosDbSetMock.Setup(d => d.Add(It.IsAny<VentaReclamoSeguro>())).Callback<VentaReclamoSeguro>(reclamosList.Add);
+        var reclamosDbSetMock = _reclamosList.BuildMockDbSet();
+        _ = reclamosDbSetMock.Setup(d => d.Add(It.IsAny<VentaReclamoSeguro>())).Callback<VentaReclamoSeguro>(_reclamosList.Add);
         _ = _dbContextMock.Setup(c => c.VentasReclamosSeguro).Returns(reclamosDbSetMock.Object);
 
         var outboxList = new List<SistemaOutboxEvento>();
@@ -150,5 +152,76 @@ public class CompletarVentaCommandHandlerTests
         _ = result.IsSuccess.Should().BeFalse();
         _ = result.Error.Code.Should().Be("Venta.Pagos");
         _ = venta.Estado.Should().Be(EstadoVenta.Pendiente);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnNotFound_WhenAseguradoraDoesNotExist()
+    {
+        // Arrange
+        var venta = CrearVentaPendiente();
+        SetupMocks([venta]);
+        var command = new CompletarVentaCommand(venta.Id, [new CreateVentaPagoDto(MetodoPago.Efectivo, 5, null)], AseguradoraId: Guid.NewGuid(), MontoCubiertoSeguro: 15);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Aseguradora.NotFound");
+        _ = venta.Estado.Should().Be(EstadoVenta.Pendiente);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldIgnoreCoverage_WhenNoAseguradoraIsProvided()
+    {
+        // Arrange
+        var venta = CrearVentaPendiente();
+        SetupMocks([venta]);
+        var command = new CompletarVentaCommand(venta.Id, [new CreateVentaPagoDto(MetodoPago.Efectivo, 0.01m, null)], MontoCubiertoSeguro: 19.99m);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Pagos");
+        _ = _reclamosList.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnError_WhenCoverageExceedsTheSaleTotal()
+    {
+        // Arrange
+        var venta = CrearVentaPendiente();
+        var aseguradora = AseguradoraMedica.Create("Rimac", "RIMAC-01").Value!;
+        SetupMocks([venta], aseguradoras: [aseguradora]);
+        var command = new CompletarVentaCommand(venta.Id, [new CreateVentaPagoDto(MetodoPago.Efectivo, 0.01m, null)], AseguradoraId: aseguradora.Id, MontoCubiertoSeguro: 25);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Seguro.MontoInvalido");
+        _ = _reclamosList.Should().BeEmpty();
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreateClaim_WhenCoverageHasAValidAseguradora()
+    {
+        // Arrange
+        var venta = CrearVentaPendiente();
+        var aseguradora = AseguradoraMedica.Create("Rimac", "RIMAC-01").Value!;
+        SetupMocks([venta], aseguradoras: [aseguradora]);
+        var command = new CompletarVentaCommand(venta.Id, [new CreateVentaPagoDto(MetodoPago.Efectivo, 5, null)], AseguradoraId: aseguradora.Id, MontoCubiertoSeguro: 15);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = _reclamosList.Should().ContainSingle().Which.MontoCopagoPaciente.Should().Be(5);
     }
 }

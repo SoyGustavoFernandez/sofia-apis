@@ -14,6 +14,7 @@ public class CreateVentaCommandHandlerTests
     private readonly Mock<ICurrentUser> _currentUserMock;
     private readonly CreateVentaCommandHandler _handler;
     private readonly List<Venta> _ventasList = [];
+    private readonly List<VentaReclamoSeguro> _reclamosList = [];
 
     private readonly Guid _sucursalId = Guid.NewGuid();
     private readonly Guid _empleadoId = Guid.NewGuid();
@@ -481,6 +482,100 @@ public class CreateVentaCommandHandlerTests
         _ = result.Error.Code.Should().Be("Venta.Presentacion");
     }
 
+    [Fact]
+    public async Task Handle_ShouldReturnNotFound_WhenAseguradoraDoesNotExist()
+    {
+        // Arrange
+        var inventarioItem = InventarioSucursal.Create(_sucursalId, _loteId, 20).Value!;
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: [inventarioItem], aseguradoras: []);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+            [new CreateVentaDetailDto(_loteId, 2)],
+            [new CreateVentaPagoDto(MetodoPago.Efectivo, 5, null)],
+            AseguradoraId: Guid.NewGuid(),
+            MontoCubiertoSeguro: 15);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Aseguradora.NotFound");
+        _ = result.StatusCode.Should().Be(404);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldIgnoreCoverage_WhenNoAseguradoraIsProvided()
+    {
+        // Arrange
+        var inventario = new List<InventarioSucursal> { InventarioSucursal.Create(_sucursalId, _loteId, 20).Value! };
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: inventario);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+            [new CreateVentaDetailDto(_loteId, 2)], // Total = 20
+            [new CreateVentaPagoDto(MetodoPago.Efectivo, 0.01m, null)],
+            MontoCubiertoSeguro: 19.99m);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Pagos");
+        _ = _reclamosList.Should().BeEmpty();
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnError_WhenCoverageExceedsTheSaleTotal()
+    {
+        // Arrange
+        var aseguradora = AseguradoraMedica.Create("Rimac", "RIMAC-01").Value!;
+        var inventario = new List<InventarioSucursal> { InventarioSucursal.Create(_sucursalId, _loteId, 20).Value! };
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: inventario, aseguradoras: [aseguradora]);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+            [new CreateVentaDetailDto(_loteId, 2)], // Total = 20
+            [new CreateVentaPagoDto(MetodoPago.Efectivo, 0.01m, null)],
+            AseguradoraId: aseguradora.Id,
+            MontoCubiertoSeguro: 25);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Seguro.MontoInvalido");
+        _ = _reclamosList.Should().BeEmpty();
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreateClaim_WhenCoverageHasAValidAseguradora()
+    {
+        // Arrange
+        var aseguradora = AseguradoraMedica.Create("Rimac", "RIMAC-01").Value!;
+        var inventario = new List<InventarioSucursal> { InventarioSucursal.Create(_sucursalId, _loteId, 20).Value! };
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: inventario, aseguradoras: [aseguradora]);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+            [new CreateVentaDetailDto(_loteId, 2)], // Total = 20
+            [new CreateVentaPagoDto(MetodoPago.Efectivo, 5, null)],
+            AseguradoraId: aseguradora.Id,
+            MontoCubiertoSeguro: 15);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeTrue();
+        var reclamo = _reclamosList.Should().ContainSingle().Subject;
+        _ = reclamo.AseguradoraId.Should().Be(aseguradora.Id);
+        _ = reclamo.MontoCubierto.Should().Be(15);
+        _ = reclamo.MontoCopagoPaciente.Should().Be(5);
+    }
+
     private List<PosSesionCaja> SesionAbierta()
     {
         var sesion = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100).Value!;
@@ -495,7 +590,8 @@ public class CreateVentaCommandHandlerTests
         List<SunatSerieFiscal>? series = null,
         List<PresentacionVenta>? presentaciones = null,
         decimal? precioCatalogo = 10,
-        List<HistorialPrecioProveedor>? historialPrecios = null)
+        List<HistorialPrecioProveedor>? historialPrecios = null,
+        List<AseguradoraMedica>? aseguradoras = null)
     {
         sesionesCaja ??= [];
         cuarentenas ??= [];
@@ -503,6 +599,7 @@ public class CreateVentaCommandHandlerTests
         series ??= [];
         presentaciones ??= [];
         historialPrecios ??= [];
+        aseguradoras ??= [];
 
         var lote = LoteInventario.Create(_productoId, "L-001", null, DateTimeOffset.UtcNow.AddYears(1)).Value!;
         lote.SetId(_loteId);
@@ -517,6 +614,7 @@ public class CreateVentaCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.LotesEnSucursal).Returns(inventario.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.SUNATSeriesFiscales).Returns(series.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.PresentacionesVenta).Returns(presentaciones.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.Aseguradoras).Returns(aseguradoras.BuildMockDbSet().Object);
 
         // Setup Add for Ventas
         var ventasDbSetMock = _ventasList.BuildMockDbSet();
@@ -530,9 +628,8 @@ public class CreateVentaCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.SUNATComprobantesEmitidos).Returns(comprobantesDbSetMock.Object);
 
         // Setup Add for Reclamos
-        var reclamosList = new List<VentaReclamoSeguro>();
-        var reclamosDbSetMock = reclamosList.BuildMockDbSet();
-        _ = reclamosDbSetMock.Setup(d => d.Add(It.IsAny<VentaReclamoSeguro>())).Callback<VentaReclamoSeguro>(reclamosList.Add);
+        var reclamosDbSetMock = _reclamosList.BuildMockDbSet();
+        _ = reclamosDbSetMock.Setup(d => d.Add(It.IsAny<VentaReclamoSeguro>())).Callback<VentaReclamoSeguro>(_reclamosList.Add);
         _ = _dbContextMock.Setup(c => c.VentasReclamosSeguro).Returns(reclamosDbSetMock.Object);
 
         // Setup Add for Outbox

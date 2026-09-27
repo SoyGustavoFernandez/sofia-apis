@@ -32,5 +32,13 @@ public class CreateVentaCommandValidator : AbstractValidator<CreateVentaCommand>
             _ = pago.RuleFor(p => p.MontoPagado).GreaterThan(0);
             _ = pago.RuleFor(p => p.ReferenciaOperacion).MaximumLength(100);
         });
+
+        _ = RuleFor(v => v.MontoCubiertoSeguro)
+            .GreaterThanOrEqualTo(0).WithMessage("The insurance coverage cannot be negative.")
+            .When(v => v.MontoCubiertoSeguro.HasValue);
+
+        _ = RuleFor(v => v.AseguradoraId)
+            .NotEmpty().WithMessage("An insurer is required when the sale has insurance coverage.")
+            .When(v => v.MontoCubiertoSeguro > 0);
     }
 }

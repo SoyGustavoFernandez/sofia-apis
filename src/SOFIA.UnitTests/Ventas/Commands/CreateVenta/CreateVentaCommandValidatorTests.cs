@@ -149,4 +149,63 @@ public class CreateVentaCommandValidatorTests
         // Assert
         _ = result.ShouldHaveValidationErrorFor("Pagos[0].MontoPagado");
     }
+
+    [Fact]
+    public void Should_Have_Error_When_MontoCubiertoSeguro_Is_Negative()
+    {
+        // Arrange
+        var command = new CreateVentaCommand(
+            ClienteId: Guid.NewGuid(),
+            SesionId: Guid.NewGuid(),
+            Detalles: [new CreateVentaDetailDto(Guid.NewGuid(), 1)],
+            Pagos: [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)],
+            AseguradoraId: Guid.NewGuid(),
+            MontoCubiertoSeguro: -1
+        );
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        _ = result.ShouldHaveValidationErrorFor(x => x.MontoCubiertoSeguro);
+    }
+
+    [Fact]
+    public void Should_Have_Error_When_Coverage_Has_No_Aseguradora()
+    {
+        // Arrange
+        var command = new CreateVentaCommand(
+            ClienteId: Guid.NewGuid(),
+            SesionId: Guid.NewGuid(),
+            Detalles: [new CreateVentaDetailDto(Guid.NewGuid(), 1)],
+            Pagos: [new CreateVentaPagoDto(MetodoPago.Efectivo, 0.01m, null)],
+            MontoCubiertoSeguro: 99
+        );
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        _ = result.ShouldHaveValidationErrorFor(x => x.AseguradoraId);
+    }
+
+    [Fact]
+    public void Should_Not_Have_Error_When_Coverage_Has_Aseguradora()
+    {
+        // Arrange
+        var command = new CreateVentaCommand(
+            ClienteId: Guid.NewGuid(),
+            SesionId: Guid.NewGuid(),
+            Detalles: [new CreateVentaDetailDto(Guid.NewGuid(), 1)],
+            Pagos: [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)],
+            AseguradoraId: Guid.NewGuid(),
+            MontoCubiertoSeguro: 5
+        );
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldNotHaveAnyValidationErrors();
+    }
 }

@@ -73,6 +73,34 @@ public class VentaTests
         _ = venta.Estado.Should().Be(EstadoVenta.Pendiente);
     }
 
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(11)]
+    public void RegistrarPagos_ShouldFail_WhenInsuranceCoverageIsOutOfBounds(decimal montoCubierto)
+    {
+        var venta = CrearVenta(EstadoVenta.Pendiente);
+        var pago = VentaPago.Create(MetodoPago.Efectivo, 10, null, DateTime.UtcNow).Value!;
+
+        var result = venta.RegistrarPagos([pago], montoCubierto);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Seguro.MontoInvalido");
+        _ = venta.Estado.Should().Be(EstadoVenta.Pendiente);
+        _ = venta.Pagos.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RegistrarPagos_ShouldOnlyRequireTheCopay_WhenCoverageIsWithinTheTotal()
+    {
+        var venta = CrearVenta(EstadoVenta.Pendiente);
+        var pago = VentaPago.Create(MetodoPago.Tarjeta, 3, "AUTH-1", DateTime.UtcNow).Value!;
+
+        var result = venta.RegistrarPagos([pago], 7);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = venta.Estado.Should().Be(EstadoVenta.Completada);
+    }
+
     [Fact]
     public void ActualizarDetalles_ShouldReplaceItemsAndRecalculateTotal_WhenVentaIsPendiente()
     {

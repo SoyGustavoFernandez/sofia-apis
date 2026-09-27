@@ -3,7 +3,6 @@ using SOFIA.Application.Security.Commands.ForgotPassword;
 using SOFIA.Application.Security.Commands.Login;
 using SOFIA.Application.Security.Commands.Logout;
 using SOFIA.Application.Security.Commands.RefreshToken;
-using SOFIA.Application.Security.Commands.Register;
 using SOFIA.Application.Security.Commands.ResetPassword;
 using SOFIA.Application.Security.Queries.GetProfile;
 using System.Security.Claims;
@@ -95,16 +94,5 @@ public class AuthController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(command);
         return result.ToActionResult();
-    }
-
-    [HttpPost("register")]
-    [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
-    [AllowAnonymous]
-    public async Task<IActionResult> Register([FromBody] RegisterAccountCommand command)
-    {
-        var result = await sender.Send(command);
-        return result.IsSuccess
-            ? CreatedAtAction(nameof(Login), new { id = result.Value }, result.Value)
-            : result.ToProblemResult();
     }
 }

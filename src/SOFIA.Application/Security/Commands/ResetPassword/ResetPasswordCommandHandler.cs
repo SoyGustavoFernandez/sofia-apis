@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Security.Commands.ResetPassword;
 
@@ -16,12 +17,13 @@ public class ResetPasswordCommandHandler(
             .IgnoreQueryFilters([QueryFilters.Tenant])
             .FirstOrDefaultAsync(c => c.NombreUsuario == request.NombreUsuario && !c.IsDeleted, cancellationToken);
 
+        // Hash before the existence check so response time does not reveal whether the account exists
+        var passwordHash = passwordHasher.Hash(request.NewPassword);
+
         if (cuenta is null)
         {
-            return Result.Failure(Error.NotFound("Auth.CuentaNotFound", "La cuenta no existe."));
+            return Result.Failure(Cuenta.InvalidRecoveryTokenError);
         }
-
-        var passwordHash = passwordHasher.Hash(request.NewPassword);
 
         var result = cuenta.ResetPassword(request.Token, passwordHash);
 

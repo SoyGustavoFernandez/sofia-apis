@@ -9,6 +9,8 @@ using Serilog;
 using Serilog.Formatting.Compact;
 
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
+using Microsoft.AspNetCore.HttpOverrides;
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
@@ -75,6 +77,24 @@ _ = builder.Services.AddApiVersioning(options =>
 _ = builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 _ = builder.Services.AddProblemDetails();
 
+// --- Forwarded Headers ---
+// X-Forwarded-For is honored only from proxies listed in config, never from arbitrary clients
+var knownProxies = builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? [];
+_ = builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    // Empty KnownProxies/KnownIPNetworks makes the middleware trust every client, so no proxies means no forwarding
+    options.ForwardedHeaders = knownProxies.Length == 0
+        ? ForwardedHeaders.None
+        : ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownProxies.Clear();
+    options.KnownIPNetworks.Clear();
+
+    foreach (var proxy in knownProxies)
+    {
+        options.KnownProxies.Add(IPAddress.Parse(proxy));
+    }
+});
+
 // --- Rate Limiting ---
 _ = builder.Services.AddSofiaRateLimiting();
 
@@ -91,6 +111,8 @@ _ = builder.Services.AddInfrastructure(builder.Configuration);
 var app = builder.Build();
 
 // --- HTTP Request Pipeline ---
+// First, so logging, rate limiting and auditing all see the real client IP
+_ = app.UseForwardedHeaders();
 _ = app.UseExceptionHandler();
 _ = app.UseSerilogRequestLogging();
 _ = app.UseMiddleware<SecurityHeadersMiddleware>();

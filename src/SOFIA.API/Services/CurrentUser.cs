@@ -19,7 +19,6 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUse
 
     public bool IsAuthenticated => httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
 
-    public string? ClientIpAddress =>
-        httpContextAccessor.HttpContext?.Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim()
-        ?? httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+    // UseForwardedHeaders already rewrote this from X-Forwarded-For, but only for trusted proxies
+    public string? ClientIpAddress => httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
 }

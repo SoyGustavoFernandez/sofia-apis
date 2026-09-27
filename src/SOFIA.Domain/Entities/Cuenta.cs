@@ -4,6 +4,10 @@ namespace SOFIA.Domain.Entities;
 
 public sealed class Cuenta : BaseEntity
 {
+    // Shared with the reset handler so an unknown username is indistinguishable from a bad token
+    public static readonly Error InvalidRecoveryTokenError =
+        Error.Validation("Auth.InvalidToken", "The recovery token is invalid or has expired.");
+
     private Cuenta() { } // Required for EF Core
 
     public Guid EmpleadoId { get; private set; }
@@ -97,7 +101,7 @@ public sealed class Cuenta : BaseEntity
     {
         if (RecoveryToken != token || RecoveryTokenExpiry < DateTimeOffset.UtcNow)
         {
-            return Result.Failure(Error.Validation("Auth.InvalidToken", "The recovery token is invalid or has expired."));
+            return Result.Failure(InvalidRecoveryTokenError);
         }
 
         PasswordHash = newPasswordHash;

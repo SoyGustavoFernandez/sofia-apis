@@ -52,4 +52,22 @@ public class ResetPasswordCommandHandlerTests
         _ = _activeToken.IsRevoked.Should().BeFalse();
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_UnknownUsername_ReturnsSameErrorAsInvalidToken()
+    {
+        var unknown = await _handler.Handle(new ResetPasswordCommand("no-existe", "token", "NuevaClave123"), CancellationToken.None);
+        var badToken = await _handler.Handle(new ResetPasswordCommand("usuario", "token-invalido", "NuevaClave123"), CancellationToken.None);
+
+        _ = unknown.IsFailure.Should().BeTrue();
+        _ = unknown.Error.Should().Be(badToken.Error, because: "the response must not reveal whether the account exists");
+    }
+
+    [Fact]
+    public async Task Handle_UnknownUsername_StillHashesPassword()
+    {
+        _ = await _handler.Handle(new ResetPasswordCommand("no-existe", "token", "NuevaClave123"), CancellationToken.None);
+
+        _passwordHasherMock.Verify(p => p.Hash("NuevaClave123"), Times.Once, "skipping the hash would leak account existence through timing");
+    }
 }

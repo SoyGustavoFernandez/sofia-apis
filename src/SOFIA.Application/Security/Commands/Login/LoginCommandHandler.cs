@@ -17,6 +17,11 @@ public class LoginCommandHandler(
 {
     private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);
 
+    // Built lazily with the real hasher so unknown usernames cost the same as known ones
+    private static string? _dummyHash;
+
+    private static string GetDummyHash(IPasswordHasher hasher) => _dummyHash ??= hasher.Hash(Guid.NewGuid().ToString("N"));
+
     public async Task<Result<LoginResult>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         var ip = currentUser.ClientIpAddress ?? "unknown";
@@ -28,6 +33,9 @@ public class LoginCommandHandler(
             .Include(c => c.Empleado).ThenInclude(e => e!.Sucursal_Base).ThenInclude(s => s!.Empresa)
             .FirstOrDefaultAsync(c => c.NombreUsuario == request.NombreUsuario && !c.IsDeleted, cancellationToken);
 
+        // Always pay the BCrypt cost so response time does not reveal whether the account exists
+        var passwordValid = passwordHasher.Verify(request.Password, cuenta?.PasswordHash ?? GetDummyHash(passwordHasher));
+
         if (cuenta is null || !cuenta.CuentaActiva)
         {
             logger.LogWarning("Failed login attempt for username {Username} from IP {IpAddress} â€” account not found or inactive.", request.NombreUsuario, ip);
@@ -37,10 +45,11 @@ public class LoginCommandHandler(
         if (cuenta.BloqueadoHasta > DateTimeOffset.UtcNow)
         {
             logger.LogWarning("Blocked login attempt for username {Username} from IP {IpAddress} â€” account locked until {LockedUntil}.", request.NombreUsuario, ip, cuenta.BloqueadoHasta);
-            return Result.Failure<LoginResult>(Error.Forbidden("Auth.Blocked", $"Account locked until {cuenta.BloqueadoHasta}."), 403);
+            // Same response as bad credentials, otherwise the lock state confirms the account exists
+            return Result.Failure<LoginResult>(Error.Unauthorized("Auth.InvalidCredentials", "Invalid username or password."), 401);
         }
 
-        if (!passwordHasher.Verify(request.Password, cuenta.PasswordHash))
+        if (!passwordValid)
         {
             cuenta.RegisterFailedAttempt();
             _ = await context.SaveChangesAsync(cancellationToken);

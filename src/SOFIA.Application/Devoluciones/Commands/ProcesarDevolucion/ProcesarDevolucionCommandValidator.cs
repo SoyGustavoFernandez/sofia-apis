@@ -7,7 +7,6 @@ public class ProcesarDevolucionCommandValidator : AbstractValidator<ProcesarDevo
     public ProcesarDevolucionCommandValidator()
     {
         _ = RuleFor(v => v.ComprobanteOrigenId).NotEmpty();
-        _ = RuleFor(v => v.EmpleadoAutorizaId).NotEmpty();
         _ = RuleFor(v => v.MotivoSunatCatalogo).NotEmpty().MaximumLength(2);
         _ = RuleFor(v => v.SustentoDescriptivo).NotEmpty().MaximumLength(255);
         _ = RuleFor(v => v.Detalles).NotEmpty();

@@ -4,111 +4,120 @@ using Moq;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Magistrales.Commands.IniciarOrdenMagistral;
 using SOFIA.Domain.Entities;
+using SOFIA.Domain.Enums;
 
 namespace SOFIA.UnitTests.Magistrales.Commands.IniciarOrdenMagistral;
 
 public class IniciarOrdenMagistralCommandHandlerTests
 {
-    private readonly Mock<IApplicationDbContext> _dbContextMock;
+    private readonly Mock<IApplicationDbContext> _dbContextMock = new();
+    private readonly Mock<ICurrentUser> _currentUserMock = new();
+    private readonly Guid _sucursalId = Guid.NewGuid();
+    private readonly Guid _quimicoId = Guid.NewGuid();
+    private readonly Medicamento _producto = Medicamento.Create("MAG-001", "Crema magistral", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.VentaLibreOTC).Value!;
+    private readonly List<InventarioSucursal> _inventarios = [];
+    private readonly List<MagistralOrdenProduccion> _ordenes = [];
     private readonly IniciarOrdenMagistralCommandHandler _handler;
 
     public IniciarOrdenMagistralCommandHandlerTests()
     {
-        _dbContextMock = new Mock<IApplicationDbContext>();
-        _handler = new IniciarOrdenMagistralCommandHandler(_dbContextMock.Object);
+        _ = _currentUserMock.Setup(u => u.IsAuthenticated).Returns(true);
+        _ = _currentUserMock.Setup(u => u.SucursalId).Returns(_sucursalId.ToString());
+        _ = _currentUserMock.Setup(u => u.Id).Returns(_quimicoId.ToString());
+
+        _ = _dbContextMock.Setup(db => db.Medicamentos).Returns(new List<Medicamento> { _producto }.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(db => db.Recetas).Returns(new List<RecetaMedica>().BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(db => db.LotesEnSucursal).Returns(_inventarios.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(db => db.MagistralesConsumosInsumo).Returns(new List<MagistralConsumoInsumo>().BuildMockDbSet().Object);
+        var ordenesDbSet = _ordenes.BuildMockDbSet();
+        _ = ordenesDbSet.Setup(d => d.Add(It.IsAny<MagistralOrdenProduccion>())).Callback<MagistralOrdenProduccion>(_ordenes.Add);
+        _ = _dbContextMock.Setup(db => db.MagistralesOrdenesProduccion).Returns(ordenesDbSet.Object);
+
+        _handler = new IniciarOrdenMagistralCommandHandler(_dbContextMock.Object, _currentUserMock.Object);
     }
 
-    [Fact]
-    public async Task Handle_HappyPath_ShouldCreateOrderAndConsumeStock()
+    private InventarioSucursal AddInventario(Guid sucursalId, decimal cantidad)
     {
-        // Arrange
-        var inventario = InventarioSucursal.Create(Guid.NewGuid(), Guid.NewGuid(), 50m).Value;
-        var command = new IniciarOrdenMagistralCommand(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            10,
-            [
-                new(inventario!.Id, 10)
-            ]
-        );
+        var inventario = InventarioSucursal.Create(sucursalId, Guid.NewGuid(), cantidad).Value!;
+        _inventarios.Add(inventario);
+        return inventario;
+    }
 
-        var lotesEnSucursal = new List<InventarioSucursal> { inventario }.BuildMockDbSet();
-        _ = _dbContextMock.Setup(db => db.LotesEnSucursal).Returns(lotesEnSucursal.Object);
-        _ = _dbContextMock.Setup(db => db.MagistralesConsumosInsumo).Returns(new List<MagistralConsumoInsumo>().BuildMockDbSet().Object);
-        _ = _dbContextMock.Setup(db => db.MagistralesOrdenesProduccion).Returns(new List<MagistralOrdenProduccion>().BuildMockDbSet().Object);
+    private IniciarOrdenMagistralCommand Command(Guid inventarioId, decimal cantidad, Guid? recetaId = null) =>
+        new(recetaId, _producto.Id, 10, [new(inventarioId, cantidad)]);
 
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+    [Fact]
+    public async Task Handle_ShouldCreateOrderForSessionChemistAndBranch_WhenStockIsAvailable()
+    {
+        var inventario = AddInventario(_sucursalId, 50m);
 
-        // Assert
+        var result = await _handler.Handle(Command(inventario.Id, 10), CancellationToken.None);
+
         _ = result.IsSuccess.Should().BeTrue();
-        _ = result.Value.Should().NotBeEmpty();
-
-        // Check if stock was reduced
         _ = inventario.CantidadFisica.Should().Be(40m);
-
+        var orden = _ordenes.Should().ContainSingle().Subject;
+        _ = orden.SucursalId.Should().Be(_sucursalId);
+        _ = orden.QuimicoPreparadorId.Should().Be(_quimicoId);
         _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
-        _dbContextMock.Verify(db => db.MagistralesOrdenesProduccion.Add(It.IsAny<MagistralOrdenProduccion>()), Times.Once);
         _dbContextMock.Verify(db => db.MagistralesConsumosInsumo.Add(It.IsAny<MagistralConsumoInsumo>()), Times.Once);
     }
 
     [Fact]
-    public async Task Handle_InsufficientStock_ShouldReturnFailure()
+    public async Task Handle_ShouldReturnNotFound_WhenStockBelongsToAnotherBranch()
     {
-        // Arrange
-        var inventario = InventarioSucursal.Create(Guid.NewGuid(), Guid.NewGuid(), 5m).Value;
-        var command = new IniciarOrdenMagistralCommand(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            10,
-            [
-                new(inventario!.Id, 10) // Tries to consume 10, but stock is 5
-            ]
-        );
+        var inventarioAjeno = AddInventario(Guid.NewGuid(), 50m);
 
-        var lotesEnSucursal = new List<InventarioSucursal> { inventario }.BuildMockDbSet();
-        _ = _dbContextMock.Setup(db => db.LotesEnSucursal).Returns(lotesEnSucursal.Object);
+        var result = await _handler.Handle(Command(inventarioAjeno.Id, 10), CancellationToken.None);
 
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
         _ = result.IsFailure.Should().BeTrue();
-        _ = result.Error.Code.Should().Be("Inventario.StockInsuficiente");
-        _ = inventario.CantidadFisica.Should().Be(5m); // Stock should not change
-
+        _ = result.Error.Code.Should().Be("Inventario.NotFound");
+        _ = inventarioAjeno.CantidadFisica.Should().Be(50m, because: "another branch's stock must never be consumed");
         _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task Handle_InventoryNotFound_ShouldReturnFailure()
+    public async Task Handle_ShouldReturnFailure_WhenStockIsInsufficient()
     {
-        // Arrange
-        var command = new IniciarOrdenMagistralCommand(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            10,
-            [
-                new(Guid.NewGuid(), 10)
-            ]
-        );
+        var inventario = AddInventario(_sucursalId, 5m);
 
-        var lotesEnSucursal = new List<InventarioSucursal>().BuildMockDbSet();
-        _ = _dbContextMock.Setup(db => db.LotesEnSucursal).Returns(lotesEnSucursal.Object);
+        var result = await _handler.Handle(Command(inventario.Id, 10), CancellationToken.None);
 
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Inventario.StockInsuficiente");
+        _ = inventario.CantidadFisica.Should().Be(5m);
+        _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
 
-        // Assert
+    [Fact]
+    public async Task Handle_ShouldReturnNotFound_WhenInventoryDoesNotExist()
+    {
+        var result = await _handler.Handle(Command(Guid.NewGuid(), 10), CancellationToken.None);
+
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Inventario.NotFound");
-
         _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnNotFound_WhenProductIsNotInCompany()
+    {
+        var inventario = AddInventario(_sucursalId, 50m);
+
+        var result = await _handler.Handle(Command(inventario.Id, 10) with { ProductoResultanteId = Guid.NewGuid() }, CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.StatusCode.Should().Be(404);
+        _ = result.Error.Code.Should().Be("Medicamento.NotFound");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnNotFound_WhenPrescriptionIsNotInCompany()
+    {
+        var inventario = AddInventario(_sucursalId, 50m);
+
+        var result = await _handler.Handle(Command(inventario.Id, 10, recetaId: Guid.NewGuid()), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("RecetaMedica.NotFound");
     }
 }

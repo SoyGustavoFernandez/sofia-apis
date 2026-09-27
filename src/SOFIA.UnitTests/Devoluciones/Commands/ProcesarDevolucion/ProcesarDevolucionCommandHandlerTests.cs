@@ -11,12 +11,39 @@ namespace SOFIA.UnitTests.Devoluciones.Commands.ProcesarDevolucion;
 public class ProcesarDevolucionCommandHandlerTests
 {
     private readonly Mock<IApplicationDbContext> _dbContextMock;
+    private readonly Mock<ICurrentUser> _currentUserMock = new();
+    private readonly Guid _empleadoSesionId = Guid.NewGuid();
     private readonly ProcesarDevolucionCommandHandler _handler;
 
     public ProcesarDevolucionCommandHandlerTests()
     {
         _dbContextMock = new Mock<IApplicationDbContext>();
-        _handler = new ProcesarDevolucionCommandHandler(_dbContextMock.Object);
+        _ = _currentUserMock.Setup(u => u.IsAuthenticated).Returns(true);
+        _ = _currentUserMock.Setup(u => u.Id).Returns(_empleadoSesionId.ToString());
+        _handler = new ProcesarDevolucionCommandHandler(_dbContextMock.Object, _currentUserMock.Object);
+    }
+
+    [Fact]
+    public async Task Handle_WhenSessionHasNoEmployee_ShouldReturnFailure()
+    {
+        // Arrange
+        _ = _currentUserMock.Setup(u => u.Id).Returns((string?)null);
+        SetupDbContext([], [], []);
+
+        var command = new ProcesarDevolucionCommand(
+            Guid.NewGuid(),
+            "07",
+            "Motivo",
+            [new(Guid.NewGuid(), 1m, DestinoDevolucion.Reingreso_Venta)]
+        );
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Auth.Empleado");
+        _dbContextMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private void SetupDbContext(
@@ -48,7 +75,6 @@ public class ProcesarDevolucionCommandHandlerTests
 
         var command = new ProcesarDevolucionCommand(
             Guid.NewGuid(),
-            Guid.NewGuid(),
             "07",
             "Motivo",
             [new(Guid.NewGuid(), 1m, DestinoDevolucion.Reingreso_Venta)]
@@ -76,7 +102,6 @@ public class ProcesarDevolucionCommandHandlerTests
 
         var command = new ProcesarDevolucionCommand(
             venta.Id,
-            Guid.NewGuid(),
             "07",
             "Motivo",
             [new(Guid.NewGuid(), 1m, DestinoDevolucion.Reingreso_Venta)] // Invalid DetalleVentaId
@@ -102,7 +127,6 @@ public class ProcesarDevolucionCommandHandlerTests
 
         var command = new ProcesarDevolucionCommand(
             venta.Id,
-            Guid.NewGuid(),
             "07",
             "Motivo",
             [new(detalle.Id, 6m, DestinoDevolucion.Reingreso_Venta)] // 6 > 5
@@ -143,7 +167,6 @@ public class ProcesarDevolucionCommandHandlerTests
 
         var command = new ProcesarDevolucionCommand(
             venta.Id,
-            Guid.NewGuid(),
             "07",
             "Devolución parcial",
             [
@@ -162,7 +185,7 @@ public class ProcesarDevolucionCommandHandlerTests
         _ = inventario1.CantidadFisica.Should().Be(52m); // 50 + 2
         _ = inventario2.CantidadFisica.Should().Be(20m); // Unchanged since it's Cuarentena
 
-        _dbContextMock.Verify(x => x.Devoluciones.Add(It.IsAny<DevolucionCabecera>()), Times.Once);
+        _dbContextMock.Verify(x => x.Devoluciones.Add(It.Is<DevolucionCabecera>(d => d.EmpleadoAutorizaId == _empleadoSesionId)), Times.Once);
         _dbContextMock.Verify(x => x.LotesEnSucursal.Update(inventario1), Times.Once);
         _dbContextMock.Verify(x => x.SUNATComprobantesEmitidos.Add(It.Is<SunatComprobanteEmitido>(nc => nc.NumeroCorrelativo == 101)), Times.Once);
         _dbContextMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -187,7 +210,6 @@ public class ProcesarDevolucionCommandHandlerTests
 
         var command = new ProcesarDevolucionCommand(
             venta.Id,
-            Guid.NewGuid(),
             "07",
             "Devolución parcial",
             [new(detalle.Id, 2m, DestinoDevolucion.Reingreso_Venta)]

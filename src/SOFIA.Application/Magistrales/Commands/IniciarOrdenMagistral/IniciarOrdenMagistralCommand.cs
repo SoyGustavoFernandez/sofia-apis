@@ -9,10 +9,8 @@ namespace SOFIA.Application.Magistrales.Commands.IniciarOrdenMagistral;
 public record InsumoDto(Guid InventarioSucursalId, decimal CantidadConsumida);
 
 public record IniciarOrdenMagistralCommand(
-    Guid SucursalId,
     Guid? RecetaId,
     Guid ProductoResultanteId,
-    Guid QuimicoPreparadorId,
     decimal? CantidadProducida,
     List<InsumoDto> Consumos
 ) : ICommand<Guid>;

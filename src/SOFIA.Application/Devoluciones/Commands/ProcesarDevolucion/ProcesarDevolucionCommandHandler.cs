@@ -1,15 +1,23 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Devoluciones.Commands.ProcesarDevolucion;
 
-public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext) : IRequestHandler<ProcesarDevolucionCommand, Result<Guid>>
+public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext, ICurrentUser currentUser) : IRequestHandler<ProcesarDevolucionCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(ProcesarDevolucionCommand request, CancellationToken cancellationToken)
     {
+        // The authorizer is whoever is logged in; a supervisor authorizes by signing in themselves
+        var empleadoResult = currentUser.GetEmpleadoId();
+        if (empleadoResult.IsFailure)
+        {
+            return Result.Failure<Guid>(empleadoResult.Error);
+        }
+
         var venta = await dbContext.Ventas
             .Include(v => v.Detalles)
             .FirstOrDefaultAsync(v => v.Id == request.ComprobanteOrigenId, cancellationToken);
@@ -28,7 +36,7 @@ public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext) :
         var cabeceraResult = DevolucionCabecera.Create(
             request.ComprobanteOrigenId,
             Guid.Empty,
-            request.EmpleadoAutorizaId,
+            empleadoResult.Value,
             request.MotivoSunatCatalogo,
             request.SustentoDescriptivo,
             DateTime.UtcNow,

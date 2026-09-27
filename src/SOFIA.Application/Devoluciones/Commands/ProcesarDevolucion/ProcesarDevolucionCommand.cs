@@ -10,7 +10,6 @@ public record DevolucionDetalleDto(Guid DetalleVentaId, decimal CantidadDevuelta
 
 public record ProcesarDevolucionCommand(
     Guid ComprobanteOrigenId,
-    Guid EmpleadoAutorizaId,
     string MotivoSunatCatalogo,
     string SustentoDescriptivo,
     List<DevolucionDetalleDto> Detalles

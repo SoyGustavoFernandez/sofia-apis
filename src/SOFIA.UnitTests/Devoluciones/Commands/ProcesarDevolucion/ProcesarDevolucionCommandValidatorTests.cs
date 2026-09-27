@@ -16,7 +16,6 @@ public class ProcesarDevolucionCommandValidatorTests
         // Arrange
         var command = new ProcesarDevolucionCommand(
             Guid.NewGuid(),
-            Guid.NewGuid(),
             "07",
             "Devolución por producto en mal estado",
             [
@@ -32,11 +31,10 @@ public class ProcesarDevolucionCommandValidatorTests
     }
 
     [Fact]
-    public void Validator_WhenIdsAreEmpty_ShouldHaveErrors()
+    public void Validator_WhenComprobanteOrigenIdIsEmpty_ShouldHaveErrors()
     {
         // Arrange
         var command = new ProcesarDevolucionCommand(
-            Guid.Empty,
             Guid.Empty,
             "07",
             "Motivo",
@@ -49,7 +47,6 @@ public class ProcesarDevolucionCommandValidatorTests
         // Assert
         _ = result.IsValid.Should().BeFalse();
         _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(command.ComprobanteOrigenId));
-        _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(command.EmpleadoAutorizaId));
     }
 
     [Fact]
@@ -57,7 +54,6 @@ public class ProcesarDevolucionCommandValidatorTests
     {
         // Arrange
         var command = new ProcesarDevolucionCommand(
-            Guid.NewGuid(),
             Guid.NewGuid(),
             "", // Empty Motivo
             new string('a', 256), // Exceeds max length
@@ -78,7 +74,6 @@ public class ProcesarDevolucionCommandValidatorTests
     {
         // Arrange
         var command = new ProcesarDevolucionCommand(
-            Guid.NewGuid(),
             Guid.NewGuid(),
             "07",
             "Motivo",
@@ -101,7 +96,6 @@ public class ProcesarDevolucionCommandValidatorTests
     {
         // Arrange
         var command = new ProcesarDevolucionCommand(
-            Guid.NewGuid(),
             Guid.NewGuid(),
             "07",
             "Motivo",

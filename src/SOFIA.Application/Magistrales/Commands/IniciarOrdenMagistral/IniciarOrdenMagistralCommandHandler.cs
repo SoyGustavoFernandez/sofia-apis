@@ -1,23 +1,50 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Magistrales.Commands.IniciarOrdenMagistral;
 
-public class IniciarOrdenMagistralCommandHandler(IApplicationDbContext dbContext) : IRequestHandler<IniciarOrdenMagistralCommand, Result<Guid>>
+public class IniciarOrdenMagistralCommandHandler(IApplicationDbContext dbContext, ICurrentUser currentUser) : IRequestHandler<IniciarOrdenMagistralCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(IniciarOrdenMagistralCommand request, CancellationToken cancellationToken)
     {
+        // The preparing chemist and the branch whose stock is consumed come from the session
+        var sucursalResult = currentUser.GetSucursalId();
+        if (sucursalResult.IsFailure)
+        {
+            return Result.Failure<Guid>(sucursalResult.Error);
+        }
+
+        var empleadoResult = currentUser.GetEmpleadoId();
+        if (empleadoResult.IsFailure)
+        {
+            return Result.Failure<Guid>(empleadoResult.Error);
+        }
+
+        var sucursalId = sucursalResult.Value;
+
+        if (!await dbContext.Medicamentos.AnyAsync(m => m.Id == request.ProductoResultanteId, cancellationToken))
+        {
+            return Result.Failure<Guid>(Error.NotFound("Medicamento.NotFound", "The specified product does not exist."), 404);
+        }
+
+        if (request.RecetaId is { } recetaId
+            && !await dbContext.Recetas.AnyAsync(r => r.Id == recetaId, cancellationToken))
+        {
+            return Result.Failure<Guid>(Error.NotFound("RecetaMedica.NotFound", "Receta médica not found."), 404);
+        }
+
         // 1. Create production order
         var ordenResult = MagistralOrdenProduccion.Create(
-            request.SucursalId,
+            sucursalId,
             request.RecetaId,
             request.ProductoResultanteId,
             null, // LoteGeneradoId is null until completed
             request.CantidadProducida,
-            request.QuimicoPreparadorId,
+            empleadoResult.Value,
             "Iniciada",
             DateTime.UtcNow
         );
@@ -32,9 +59,10 @@ public class IniciarOrdenMagistralCommandHandler(IApplicationDbContext dbContext
         // 2. Descontar Insumos y Guardar Consumos
         foreach (var dto in request.Consumos)
         {
+            // Only the operator's own branch stock may be consumed
             var inventario = await dbContext.LotesEnSucursal
                 .Include(i => i.Lote)
-                .FirstOrDefaultAsync(i => i.Id == dto.InventarioSucursalId, cancellationToken);
+                .FirstOrDefaultAsync(i => i.Id == dto.InventarioSucursalId && i.SucursalId == sucursalId, cancellationToken);
 
             if (inventario == null)
             {

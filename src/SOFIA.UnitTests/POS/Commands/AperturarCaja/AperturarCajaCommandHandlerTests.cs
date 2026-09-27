@@ -9,63 +9,79 @@ namespace SOFIA.UnitTests.POS.Commands.AperturarCaja;
 
 public class AperturarCajaCommandHandlerTests
 {
-    private readonly Mock<IApplicationDbContext> _dbContextMock;
-    private readonly AperturarCajaCommandHandler _handler;
+    private readonly Mock<IApplicationDbContext> _dbContextMock = new();
+    private readonly Mock<ICurrentUser> _currentUserMock = new();
     private readonly List<PosSesionCaja> _sesionesList = [];
 
     private readonly Guid _sucursalId = Guid.NewGuid();
     private readonly Guid _empleadoId = Guid.NewGuid();
-    private readonly DateTime _fechaApertura = new(2026, 1, 15, 8, 0, 0, DateTimeKind.Utc);
 
     public AperturarCajaCommandHandlerTests()
     {
-        _dbContextMock = new Mock<IApplicationDbContext>();
+        _ = _currentUserMock.Setup(u => u.IsAuthenticated).Returns(true);
+        _ = _currentUserMock.Setup(u => u.SucursalId).Returns(_sucursalId.ToString());
+        _ = _currentUserMock.Setup(u => u.Id).Returns(_empleadoId.ToString());
+    }
 
+    private AperturarCajaCommandHandler CreateHandler()
+    {
         var sesionesDbSetMock = _sesionesList.BuildMockDbSet();
         _ = sesionesDbSetMock.Setup(d => d.Add(It.IsAny<PosSesionCaja>())).Callback<PosSesionCaja>(_sesionesList.Add);
         _ = _dbContextMock.Setup(c => c.POSSesionesCaja).Returns(sesionesDbSetMock.Object);
 
-        _handler = new AperturarCajaCommandHandler(_dbContextMock.Object);
+        return new AperturarCajaCommandHandler(_dbContextMock.Object, _currentUserMock.Object);
     }
 
     [Fact]
-    public async Task Handle_ShouldCreateSesion_WhenAllFieldsAreValid()
+    public async Task Handle_ShouldTakeCashierBranchAndTimeFromSession_WhenOpeningCaja()
     {
-        var command = new AperturarCajaCommand(_sucursalId, _empleadoId, _fechaApertura, 500m);
+        var antes = DateTime.UtcNow;
 
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await CreateHandler().Handle(new AperturarCajaCommand(500m), CancellationToken.None);
 
         _ = result.IsSuccess.Should().BeTrue();
-        _ = _sesionesList.Should().ContainSingle();
-        _ = _sesionesList[0].SucursalId.Should().Be(_sucursalId);
-        _ = _sesionesList[0].EmpleadoId.Should().Be(_empleadoId);
-        _ = _sesionesList[0].MontoAperturaEfectivo.Should().Be(500m);
-        _ = result.Value.Should().Be(_sesionesList[0].Id);
+        var sesion = _sesionesList.Should().ContainSingle().Subject;
+        _ = sesion.SucursalId.Should().Be(_sucursalId);
+        _ = sesion.EmpleadoId.Should().Be(_empleadoId);
+        _ = sesion.FechaHoraApertura.Should().BeOnOrAfter(antes).And.BeOnOrBefore(DateTime.UtcNow);
+        _ = sesion.MontoAperturaEfectivo.Should().Be(500m);
+        _ = result.Value.Should().Be(sesion.Id);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task Handle_ShouldReturnError_WhenSucursalIdIsEmpty()
+    public async Task Handle_ShouldReturnConflict_WhenCashierAlreadyHasOpenCaja()
     {
-        var command = new AperturarCajaCommand(Guid.Empty, _empleadoId, _fechaApertura, 500m);
+        _sesionesList.Add(PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow.AddHours(-2), 100m).Value!);
 
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await CreateHandler().Handle(new AperturarCajaCommand(500m), CancellationToken.None);
 
         _ = result.IsFailure.Should().BeTrue();
-        _ = result.Error.Code.Should().Be("PosSesionCaja.SucursalId");
-        _ = _sesionesList.Should().BeEmpty();
-        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _ = result.StatusCode.Should().Be(409);
+        _ = result.Error.Code.Should().Be("PosSesionCaja.YaAbierta");
+        _ = _sesionesList.Should().ContainSingle();
     }
 
     [Fact]
-    public async Task Handle_ShouldReturnError_WhenEmpleadoIdIsEmpty()
+    public async Task Handle_ShouldOpenCaja_WhenOnlyAnotherCashierHasOpenCaja()
     {
-        var command = new AperturarCajaCommand(_sucursalId, Guid.Empty, _fechaApertura, 500m);
+        _sesionesList.Add(PosSesionCaja.Create(_sucursalId, Guid.NewGuid(), DateTime.UtcNow.AddHours(-2), 100m).Value!);
 
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await CreateHandler().Handle(new AperturarCajaCommand(500m), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = _sesionesList.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnError_WhenUserHasNoActiveBranch()
+    {
+        _ = _currentUserMock.Setup(u => u.SucursalId).Returns((string?)null);
+
+        var result = await CreateHandler().Handle(new AperturarCajaCommand(500m), CancellationToken.None);
 
         _ = result.IsFailure.Should().BeTrue();
-        _ = result.Error.Code.Should().Be("PosSesionCaja.EmpleadoId");
+        _ = result.Error.Code.Should().Be("Auth.Sucursal");
         _ = _sesionesList.Should().BeEmpty();
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -73,22 +89,17 @@ public class AperturarCajaCommandHandlerTests
     [Fact]
     public async Task Handle_ShouldReturnError_WhenMontoAperturaIsNegative()
     {
-        var command = new AperturarCajaCommand(_sucursalId, _empleadoId, _fechaApertura, -1m);
-
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await CreateHandler().Handle(new AperturarCajaCommand(-1m), CancellationToken.None);
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("PosSesionCaja.MontoAperturaEfectivo");
         _ = _sesionesList.Should().BeEmpty();
-        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task Handle_ShouldSucceed_WhenMontoAperturaIsZero()
     {
-        var command = new AperturarCajaCommand(_sucursalId, _empleadoId, _fechaApertura, 0m);
-
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await CreateHandler().Handle(new AperturarCajaCommand(0m), CancellationToken.None);
 
         _ = result.IsSuccess.Should().BeTrue();
         _ = _sesionesList.Should().ContainSingle();

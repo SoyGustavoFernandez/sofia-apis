@@ -109,4 +109,35 @@ public class ProcesarDevolucionCommandValidatorTests
         _ = result.IsValid.Should().BeFalse();
         _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(command.Detalles));
     }
+
+    [Fact]
+    public void Validator_WhenDestinoIsNotADefinedValue_ShouldHaveErrors()
+    {
+        var command = new ProcesarDevolucionCommand(Guid.NewGuid(), "07", "Motivo", [new DevolucionDetalleDto(Guid.NewGuid(), 1m, (DestinoDevolucion)99)]);
+
+        var result = _validator.Validate(command);
+
+        _ = result.IsValid.Should().BeFalse();
+        _ = result.Errors.Should().Contain(e => e.PropertyName == "Detalles[0].DestinoFisicoLogico");
+    }
+
+    [Fact]
+    public void Validator_WhenMetodoReembolsoIsNotADefinedValue_ShouldHaveErrors()
+    {
+        var command = new ProcesarDevolucionCommand(Guid.NewGuid(), "07", "Motivo", [new DevolucionDetalleDto(Guid.NewGuid(), 1m, DestinoDevolucion.Reingreso_Venta)], (MetodoPago)99);
+
+        var result = _validator.Validate(command);
+
+        _ = result.IsValid.Should().BeFalse();
+        _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(command.MetodoReembolso));
+    }
+
+    [Fact]
+    public void Validator_WhenMetodoReembolsoIsOmitted_ShouldDefaultToEfectivo()
+    {
+        var command = new ProcesarDevolucionCommand(Guid.NewGuid(), "07", "Motivo", [new DevolucionDetalleDto(Guid.NewGuid(), 1m, DestinoDevolucion.Reingreso_Venta)]);
+
+        _ = command.MetodoReembolso.Should().Be(MetodoPago.Efectivo);
+        _ = _validator.Validate(command).IsValid.Should().BeTrue();
+    }
 }

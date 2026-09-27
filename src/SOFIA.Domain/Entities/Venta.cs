@@ -86,7 +86,7 @@ public sealed class Venta : BaseEntity
 
         if (Estado == EstadoVenta.Devuelta)
         {
-            return Result.Failure(Error.Validation("Venta.Anular", "Cannot cancel a sale with returns. Use the returns module."));
+            return Result.Failure(Error.Validation("Venta.Anular.ConDevoluciones", "Cannot cancel a sale with returns. Use the returns module."));
         }
 
         if (string.IsNullOrWhiteSpace(motivo))
@@ -98,6 +98,50 @@ public sealed class Venta : BaseEntity
         MotivoAnulacion = motivo;
 
         return Result.Success();
+    }
+
+    // Quantities are in base units; each line is capped at what was sold minus earlier returns and the credited amount is returned
+    public Result<decimal> RegistrarDevolucion(IReadOnlyDictionary<Guid, decimal> cantidadesADevolver, IReadOnlyDictionary<Guid, decimal> cantidadesYaDevueltas)
+    {
+        if (Estado != EstadoVenta.Completada)
+        {
+            return Result.Failure<decimal>(Error.Validation("Devolucion.Venta.EstadoInvalido", "Only a completed sale can be returned."));
+        }
+
+        if (cantidadesADevolver.Count == 0)
+        {
+            return Result.Failure<decimal>(Error.Validation("DevolucionCabecera.Detalles", "A return must contain at least one detail line."));
+        }
+
+        var montoDevuelto = 0m;
+        foreach (var (detalleId, cantidad) in cantidadesADevolver)
+        {
+            var detalle = _detalles.Find(d => d.Id == detalleId);
+            if (detalle == null)
+            {
+                return Result.Failure<decimal>(Error.NotFound("DetalleVenta.NotFound", $"Sale line {detalleId} was not found."));
+            }
+
+            if (cantidad <= 0)
+            {
+                return Result.Failure<decimal>(Error.Validation("DevolucionDetalle.CantidadDevuelta", "Cantidad devuelta must be greater than zero."));
+            }
+
+            if (cantidadesYaDevueltas.GetValueOrDefault(detalleId) + cantidad > detalle.CantidadVendida)
+            {
+                return Result.Failure<decimal>(Error.Validation("Devolucion.Cantidad.Excedida", $"The returned quantity exceeds what remains to be returned on sale line {detalleId}."));
+            }
+
+            montoDevuelto += cantidad * detalle.PrecioFijadoUnidad;
+        }
+
+        // Partial returns keep the sale Completada (CHK_Venta_Estado has no partial state); what remains is derived from the return lines
+        if (_detalles.TrueForAll(d => cantidadesYaDevueltas.GetValueOrDefault(d.Id) + cantidadesADevolver.GetValueOrDefault(d.Id) >= d.CantidadVendida))
+        {
+            Estado = EstadoVenta.Devuelta;
+        }
+
+        return Result.Success(Math.Round(montoDevuelto, 2));
     }
 
     private void CalcularTotales() => MontoTotalBruto = _detalles.Sum(d => d.PrecioFijadoUnidad * d.CantidadVendida);
@@ -174,6 +218,12 @@ public sealed class Venta : BaseEntity
         if (vuelto > 0 && !pagos.Exists(p => p.MetodoPago == MetodoPago.Efectivo))
         {
             return Result.Failure(Error.Validation("Venta.Pagos", "Change can only be given when a cash payment is included."));
+        }
+
+        // Change comes out of the drawer, so it can never exceed the cash actually handed over
+        if (vuelto > pagos.Where(p => p.MetodoPago == MetodoPago.Efectivo).Sum(p => p.MontoPagado))
+        {
+            return Result.Failure(Error.Validation("Venta.Pagos.VueltoExcedeEfectivo", "The change cannot exceed the cash received."));
         }
 
         foreach (var pago in pagos)

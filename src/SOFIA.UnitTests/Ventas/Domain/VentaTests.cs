@@ -165,6 +165,137 @@ public class VentaTests
     }
 
     [Fact]
+    public void RegistrarPagos_ShouldFail_WhenChangeExceedsTheCashReceived()
+    {
+        var venta = Venta.Create(SucursalId, EmpleadoId, null, Guid.NewGuid(), [DetalleVenta.Create(Guid.NewGuid(), 1, 50, 5).Value!], EstadoVenta.Pendiente).Value!;
+        var tarjeta = VentaPago.Create(MetodoPago.Tarjeta, 100, "AUTH-1", DateTime.UtcNow).Value!;
+        var efectivo = VentaPago.Create(MetodoPago.Efectivo, 5, null, DateTime.UtcNow).Value!;
+
+        var result = venta.RegistrarPagos([tarjeta, efectivo]); // change 55 > cash 5
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Pagos.VueltoExcedeEfectivo");
+        _ = venta.Estado.Should().Be(EstadoVenta.Pendiente);
+        _ = venta.Pagos.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RegistrarPagos_ShouldAllowChange_WhenItIsCoveredByTheCashReceived()
+    {
+        var venta = Venta.Create(SucursalId, EmpleadoId, null, Guid.NewGuid(), [DetalleVenta.Create(Guid.NewGuid(), 1, 50, 5).Value!], EstadoVenta.Pendiente).Value!;
+        var tarjeta = VentaPago.Create(MetodoPago.Tarjeta, 30, "AUTH-1", DateTime.UtcNow).Value!;
+        var efectivo = VentaPago.Create(MetodoPago.Efectivo, 40, null, DateTime.UtcNow).Value!;
+
+        var result = venta.RegistrarPagos([tarjeta, efectivo]); // change 20 <= cash 40
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = venta.Estado.Should().Be(EstadoVenta.Completada);
+    }
+
+    [Fact]
+    public void Anular_ShouldFail_WhenVentaIsDevuelta()
+    {
+        var venta = CrearVenta();
+        var detalle = venta.Detalles.Single();
+        _ = venta.RegistrarDevolucion(new Dictionary<Guid, decimal> { [detalle.Id] = detalle.CantidadVendida }, new Dictionary<Guid, decimal>());
+
+        var result = venta.Anular("Cliente");
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Anular.ConDevoluciones");
+        _ = venta.Estado.Should().Be(EstadoVenta.Devuelta);
+    }
+
+    private static Venta CrearVentaDosLineas(out DetalleVenta linea1, out DetalleVenta linea2)
+    {
+        linea1 = DetalleVenta.Create(Guid.NewGuid(), 5, 10, 5).Value!;
+        linea2 = DetalleVenta.Create(Guid.NewGuid(), 2, 3.335m, 1).Value!;
+        return Venta.Create(SucursalId, EmpleadoId, null, Guid.NewGuid(), [linea1, linea2]).Value!;
+    }
+
+    [Fact]
+    public void RegistrarDevolucion_ShouldReturnTheCreditedAmount_AndKeepCompletada_WhenPartial()
+    {
+        var venta = CrearVentaDosLineas(out var linea1, out var linea2);
+
+        var result = venta.RegistrarDevolucion(
+            new Dictionary<Guid, decimal> { [linea1.Id] = 2, [linea2.Id] = 1 },
+            new Dictionary<Guid, decimal> { [linea1.Id] = 1 });
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value.Should().Be(23.34m); // 2 x 10 + 1 x 3.335 rounded
+        _ = venta.Estado.Should().Be(EstadoVenta.Completada);
+    }
+
+    [Fact]
+    public void RegistrarDevolucion_ShouldMarkDevuelta_WhenEveryLineIsFullyReturned()
+    {
+        var venta = CrearVentaDosLineas(out var linea1, out var linea2);
+
+        var result = venta.RegistrarDevolucion(
+            new Dictionary<Guid, decimal> { [linea1.Id] = 3, [linea2.Id] = 2 },
+            new Dictionary<Guid, decimal> { [linea1.Id] = 2 });
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = venta.Estado.Should().Be(EstadoVenta.Devuelta);
+    }
+
+    [Fact]
+    public void RegistrarDevolucion_ShouldFail_WhenPreviousPlusRequestedExceedsSold()
+    {
+        var venta = CrearVentaDosLineas(out var linea1, out _);
+
+        var result = venta.RegistrarDevolucion(
+            new Dictionary<Guid, decimal> { [linea1.Id] = 2 },
+            new Dictionary<Guid, decimal> { [linea1.Id] = 4 });
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Devolucion.Cantidad.Excedida");
+        _ = venta.Estado.Should().Be(EstadoVenta.Completada);
+    }
+
+    [Fact]
+    public void RegistrarDevolucion_ShouldFail_WhenLineDoesNotBelongToTheSale()
+    {
+        var venta = CrearVenta();
+
+        var result = venta.RegistrarDevolucion(new Dictionary<Guid, decimal> { [Guid.NewGuid()] = 1 }, new Dictionary<Guid, decimal>());
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("DetalleVenta.NotFound");
+    }
+
+    [Theory]
+    [InlineData(EstadoVenta.Pendiente)]
+    [InlineData(EstadoVenta.Anulada)]
+    public void RegistrarDevolucion_ShouldFail_WhenVentaIsNotCompletada(EstadoVenta estado)
+    {
+        var venta = CrearVenta(EstadoVenta.Pendiente);
+        if (estado == EstadoVenta.Anulada)
+        {
+            _ = venta.Anular("Error");
+        }
+
+        var result = venta.RegistrarDevolucion(new Dictionary<Guid, decimal> { [venta.Detalles.Single().Id] = 1 }, new Dictionary<Guid, decimal>());
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Devolucion.Venta.EstadoInvalido");
+    }
+
+    [Fact]
+    public void RegistrarDevolucion_ShouldFail_WhenVentaIsAlreadyDevuelta()
+    {
+        var venta = CrearVenta();
+        var detalleId = venta.Detalles.Single().Id;
+        _ = venta.RegistrarDevolucion(new Dictionary<Guid, decimal> { [detalleId] = 1 }, new Dictionary<Guid, decimal>());
+
+        var result = venta.RegistrarDevolucion(new Dictionary<Guid, decimal> { [detalleId] = 1 }, new Dictionary<Guid, decimal> { [detalleId] = 1 });
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Devolucion.Venta.EstadoInvalido");
+    }
+
+    [Fact]
     public void AsignarSesion_ShouldFail_WhenSesionIdIsEmpty()
     {
         var venta = CrearVenta(EstadoVenta.Pendiente);

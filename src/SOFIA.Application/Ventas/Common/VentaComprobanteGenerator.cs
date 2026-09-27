@@ -32,10 +32,11 @@ public static class VentaComprobanteGenerator
         }
 
         var total = venta.MontoTotalBruto;
+        var (gravado, igv) = DesglosarIgv(total);
         var comprobanteResult = SunatComprobanteEmitido.Create(
             venta.Id, serie.Id, correlativo,
             "1", "00000000", "CLIENTE EVENTUAL",
-            total * 0.82m, 0, total * 0.18m, total,
+            gravado, 0, igv, total,
             "HASH_SIMULATED_" + Guid.NewGuid().ToString("N")[..8],
             "Aceptado",
             $"/comprobantes/XML_{correlativo}.xml",
@@ -56,4 +57,7 @@ public static class VentaComprobanteGenerator
             comprobanteResult.Value.RutaArchivoXml,
             comprobanteResult.Value.RutaArchivoCdr);
     }
+
+    // Single taxable-base/IGV split shared by the boleta and the credit notes that reverse it
+    public static (decimal Gravado, decimal Igv) DesglosarIgv(decimal total) => (total * 0.82m, total * 0.18m);
 }

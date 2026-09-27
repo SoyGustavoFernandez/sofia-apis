@@ -13,7 +13,7 @@ public class DevolucionesController(ISender sender) : ControllerBase
     public async Task<IActionResult> ProcesarDevolucion([FromBody] ProcesarDevolucionCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.ToActionResult();
     }
 
     [HasPermission("Devoluciones", "Leer")]

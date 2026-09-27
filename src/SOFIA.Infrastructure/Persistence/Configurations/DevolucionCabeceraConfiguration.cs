@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SOFIA.Domain.Entities;
+using SOFIA.Domain.Enums;
+using SOFIA.Infrastructure.Persistence.Converters;
 
 namespace SOFIA.Infrastructure.Persistence.Configurations;
 
@@ -41,6 +43,18 @@ public class DevolucionCabeceraConfiguration : IEntityTypeConfiguration<Devoluci
             .HasColumnName("Fecha_Devolucion")
             .IsRequired();
 
+        _ = builder.Property(x => x.SesionId)
+            .HasColumnName("Sesion_ID");
+
+        _ = builder.Property(x => x.MontoReembolsado)
+            .HasColumnName("Monto_Reembolsado")
+            .HasPrecision(12, 2);
+
+        _ = builder.Property(x => x.MetodoReembolso)
+            .HasConversion(new EnumDescriptionConverter<MetodoPago>())
+            .HasColumnName("Metodo_Reembolso")
+            .HasMaxLength(50);
+
         // Audit & Soft Delete
         _ = builder.Property(x => x.CreatedAt).HasColumnName("CreatedAt");
         _ = builder.Property(x => x.CreatedBy).HasColumnName("CreatedBy");
@@ -54,6 +68,21 @@ public class DevolucionCabeceraConfiguration : IEntityTypeConfiguration<Devoluci
         _ = builder.HasOne(x => x.EmpleadoAutoriza)
             .WithMany()
             .HasForeignKey(x => x.EmpleadoAutorizaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.HasOne<SunatComprobanteEmitido>()
+            .WithMany()
+            .HasForeignKey(x => x.ComprobanteOrigenId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.HasOne<SunatComprobanteEmitido>()
+            .WithMany()
+            .HasForeignKey(x => x.ComprobanteNcId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.HasOne<PosSesionCaja>()
+            .WithMany()
+            .HasForeignKey(x => x.SesionId)
             .OnDelete(DeleteBehavior.Restrict);
 
         _ = builder.HasMany(x => x.Detalles)

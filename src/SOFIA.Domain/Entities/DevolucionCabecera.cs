@@ -14,6 +14,9 @@ public sealed class DevolucionCabecera : BaseEntity
     public string MotivoSunatCatalogo { get; private set; } = string.Empty;
     public string SustentoDescriptivo { get; private set; } = string.Empty;
     public DateTime FechaDevolucion { get; private set; }
+    public Guid? SesionId { get; private set; }
+    public decimal? MontoReembolsado { get; private set; }
+    public Enums.MetodoPago? MetodoReembolso { get; private set; }
 
     // Navigation Properties
     public Empleado? EmpleadoAutoriza { get; }
@@ -126,6 +129,26 @@ public sealed class DevolucionCabecera : BaseEntity
         MotivoSunatCatalogo = motivoSunatCatalogo;
         SustentoDescriptivo = sustentoDescriptivo;
         FechaDevolucion = fechaDevolucion;
+
+        return Result.Success();
+    }
+
+    // The refund leaves the drawer of the given cash session, so cash refunds reduce that session's arqueo
+    public Result RegistrarReembolso(Guid sesionId, decimal montoReembolsado, Enums.MetodoPago metodoReembolso)
+    {
+        if (sesionId == Guid.Empty)
+        {
+            return Result.Failure(Error.Validation("DevolucionCabecera.SesionId", "A cash register session is required to refund a return."));
+        }
+
+        if (montoReembolsado < 0)
+        {
+            return Result.Failure(Error.Validation("DevolucionCabecera.MontoReembolsado", "The refunded amount cannot be negative."));
+        }
+
+        SesionId = sesionId;
+        MontoReembolsado = montoReembolsado;
+        MetodoReembolso = metodoReembolso;
 
         return Result.Success();
     }

@@ -9,11 +9,13 @@ public class ProcesarDevolucionCommandValidator : AbstractValidator<ProcesarDevo
         _ = RuleFor(v => v.ComprobanteOrigenId).NotEmpty();
         _ = RuleFor(v => v.MotivoSunatCatalogo).NotEmpty().MaximumLength(2);
         _ = RuleFor(v => v.SustentoDescriptivo).NotEmpty().MaximumLength(255);
+        _ = RuleFor(v => v.MetodoReembolso).IsInEnum();
         _ = RuleFor(v => v.Detalles).NotEmpty();
         _ = RuleForEach(v => v.Detalles).ChildRules(detalles =>
         {
             _ = detalles.RuleFor(d => d.DetalleVentaId).NotEmpty();
             _ = detalles.RuleFor(d => d.CantidadDevuelta).GreaterThan(0);
+            _ = detalles.RuleFor(d => d.DestinoFisicoLogico).IsInEnum();
         });
     }
 }

@@ -41,7 +41,7 @@ public class VentasController(ISender sender) : ControllerBase
         return result.ToActionResult();
     }
 
-    [HasPermission("Ventas", "Actualizar")]
+    [HasPermission("Ventas", "Anular")]
     [HttpPut("{id:guid}/anular")]
     public async Task<IActionResult> Anular(Guid id, [FromBody] string motivo)
     {

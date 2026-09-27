@@ -7,9 +7,13 @@ namespace SOFIA.Application.POS.Common;
 
 public static class ArqueoCajaCalculator
 {
-    // Expected drawer cash = opening float + cash received - change given on the session's collected, non-voided sales
+    // Expected drawer cash = opening float + cash received - change given on the session's collected, non-voided sales - cash refunds of returns
     public static async Task<decimal> CalcularEfectivoEsperadoAsync(IApplicationDbContext context, PosSesionCaja sesion, CancellationToken cancellationToken)
     {
+        var reembolsosEfectivo = await context.Devoluciones.AsNoTracking()
+            .Where(d => d.SesionId == sesion.Id && !d.IsDeleted && d.MetodoReembolso == MetodoPago.Efectivo)
+            .SumAsync(d => d.MontoReembolsado ?? 0m, cancellationToken);
+
         var ventas = await context.Ventas.AsNoTracking()
             .Where(v => v.SesionId == sesion.Id && !v.IsDeleted && v.Estado != EstadoVenta.Anulada && v.Estado != EstadoVenta.Pendiente)
             .Select(v => new { v.Id, v.MontoTotalBruto })
@@ -17,7 +21,7 @@ public static class ArqueoCajaCalculator
 
         if (ventas.Count == 0)
         {
-            return sesion.MontoAperturaEfectivo;
+            return sesion.MontoAperturaEfectivo - reembolsosEfectivo;
         }
 
         var ventaIds = ventas.Select(v => v.Id).ToList();
@@ -42,7 +46,6 @@ public static class ArqueoCajaCalculator
             return pagosVenta.Where(p => p.MetodoPago == MetodoPago.Efectivo).Sum(p => p.MontoPagado) - vuelto;
         });
 
-        // Returns record no cash refund yet; refunds get subtracted here with the returns task (T3)
-        return sesion.MontoAperturaEfectivo + efectivoNeto;
+        return sesion.MontoAperturaEfectivo + efectivoNeto - reembolsosEfectivo;
     }
 }

@@ -44,6 +44,10 @@ public sealed class TransferenciaConfiguration : IEntityTypeConfiguration<Transf
         _ = builder.Property(x => x.FechaRecepcion)
             .HasColumnName("Fecha_Recepcion");
 
+        _ = builder.Property(x => x.RowVersion)
+            .HasColumnName("RowVersion")
+            .IsRowVersion();
+
         // Audit properties mapping
         _ = builder.Property(x => x.CreatedAt).HasColumnName("CreatedAt");
         _ = builder.Property(x => x.CreatedBy).HasColumnName("CreatedBy");

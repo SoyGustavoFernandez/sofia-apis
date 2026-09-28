@@ -228,6 +228,30 @@ public class VentaTests
     }
 
     [Fact]
+    public void RegistrarDevolucion_ShouldTouchTheSale_WhenPartialSoConcurrentReturnsConflictOnRowVersion()
+    {
+        var venta = CrearVentaDosLineas(out var linea1, out _);
+        var antes = DateTimeOffset.UtcNow;
+
+        var result = venta.RegistrarDevolucion(new Dictionary<Guid, decimal> { [linea1.Id] = 1 }, new Dictionary<Guid, decimal>());
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = venta.Estado.Should().Be(EstadoVenta.Completada);
+        _ = venta.LastModifiedAt.Should().NotBeNull().And.BeOnOrAfter(antes);
+    }
+
+    [Fact]
+    public void RegistrarDevolucion_ShouldNotTouchTheSale_WhenRejected()
+    {
+        var venta = CrearVentaDosLineas(out var linea1, out _);
+
+        var result = venta.RegistrarDevolucion(new Dictionary<Guid, decimal> { [linea1.Id] = 99 }, new Dictionary<Guid, decimal>());
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = venta.LastModifiedAt.Should().BeNull();
+    }
+
+    [Fact]
     public void RegistrarDevolucion_ShouldMarkDevuelta_WhenEveryLineIsFullyReturned()
     {
         var venta = CrearVentaDosLineas(out var linea1, out var linea2);

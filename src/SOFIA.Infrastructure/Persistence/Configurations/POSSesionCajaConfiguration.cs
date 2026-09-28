@@ -56,6 +56,10 @@ public class PosSesionCajaConfiguration : IEntityTypeConfiguration<PosSesionCaja
             .HasMaxLength(20)
             .IsRequired();
 
+        _ = builder.Property(x => x.RowVersion)
+            .HasColumnName("RowVersion")
+            .IsRowVersion();
+
         // Audit properties mapping
         _ = builder.Property(x => x.CreatedAt).HasColumnName("CreatedAt");
         _ = builder.Property(x => x.CreatedBy).HasColumnName("CreatedBy");
@@ -79,6 +83,11 @@ public class PosSesionCajaConfiguration : IEntityTypeConfiguration<PosSesionCaja
         // Indexes
         _ = builder.HasIndex(x => x.SucursalId);
         _ = builder.HasIndex(x => x.EmpleadoId);
+
+        // A cashier can hold a single open drawer; closes the race between the pre-check and the insert
+        _ = builder.HasIndex(x => x.EmpleadoId, "UX_POS_Sesiones_Caja_Empleado_Abierta")
+            .IsUnique()
+            .HasFilter("[Estado_Sesion] = 'Abierta' AND [IsDeleted] = 0");
 
         // Soft delete query filter
     }

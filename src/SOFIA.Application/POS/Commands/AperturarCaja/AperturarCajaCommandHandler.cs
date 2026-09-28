@@ -9,6 +9,8 @@ namespace SOFIA.Application.POS.Commands.AperturarCaja;
 
 public class AperturarCajaCommandHandler(IApplicationDbContext dbContext, ICurrentUser currentUser) : IRequestHandler<AperturarCajaCommand, Result<Guid>>
 {
+    private const string SesionAbiertaIndexName = "UX_POS_Sesiones_Caja_Empleado_Abierta";
+
     public async Task<Result<Guid>> Handle(AperturarCajaCommand request, CancellationToken cancellationToken)
     {
         // Cashier, branch and opening time come from the session so the cash count is always attributed to its real owner
@@ -28,7 +30,7 @@ public class AperturarCajaCommandHandler(IApplicationDbContext dbContext, ICurre
             .AnyAsync(s => s.EmpleadoId == empleadoResult.Value && s.EstadoSesion == EstadoSesion.Abierta, cancellationToken);
         if (yaTieneCajaAbierta)
         {
-            return Result.Failure<Guid>(Error.Conflict("PosSesionCaja.YaAbierta", "Ya tienes una caja abierta. Ciérrala antes de abrir otra."), 409);
+            return YaAbierta();
         }
 
         var createResult = Domain.Entities.PosSesionCaja.Create(sucursalResult.Value, empleadoResult.Value, DateTime.UtcNow, request.MontoAperturaEfectivo);
@@ -39,8 +41,20 @@ public class AperturarCajaCommandHandler(IApplicationDbContext dbContext, ICurre
 
         var entity = createResult.Value!;
         _ = dbContext.POSSesionesCaja.Add(entity);
-        _ = await dbContext.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueIndexViolation(SesionAbiertaIndexName))
+        {
+            // A concurrent request opened a drawer for this cashier between the pre-check and the insert
+            return YaAbierta();
+        }
 
         return Result.Success(entity.Id);
     }
+
+    private static Result<Guid> YaAbierta() =>
+        Result.Failure<Guid>(Error.Conflict("PosSesionCaja.YaAbierta", "Ya tienes una caja abierta. Ciérrala antes de abrir otra."), 409);
 }

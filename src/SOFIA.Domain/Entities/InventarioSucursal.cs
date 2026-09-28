@@ -10,6 +10,9 @@ public sealed class InventarioSucursal : BaseEntity
     public Guid LoteId { get; private set; }
     public decimal CantidadFisica { get; private set; }
 
+    // Concurrency token: a stock write based on a stale read fails instead of overwriting a concurrent sale or restock
+    public byte[] RowVersion { get; private set; } = [];
+
     // Navigation Properties
     public Sucursal? Sucursal { get; }
     public LoteInventario? Lote { get; }

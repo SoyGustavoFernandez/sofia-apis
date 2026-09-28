@@ -47,6 +47,10 @@ public class VentaConfiguration : IEntityTypeConfiguration<Venta>
             .HasColumnName("Motivo_Anulacion")
             .HasMaxLength(255);
 
+        _ = builder.Property(x => x.RowVersion)
+            .HasColumnName("RowVersion")
+            .IsRowVersion();
+
         _ = builder.HasOne(x => x.Sucursal)
             .WithMany()
             .HasForeignKey(x => x.SucursalId)

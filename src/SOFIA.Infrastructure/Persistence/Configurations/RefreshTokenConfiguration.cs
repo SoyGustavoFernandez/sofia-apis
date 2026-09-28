@@ -26,6 +26,8 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 
         _ = builder.Property(rt => rt.RevokedAt);
 
+        _ = builder.Property(rt => rt.RowVersion).IsRowVersion();
+
         _ = builder.HasIndex(rt => rt.TokenHash).IsUnique();
         _ = builder.HasIndex(rt => rt.CuentaId);
 

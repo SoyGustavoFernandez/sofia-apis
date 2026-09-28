@@ -15,6 +15,9 @@ public sealed class RefreshToken : BaseEntity
     public bool IsRevoked { get; private set; }
     public DateTimeOffset? RevokedAt { get; private set; }
 
+    // Concurrency token: only one of two concurrent refreshes can rotate the same token
+    public byte[] RowVersion { get; private set; } = [];
+
     public static RefreshToken Create(Guid cuentaId, string tokenHash, DateTimeOffset expiresAt) =>
         new()
         {

@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using MockQueryable.Moq;
 using Moq;
 using SOFIA.Application.Common.Interfaces;
@@ -60,6 +61,32 @@ public class AperturarCajaCommandHandlerTests
         _ = result.StatusCode.Should().Be(409);
         _ = result.Error.Code.Should().Be("PosSesionCaja.YaAbierta");
         _ = _sesionesList.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnConflict_WhenAConcurrentRequestOpenedACajaFirst()
+    {
+        var handler = CreateHandler();
+        _ = _dbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DbUpdateException("save failed", new InvalidOperationException("Cannot insert duplicate key row in object 'dbo.POS_Sesiones_Caja' with unique index 'UX_POS_Sesiones_Caja_Empleado_Abierta'.")));
+
+        var result = await handler.Handle(new AperturarCajaCommand(500m), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.StatusCode.Should().Be(409);
+        _ = result.Error.Code.Should().Be("PosSesionCaja.YaAbierta");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRethrow_WhenSaveFailsForAnotherReason()
+    {
+        var handler = CreateHandler();
+        _ = _dbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DbUpdateException("save failed", new InvalidOperationException("FK violation")));
+
+        var act = () => handler.Handle(new AperturarCajaCommand(500m), CancellationToken.None);
+
+        _ = await act.Should().ThrowAsync<DbUpdateException>();
     }
 
     [Fact]

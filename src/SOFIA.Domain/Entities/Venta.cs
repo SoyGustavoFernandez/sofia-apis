@@ -19,6 +19,9 @@ public sealed class Venta : BaseEntity
     public EstadoVenta Estado { get; private set; }
     public string? MotivoAnulacion { get; private set; }
 
+    // Concurrency token: two state transitions started from the same read cannot both be saved
+    public byte[] RowVersion { get; private set; } = [];
+
     // Navigation properties
     public Sucursal? Sucursal { get; }
     public Empleado? Empleado { get; }
@@ -140,6 +143,9 @@ public sealed class Venta : BaseEntity
         {
             Estado = EstadoVenta.Devuelta;
         }
+
+        // A partial return changes no column, so the sale is touched to bump its RowVersion and make concurrent returns conflict
+        LastModifiedAt = DateTimeOffset.UtcNow;
 
         return Result.Success(Math.Round(montoDevuelto, 2));
     }

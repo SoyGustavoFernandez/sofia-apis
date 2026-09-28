@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using MockQueryable.Moq;
 using Moq;
@@ -138,6 +139,39 @@ public class RefreshTokenCommandHandlerTests
         _ = currentSession.IsRevoked.Should().BeFalse(because: "two tabs refreshing at once is not theft");
         _ = _cuenta.SecurityStamp.Should().Be(stampBefore);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnUnauthorized_WhenAConcurrentRefreshRotatedTheTokenFirst()
+    {
+        _ = AddToken(RawToken);
+        SetupContext();
+        _ = _dbContextMock
+            .Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DbUpdateConcurrencyException("stale RowVersion"));
+
+        var result = await _handler.Handle(new RefreshTokenCommand(RawToken), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.StatusCode.Should().Be(401, because: "the losing refresh must look like any invalid token, not a server error");
+        _ = result.Error.Code.Should().Be("Auth.InvalidRefreshToken");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnUnauthorized_WhenRevokingAReplayedSessionHitsAConcurrentChange()
+    {
+        var replayed = AddToken(RawToken);
+        RevokeAt(replayed, DateTimeOffset.UtcNow.AddMinutes(-5));
+        _ = AddToken("current-session-token");
+        SetupContext();
+        _ = _dbContextMock
+            .Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DbUpdateConcurrencyException("stale RowVersion"));
+
+        var result = await _handler.Handle(new RefreshTokenCommand(RawToken), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.StatusCode.Should().Be(401);
     }
 
     [Fact]

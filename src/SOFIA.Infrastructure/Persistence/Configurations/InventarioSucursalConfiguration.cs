@@ -29,6 +29,10 @@ public sealed class InventarioSucursalConfiguration : IEntityTypeConfiguration<I
             .HasColumnType("DECIMAL(12,4)")
             .IsRequired();
 
+        _ = builder.Property(x => x.RowVersion)
+            .HasColumnName("RowVersion")
+            .IsRowVersion();
+
         // Audit properties mapping
         _ = builder.Property(x => x.CreatedAt).HasColumnName("CreatedAt");
         _ = builder.Property(x => x.CreatedBy).HasColumnName("CreatedBy");

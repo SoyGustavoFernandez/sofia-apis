@@ -16,6 +16,9 @@ public sealed class PosSesionCaja : BaseEntity
     public decimal? DiferenciaArqueo { get; private set; }
     public Enums.EstadoSesion EstadoSesion { get; private set; } = Enums.EstadoSesion.Abierta;
 
+    // Concurrency token: a session cannot be closed twice from the same read
+    public byte[] RowVersion { get; private set; } = [];
+
     // Navigation Properties
     public Sucursal? Sucursal { get; }
     public Empleado? Empleado { get; }

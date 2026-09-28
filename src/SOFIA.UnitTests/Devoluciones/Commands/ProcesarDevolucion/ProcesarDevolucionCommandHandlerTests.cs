@@ -247,6 +247,7 @@ public class ProcesarDevolucionCommandHandlerTests
         _ = inventario1.CantidadFisica.Should().Be(52m);
         _ = inventario2.CantidadFisica.Should().Be(20m);
         _ = venta.Estado.Should().Be(EstadoVenta.Completada);
+        _ = venta.LastModifiedAt.Should().NotBeNull(because: "the sale row must be written so a concurrent return on it hits its RowVersion");
 
         var devolucion = _devolucionesAgregadas.Should().ContainSingle().Subject;
         var nc = _comprobantesAgregados.Should().ContainSingle().Subject;

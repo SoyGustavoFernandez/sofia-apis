@@ -36,7 +36,15 @@ public class RefreshTokenCommandHandler(
         {
             if (stored.IsReuseAttempt(now))
             {
-                await RevokeSessionAsync(stored.CuentaId, cancellationToken);
+                try
+                {
+                    await RevokeSessionAsync(stored.CuentaId, cancellationToken);
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    // Another request touched one of the account's tokens meanwhile; the replay is still rejected
+                    logger.LogWarning(ex, "Concurrent change while revoking the sessions of account {CuentaId}.", stored.CuentaId);
+                }
             }
 
             return InvalidToken();
@@ -68,7 +76,15 @@ public class RefreshTokenCommandHandler(
         var newRefreshToken = DomainRefreshToken.Create(stored.CuentaId, tokenHash, expiry);
         _ = context.RefreshTokens.Add(newRefreshToken);
 
-        _ = await context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            _ = await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // A concurrent refresh rotated this token first; the loser gets no new pair so the session cannot fork
+            return InvalidToken();
+        }
 
         return Result.Success(new LoginResult(accessToken, rawToken, expiry));
     }

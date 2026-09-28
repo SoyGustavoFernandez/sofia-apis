@@ -17,6 +17,9 @@ public sealed class Transferencia : BaseEntity
     public DateTime FechaDespacho { get; private set; }
     public DateTime? FechaRecepcion { get; private set; }
 
+    // Concurrency token: receive and cancel cannot both succeed from the same in-transit read
+    public byte[] RowVersion { get; private set; } = [];
+
     // Navigation Properties
     public Sucursal? SucursalOrigen { get; }
     public Sucursal? SucursalDestino { get; }

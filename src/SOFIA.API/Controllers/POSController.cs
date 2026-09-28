@@ -15,7 +15,7 @@ public class PosController(ISender sender) : ControllerBase
     public async Task<IActionResult> AperturarCaja([FromBody] AperturarCajaCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.ToActionResult();
     }
     [HasPermission("POS", "CerrarCaja")]
     [HttpPost("cierre")]

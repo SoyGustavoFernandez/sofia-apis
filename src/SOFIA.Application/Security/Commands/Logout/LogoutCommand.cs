@@ -1,8 +1,6 @@
-using MediatR;
-using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
-using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Security.Commands.Logout;
 
-public record LogoutCommand(Guid CuentaId) : ICommand;
+// Either source identifies the session: the bearer's account, or the refresh cookie when the access token already expired
+public record LogoutCommand(Guid? CuentaId = null, string? RefreshToken = null) : ICommand;

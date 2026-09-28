@@ -63,18 +63,16 @@ public class AuthController(ISender sender) : ControllerBase
         return result.ToActionResult();
     }
 
-    [Authorize]
+    // Anonymous so an expired access token cannot leave the refresh cookie (and the session) alive on a shared PC
     [HttpPost("logout")]
+    [AllowAnonymous]
     public async Task<IActionResult> Logout()
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var cuentaId))
-        {
-            return Unauthorized();
-        }
+        Guid? cuentaId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+        var rawToken = Request.Cookies[RefreshTokenCookieExtensions.CookieName];
 
         Response.DeleteRefreshTokenCookie();
-        var result = await sender.Send(new LogoutCommand(cuentaId));
+        var result = await sender.Send(new LogoutCommand(cuentaId, rawToken));
         return result.ToActionResult();
     }
 

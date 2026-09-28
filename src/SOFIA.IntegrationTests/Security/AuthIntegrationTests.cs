@@ -97,6 +97,22 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
     }
 
     [Fact]
+    public async Task Logout_ShouldRevokeRefreshToken_WhenAccessTokenExpiredAndOnlyCookieIsPresent()
+    {
+        // Arrange — an expired bearer leaves the request anonymous, with no tenant and no account id
+        var (_, refreshToken) = await RegistrarEmpresaAnonimaAsync();
+
+        // Act
+        var logout = await Sender.Send(new LogoutCommand(RefreshToken: refreshToken));
+        var refresh = await Sender.Send(new RefreshTokenCommand(refreshToken));
+
+        // Assert
+        _ = logout.IsSuccess.Should().BeTrue();
+        _ = refresh.IsFailure.Should().BeTrue(because: "the refresh cookie alone must end the session");
+        _ = refresh.StatusCode.Should().Be(401);
+    }
+
+    [Fact]
     public async Task ResetPassword_ShouldRevokeRefreshToken_WhenIssuedDuringAnonymousSignUp()
     {
         // Arrange — the whole recovery flow is anonymous, like sign-up

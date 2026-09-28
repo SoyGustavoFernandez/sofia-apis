@@ -1,12 +1,8 @@
 using Microsoft.AspNetCore.RateLimiting;
-using SOFIA.Application.Common.Excel;
-using SOFIA.Application.Empresas.Commands.CargaMasivaEmpresas;
-using SOFIA.Application.Empresas.Commands.DeleteEmpresa;
 using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 using SOFIA.Application.Empresas.Commands.UpdateEmpresa;
 using SOFIA.Application.Empresas.Queries.GetEmpresaById;
 using SOFIA.Application.Empresas.Queries.GetEmpresas;
-using SOFIA.Application.Empresas.Queries.PreviewImportEmpresas;
 using SOFIA.Domain.Entities;
 using SOFIA.Infrastructure.Excel;
 
@@ -15,7 +11,7 @@ namespace SOFIA.API.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class EmpresasController(ISender sender, IExcelReaderService excelReader) : ControllerBase
+public class EmpresasController(ISender sender) : ControllerBase
 {
     /// <summary>
     /// Public registration: creates the company, main branch, admin user, and returns a JWT for immediate login.
@@ -74,14 +70,6 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
         return result.ToActionResult();
     }
 
-    [HasPermission("Empresas", "Eliminar")]
-    [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id)
-    {
-        var result = await sender.Send(new DeleteEmpresaCommand(id));
-        return result.ToActionResult();
-    }
-
     [HasPermission("Empresas", "Leer")]
     [HttpPost("exportar")]
     public async Task<IActionResult> Exportar([FromBody] EmpresaExportRequest request, CancellationToken cancellationToken)
@@ -120,37 +108,4 @@ public class EmpresasController(ISender sender, IExcelReaderService excelReader)
     }
 
     public record EmpresaExportRequest(string[] Headers, string YesLabel, string NoLabel, string? Nombre, EstadoEmpresa? Estado, DateTimeOffset? FechaVencimientoDesde, DateTimeOffset? FechaVencimientoHasta);
-
-    [HasPermission("Empresas", "Crear")]
-    [HttpGet("plantilla")]
-    public IActionResult GetPlantilla()
-    {
-        var columns = new[] { "Nombre", "RUC" };
-        var bytes = ExcelTemplateGenerator.GenerateTemplate(columns);
-        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-empresas.xlsx");
-    }
-
-    [HasPermission("Empresas", "Crear")]
-    [HttpPost("previsualizar")]
-    public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
-    {
-        if (file is null || file.Length == 0)
-        {
-            return BadRequest("Debe adjuntar un archivo Excel.");
-        }
-
-        var columns = new[] { "Nombre", "RUC" };
-        using var stream = file.OpenReadStream();
-        var rows = excelReader.ReadRows(stream, columns);
-        var result = await sender.Send(new PreviewImportEmpresasQuery(rows), cancellationToken);
-        return Ok(result);
-    }
-
-    [HasPermission("Empresas", "Crear")]
-    [HttpPost("carga-masiva")]
-    public async Task<IActionResult> CargaMasiva([FromBody] List<EmpresaImportRow> rows, CancellationToken cancellationToken)
-    {
-        var result = await sender.Send(new CargaMasivaEmpresasCommand(rows), cancellationToken);
-        return result.IsSuccess ? Ok(new { savedCount = result.Value }) : result.ToProblemResult();
-    }
 }

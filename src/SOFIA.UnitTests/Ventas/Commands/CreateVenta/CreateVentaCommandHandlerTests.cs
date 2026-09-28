@@ -264,6 +264,25 @@ public class CreateVentaCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldRejectPaidSale_WithoutConsumingCorrelative_WhenBranchHasNoActiveBoletaSeries()
+    {
+        // Arrange
+        var inventario = new List<InventarioSucursal> { InventarioSucursal.Create(_sucursalId, _loteId, 20).Value! };
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: inventario, series: []);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId, [new CreateVentaDetailDto(_loteId, 1)], [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.SerieBoleta.NoConfigurada");
+        _dbContextMock.Verify(c => c.IncrementarCorrelativoSunatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_ShouldCreateVentaPendiente_WithoutComprobante_WhenNoPagosProvided()
     {
         // Arrange
@@ -678,7 +697,7 @@ public class CreateVentaCommandHandlerTests
         sesionesCaja ??= [];
         cuarentenas ??= [];
         inventario ??= [];
-        series ??= [];
+        series ??= [SunatSerieFiscal.Create(_sucursalId, TipoComprobante.Boleta, "B001", 0, SunatSerieFiscal.EstadoActiva).Value!];
         presentaciones ??= [];
         historialPrecios ??= [];
         aseguradoras ??= [];
@@ -695,6 +714,7 @@ public class CreateVentaCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.DigemidInventarioCuarentena).Returns(cuarentenas.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.LotesEnSucursal).Returns(inventario.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.SUNATSeriesFiscales).Returns(series.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.IncrementarCorrelativoSunatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
         _ = _dbContextMock.Setup(c => c.PresentacionesVenta).Returns(presentaciones.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.Aseguradoras).Returns(aseguradoras.BuildMockDbSet().Object);
 

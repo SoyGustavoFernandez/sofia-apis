@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Ventas.Common;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Ventas.Queries.GetVentaById;
@@ -34,7 +35,10 @@ public class GetVentaByIdQueryHandler(
 
         var comprobante = await context.SUNATComprobantesEmitidos
             .Include(c => c.Serie)
-            .FirstOrDefaultAsync(c => c.TransaccionId == request.Id && !c.IsDeleted, cancellationToken);
+            .Where(c => c.TransaccionId == request.Id && !c.IsDeleted)
+            .Where(ComprobanteVentaFilters.EsBoletaOFactura)
+            .OrderBy(c => c.FechaEmision)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (venta == null)
         {

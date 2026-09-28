@@ -49,7 +49,8 @@ public class CompletarVentaCommandHandlerTests
 
         _ = _dbContextMock.Setup(c => c.Aseguradoras).Returns((aseguradoras ?? []).BuildMockDbSet().Object);
 
-        _ = _dbContextMock.Setup(c => c.SUNATSeriesFiscales).Returns((series ?? []).BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.SUNATSeriesFiscales).Returns((series ?? [SerieBoletaActiva()]).BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.IncrementarCorrelativoSunatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var pagosList = new List<VentaPago>();
         var pagosDbSetMock = pagosList.BuildMockDbSet();
@@ -141,6 +142,47 @@ public class CompletarVentaCommandHandlerTests
         _dbContextMock.Verify(c => c.VentasPagos.Add(It.IsAny<VentaPago>()), Times.Once);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_ShouldRejectSale_WithoutConsumingCorrelative_WhenBranchHasNoActiveBoletaSeries()
+    {
+        // Arrange: only an inactive boleta series and an active one of another branch
+        var inactiva = SunatSerieFiscal.Create(_sucursalId, TipoComprobante.Boleta, "B001", 5, SunatSerieFiscal.EstadoInactiva).Value!;
+        var otraSucursal = SunatSerieFiscal.Create(Guid.NewGuid(), TipoComprobante.Boleta, "B002", 5, SunatSerieFiscal.EstadoActiva).Value!;
+        var venta = CrearVentaPendiente();
+        SetupMocks([venta], series: [inactiva, otraSucursal]);
+        var command = new CompletarVentaCommand(venta.Id, [new CreateVentaPagoDto(MetodoPago.Efectivo, 20, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.SerieBoleta.NoConfigurada");
+        _dbContextMock.Verify(c => c.IncrementarCorrelativoSunatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldIssueComprobante_WithTheBranchActiveBoletaSeries()
+    {
+        // Arrange
+        var serie = SerieBoletaActiva("B007");
+        var venta = CrearVentaPendiente();
+        SetupMocks([venta], series: [serie]);
+        _ = _dbContextMock.Setup(c => c.IncrementarCorrelativoSunatAsync(serie.Id, It.IsAny<CancellationToken>())).ReturnsAsync(42);
+        var command = new CompletarVentaCommand(venta.Id, [new CreateVentaPagoDto(MetodoPago.Efectivo, 20, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value!.Comprobante!.Numero.Should().Be("B007-00000042");
+    }
+
+    private SunatSerieFiscal SerieBoletaActiva(string prefijo = "B001") =>
+        SunatSerieFiscal.Create(_sucursalId, TipoComprobante.Boleta, prefijo, 0, SunatSerieFiscal.EstadoActiva).Value!;
 
     [Fact]
     public async Task Handle_ShouldReturnError_WhenPaymentIsInsufficient()

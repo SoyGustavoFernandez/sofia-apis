@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SOFIA.Application.SeriesFiscales;
 using SOFIA.Domain.Entities;
 
 namespace SOFIA.Infrastructure.Persistence.Configurations;
@@ -107,6 +108,11 @@ public sealed class SunatComprobanteEmitidoConfiguration : IEntityTypeConfigurat
             .WithMany()
             .HasForeignKey(x => x.SerieId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // A fiscal number is issued once per series, deleted or not
+        _ = builder.HasIndex(x => new { x.SerieId, x.NumeroCorrelativo })
+            .HasDatabaseName(SerieFiscalIndexes.CorrelativoPorSerie)
+            .IsUnique();
 
         // Soft delete query filter
     }

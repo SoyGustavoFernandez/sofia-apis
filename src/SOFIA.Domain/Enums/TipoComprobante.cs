@@ -8,5 +8,6 @@ public enum TipoComprobante
     [Description("01")] Factura,
     [Description("03")] Boleta,
     [Description("07")] NotaCredito,
-    [Description("08")] NotaDebito
+    [Description("08")] NotaDebito,
+    [Description("PR")] Proforma
 }

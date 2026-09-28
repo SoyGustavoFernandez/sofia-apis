@@ -129,7 +129,7 @@ public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext, I
         }
 
         var serieNc = await dbContext.SUNATSeriesFiscales
-            .FirstOrDefaultAsync(s => s.SucursalId == venta.SucursalId && s.TipoComprobante == TipoComprobante.NotaCredito && s.EstadoSerie == "Activa" && !s.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(s => s.SucursalId == venta.SucursalId && s.TipoComprobante == TipoComprobante.NotaCredito && s.EstadoSerie == SunatSerieFiscal.EstadoActiva && !s.IsDeleted, cancellationToken);
 
         return serieNc == null
             ? Result.Failure<(SunatComprobanteEmitido, SunatSerieFiscal)>(Error.Validation("Devolucion.SerieNotaCredito.NoConfigurada", "The branch has no active credit note series."))

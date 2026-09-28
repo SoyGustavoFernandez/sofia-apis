@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
+using SOFIA.Application.Ventas.Common;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 using SOFIA.Domain.Enums;
@@ -54,11 +55,12 @@ public class GetVentasQueryHandler(
 
         var ventaIds = paginatedEntities.Items.Select(v => v.Id).ToList();
 
-        // 2. Fetch comprobantes for the page's ventas separately (in-memory join, avoids the paginated-projection bug).
+        // 2. Fetch the page's own boletas/facturas separately (in-memory join, avoids the paginated-projection bug).
         var comprobantes = await context.SUNATComprobantesEmitidos
             .AsNoTracking()
             .Include(c => c.Serie)
             .Where(c => ventaIds.Contains(c.TransaccionId) && !c.IsDeleted)
+            .Where(ComprobanteVentaFilters.EsBoletaOFactura)
             .ToDictionaryAsync(c => c.TransaccionId, cancellationToken);
 
         // 3. Fetch related display fields via a Select projection (no Include, safe with the page's id list).

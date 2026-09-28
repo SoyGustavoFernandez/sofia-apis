@@ -2,6 +2,7 @@ using SOFIA.Domain.Enums;
 using SOFIA.Infrastructure.Persistence.Converters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SOFIA.Application.SeriesFiscales;
 using SOFIA.Domain.Entities;
 
 namespace SOFIA.Infrastructure.Persistence.Configurations;
@@ -56,6 +57,17 @@ public sealed class SunatSerieFiscalConfiguration : IEntityTypeConfiguration<Sun
             .WithMany()
             .HasForeignKey(x => x.SucursalId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.HasIndex(x => new { x.TenantId, x.TipoComprobante, x.PrefijoSerie })
+            .HasDatabaseName(SerieFiscalIndexes.PrefijoPorTipo)
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        // At most one active series per branch and document type
+        _ = builder.HasIndex(x => new { x.SucursalId, x.TipoComprobante })
+            .HasDatabaseName(SerieFiscalIndexes.ActivaPorSucursalTipo)
+            .IsUnique()
+            .HasFilter("[Estado_Serie] = 'Activa' AND [IsDeleted] = 0");
 
         // Soft delete query filter
     }

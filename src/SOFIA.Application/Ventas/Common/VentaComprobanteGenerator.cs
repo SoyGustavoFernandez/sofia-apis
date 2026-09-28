@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 using SOFIA.Domain.Enums;
 
@@ -7,29 +8,20 @@ namespace SOFIA.Application.Ventas.Common;
 
 public static class VentaComprobanteGenerator
 {
-    public static async Task<ComprobanteEmitidoDto?> GenerateAsync(IApplicationDbContext context, Venta venta, Guid sucursalId, CancellationToken cancellationToken)
+    // The series is resolved before the correlative UPDATE, which executes immediately and is kept even when the sale fails
+    public static async Task<Result<ComprobanteEmitidoDto>> EmitirBoletaAsync(IApplicationDbContext context, Venta venta, Guid sucursalId, CancellationToken cancellationToken)
     {
         var serie = await context.SUNATSeriesFiscales
-            .FirstOrDefaultAsync(s => s.SucursalId == sucursalId && s.TipoComprobante == TipoComprobante.Boleta && s.EstadoSerie == "Activa" && !s.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(s => s.SucursalId == sucursalId && s.TipoComprobante == TipoComprobante.Boleta && s.EstadoSerie == SunatSerieFiscal.EstadoActiva && !s.IsDeleted, cancellationToken);
 
-        int correlativo;
-        if (serie == null)
-        {
-            // Brand-new series, no concurrent row to race against — start it directly at correlativo 1.
-            var newSerieResult = SunatSerieFiscal.Create(sucursalId, TipoComprobante.Boleta, "B001", 1, "Activa");
-            if (!newSerieResult.IsSuccess)
-            {
-                return null;
-            }
+        return serie == null
+            ? Result.Failure<ComprobanteEmitidoDto>(Error.Validation("Venta.SerieBoleta.NoConfigurada", "The branch has no active boleta series."))
+            : await GenerateAsync(context, venta, serie, cancellationToken);
+    }
 
-            serie = newSerieResult.Value;
-            _ = context.SUNATSeriesFiscales.Add(serie);
-            correlativo = serie.CorrelativoActual;
-        }
-        else
-        {
-            correlativo = await context.IncrementarCorrelativoSunatAsync(serie.Id, cancellationToken);
-        }
+    private static async Task<Result<ComprobanteEmitidoDto>> GenerateAsync(IApplicationDbContext context, Venta venta, SunatSerieFiscal serie, CancellationToken cancellationToken)
+    {
+        var correlativo = await context.IncrementarCorrelativoSunatAsync(serie.Id, cancellationToken);
 
         var total = venta.MontoTotalBruto;
         var (gravado, igv) = DesglosarIgv(total);
@@ -45,19 +37,23 @@ public static class VentaComprobanteGenerator
 
         if (!comprobanteResult.IsSuccess)
         {
-            return null;
+            return Result.Failure<ComprobanteEmitidoDto>(comprobanteResult.Error);
         }
 
         _ = context.SUNATComprobantesEmitidos.Add(comprobanteResult.Value);
-        return new ComprobanteEmitidoDto(
+        return Result.Success(new ComprobanteEmitidoDto(
             serie.TipoComprobante.ToString(),
             $"{serie.PrefijoSerie}-{correlativo:D8}",
             "Aceptado",
             comprobanteResult.Value.UrlPublicaVerificacion,
             comprobanteResult.Value.RutaArchivoXml,
-            comprobanteResult.Value.RutaArchivoCdr);
+            comprobanteResult.Value.RutaArchivoCdr));
     }
 
-    // Single taxable-base/IGV split shared by the boleta and the credit notes that reverse it
-    public static (decimal Gravado, decimal Igv) DesglosarIgv(decimal total) => (total * 0.82m, total * 0.18m);
+    // Prices include IGV: the taxable base is total / 1.18 and IGV is the remainder, so both always add up to the total
+    public static (decimal Gravado, decimal Igv) DesglosarIgv(decimal total)
+    {
+        var gravado = Math.Round(total / 1.18m, 2, MidpointRounding.AwayFromZero);
+        return (gravado, total - gravado);
+    }
 }

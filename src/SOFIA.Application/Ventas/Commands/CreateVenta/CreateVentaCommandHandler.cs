@@ -76,7 +76,13 @@ public class CreateVentaCommandHandler(
                 return Result.Failure<VentaCreadaDto>(registrarPagosResult.Error);
             }
 
-            dtoComprobante = await VentaComprobanteGenerator.GenerateAsync(context, ventaResult.Value, sucursalId, cancellationToken);
+            var comprobanteResult = await VentaComprobanteGenerator.EmitirBoletaAsync(context, ventaResult.Value, sucursalId, cancellationToken);
+            if (comprobanteResult.IsFailure)
+            {
+                return Result.Failure<VentaCreadaDto>(comprobanteResult.Error);
+            }
+
+            dtoComprobante = comprobanteResult.Value;
 
             var seguroResult = VentaSeguroProcessor.Process(context, ventaResult.Value, request.AseguradoraId, request.MontoCubiertoSeguro);
             if (seguroResult.IsFailure)

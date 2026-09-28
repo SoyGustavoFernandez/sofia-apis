@@ -172,6 +172,7 @@ public class ProcesarDevolucionCommandHandlerTests
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Devolucion.SerieNotaCredito.NoConfigurada");
+        _dbContextMock.Verify(x => x.IncrementarCorrelativoSunatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         _dbContextMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -259,8 +260,8 @@ public class ProcesarDevolucionCommandHandlerTests
         _ = nc.NumeroCorrelativo.Should().Be(101);
         _ = nc.SerieId.Should().Be(_serieNc.Id);
         _ = nc.MontoTotalVenta.Should().Be(40m); // 2 x 10 + 1 x 20
-        _ = nc.MontoGravadoIgv.Should().Be(40m * 0.82m);
-        _ = nc.MontoTotalIgv.Should().Be(40m * 0.18m);
+        _ = nc.MontoGravadoIgv.Should().Be(33.90m);
+        _ = nc.MontoTotalIgv.Should().Be(6.10m);
         _ = nc.RazonSocialCliente.Should().Be("JUAN PEREZ");
         _dbContextMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }

@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
@@ -10,6 +11,8 @@ namespace SOFIA.Application.Inventarios.Commands.RegisterInventario;
 public class RegisterInventarioHandler(IApplicationDbContext context)
     : IRequestHandler<RegisterInventarioCommand, Result<Guid>>
 {
+    private const string InventarioSucursalIndexName = "UX_Inventario_Sucursal_Lote";
+
     public async Task<Result<Guid>> Handle(RegisterInventarioCommand request, CancellationToken cancellationToken)
     {
         // 1. Verify Sucursal existence
@@ -53,7 +56,16 @@ public class RegisterInventarioHandler(IApplicationDbContext context)
         }
 
         _ = context.LotesEnSucursal.Add(result.Value);
-        _ = await context.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            _ = await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueIndexViolation(InventarioSucursalIndexName))
+        {
+            // A concurrent request created this branch/batch row first; the caller can retry and it will add to it
+            return Result.Failure<Guid>(Error.Conflict("InventarioSucursal.RegistroConcurrente", "The stock row for this branch and batch was created concurrently; retry."), 409);
+        }
 
         return Result.Success(result.Value.Id, 201);
     }

@@ -41,7 +41,7 @@ public class DeliveryController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetDespachoDeliveryById(Guid id)
     {
         var result = await sender.Send(new GetDespachoDeliveryByIdQuery(id));
-        return !result.IsSuccess ? NotFound(result) : Ok(result);
+        return !result.IsSuccess ? result.ToProblemResult() : Ok(result);
     }
 
     [HttpPut("{id}")]

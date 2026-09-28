@@ -7,11 +7,14 @@ using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Magistrales.Queries.GetOrdenes;
 
-public class GetOrdenesQueryHandler(IApplicationDbContext dbContext) : IRequestHandler<GetOrdenesQuery, Result<PaginatedList<OrdenResumenDto>>>
+public class GetOrdenesQueryHandler(IApplicationDbContext dbContext, ISucursalAccess sucursalAccess) : IRequestHandler<GetOrdenesQuery, Result<PaginatedList<OrdenResumenDto>>>
 {
     public async Task<Result<PaginatedList<OrdenResumenDto>>> Handle(GetOrdenesQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.MagistralesOrdenesProduccion.AsNoTracking().AsQueryable();
+
+        var allowed = await sucursalAccess.GetAllowedSucursalesAsync(cancellationToken);
+        query = query.WhereSucursalIn(o => o.SucursalId, allowed);
 
         if (request.SucursalId.HasValue)
         {

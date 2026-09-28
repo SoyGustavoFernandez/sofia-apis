@@ -4,6 +4,7 @@ using SOFIA.Application.Sucursales.Commands.CreateSucursal;
 using SOFIA.Application.Sucursales.Commands.DeleteSucursal;
 using SOFIA.Application.Sucursales.Commands.UpdateSucursal;
 using SOFIA.Application.Sucursales.Queries.GetById;
+using SOFIA.Application.Sucursales.Queries.GetSucursalesPermitidas;
 using SOFIA.Application.Sucursales.Queries.GetSucursalesWithPagination;
 using SOFIA.Application.Sucursales.Queries.PreviewImportSucursales;
 using SOFIA.Infrastructure.Excel;
@@ -53,6 +54,15 @@ public class SucursalesController(ISender sender, IExcelReaderService excelReade
     public async Task<IActionResult> GetPaginated([FromQuery] GetSucursalesWithPaginationQuery query)
     {
         var result = await sender.Send(query);
+        return result.ToActionResult();
+    }
+
+    // Any signed-in user may list the branches they can operate on
+    [Authorize]
+    [HttpGet("permitidas")]
+    public async Task<IActionResult> GetPermitidas(CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetSucursalesPermitidasQuery(), cancellationToken);
         return result.ToActionResult();
     }
 

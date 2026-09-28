@@ -1,16 +1,21 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Delivery.Queries.GetDespachos;
 
-public class GetDespachosQueryHandler(IApplicationDbContext dbContext) : IRequestHandler<GetDespachosQuery, Result<PaginatedList<DespachoResumenDto>>>
+public class GetDespachosQueryHandler(IApplicationDbContext dbContext, ISucursalAccess sucursalAccess) : IRequestHandler<GetDespachosQuery, Result<PaginatedList<DespachoResumenDto>>>
 {
     public async Task<Result<PaginatedList<DespachoResumenDto>>> Handle(GetDespachosQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.DespachosDelivery.AsNoTracking().AsQueryable();
+
+        // A dispatch belongs to the branch of its sale
+        var allowed = await sucursalAccess.GetAllowedSucursalesAsync(cancellationToken);
+        query = query.WhereSucursalIn(d => d.Venta!.SucursalId, allowed);
 
         if (request.EstadoDespacho.HasValue)
         {

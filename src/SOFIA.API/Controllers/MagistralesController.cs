@@ -38,6 +38,6 @@ public class MagistralesController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetOrdenMagistralById(Guid id)
     {
         var result = await sender.Send(new Application.Magistrales.Queries.GetOrdenById.GetOrdenByIdQuery(id));
-        return !result.IsSuccess ? NotFound(result) : Ok(result);
+        return !result.IsSuccess ? result.ToProblemResult() : Ok(result);
     }
 }

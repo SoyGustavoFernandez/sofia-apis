@@ -7,11 +7,14 @@ using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.DIGEMID.Queries.GetCuarentena;
 
-public class GetCuarentenaQueryHandler(IApplicationDbContext dbContext) : IRequestHandler<GetCuarentenaQuery, Result<PaginatedList<CuarentenaResumenDto>>>
+public class GetCuarentenaQueryHandler(IApplicationDbContext dbContext, ISucursalAccess sucursalAccess) : IRequestHandler<GetCuarentenaQuery, Result<PaginatedList<CuarentenaResumenDto>>>
 {
     public async Task<Result<PaginatedList<CuarentenaResumenDto>>> Handle(GetCuarentenaQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.DigemidInventarioCuarentena.AsNoTracking().AsQueryable();
+
+        var allowed = await sucursalAccess.GetAllowedSucursalesAsync(cancellationToken);
+        query = query.WhereSucursalIn(c => c.SucursalId, allowed);
 
         if (request.SucursalId.HasValue)
         {

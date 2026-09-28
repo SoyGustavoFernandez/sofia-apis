@@ -1,21 +1,34 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Magistrales.Commands.CompletarOrdenMagistral;
 
-public class CompletarOrdenMagistralCommandHandler(IApplicationDbContext dbContext) : IRequestHandler<CompletarOrdenMagistralCommand, Result<Guid>>
+public class CompletarOrdenMagistralCommandHandler(IApplicationDbContext dbContext, ICurrentUser currentUser) : IRequestHandler<CompletarOrdenMagistralCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(CompletarOrdenMagistralCommand request, CancellationToken cancellationToken)
     {
+        // Like Iniciar, only the operator's own branch may produce into its stock
+        var sucursalResult = currentUser.GetSucursalId();
+        if (sucursalResult.IsFailure)
+        {
+            return Result.Failure<Guid>(sucursalResult.Error);
+        }
+
         var orden = await dbContext.MagistralesOrdenesProduccion
             .FirstOrDefaultAsync(o => o.Id == request.OrdenId, cancellationToken);
 
         if (orden == null)
         {
             return Result.Failure<Guid>(Error.NotFound("Orden.NotFound", "Production order not found."));
+        }
+
+        if (orden.SucursalId != sucursalResult.Value)
+        {
+            return Result.Failure<Guid>(Error.Forbidden("OrdenMagistral.OtraSucursal", "Only orders of your own branch can be completed."), 403);
         }
 
         if (orden.EstadoProduccion == "Completada")

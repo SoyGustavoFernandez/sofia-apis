@@ -7,22 +7,15 @@ using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.POS.Queries.GetSesiones;
 
-public class GetSesionesQueryHandler(IApplicationDbContext dbContext, ICurrentUser currentUser) : IRequestHandler<GetSesionesQuery, Result<PaginatedList<SesionResumenDto>>>
+public class GetSesionesQueryHandler(IApplicationDbContext dbContext, ISucursalAccess sucursalAccess) : IRequestHandler<GetSesionesQuery, Result<PaginatedList<SesionResumenDto>>>
 {
     public async Task<Result<PaginatedList<SesionResumenDto>>> Handle(GetSesionesQuery request, CancellationToken cancellationToken)
     {
-        var scopeResult = currentUser.GetSucursalScope();
-        if (scopeResult.IsFailure)
-        {
-            return Result.Failure<PaginatedList<SesionResumenDto>>(scopeResult.Error);
-        }
-
         var query = dbContext.POSSesionesCaja.AsNoTracking().AsQueryable();
 
-        if (scopeResult.Value.HasValue)
-        {
-            query = query.Where(s => s.SucursalId == scopeResult.Value.Value);
-        }
+        var allowed = await sucursalAccess.GetAllowedSucursalesAsync(cancellationToken);
+        query = query.WhereSucursalIn(s => s.SucursalId, allowed);
+
         if (request.SucursalId.HasValue)
         {
             query = query.Where(s => s.SucursalId == request.SucursalId.Value);

@@ -29,4 +29,21 @@ public static class QueryableExtensions
 
         return source;
     }
+
+    // A null set means no branch restriction (Admin); ids are captured so EF sends them as a parameter
+    public static IQueryable<T> WhereSucursalIn<T>(
+        this IQueryable<T> source,
+        Expression<Func<T, Guid>> selector,
+        IReadOnlySet<Guid>? allowed)
+    {
+        if (allowed is null)
+        {
+            return source;
+        }
+
+        var ids = allowed.ToList();
+        Expression<Func<List<Guid>>> idsAccessor = () => ids;
+        var body = Expression.Call(idsAccessor.Body, typeof(List<Guid>).GetMethod(nameof(List<>.Contains))!, selector.Body);
+        return source.Where(Expression.Lambda<Func<T, bool>>(body, selector.Parameters[0]));
+    }
 }

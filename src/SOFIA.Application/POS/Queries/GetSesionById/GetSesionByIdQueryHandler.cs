@@ -8,19 +8,13 @@ using SOFIA.Application.POS.Queries.GetSesiones;
 
 namespace SOFIA.Application.POS.Queries.GetSesionById;
 
-public class GetSesionByIdQueryHandler(IApplicationDbContext context, ICurrentUser currentUser) : IRequestHandler<GetSesionByIdQuery, Result<SesionResumenDto>>
+public class GetSesionByIdQueryHandler(IApplicationDbContext context, ISucursalAccess sucursalAccess) : IRequestHandler<GetSesionByIdQuery, Result<SesionResumenDto>>
 {
     public async Task<Result<SesionResumenDto>> Handle(GetSesionByIdQuery request, CancellationToken cancellationToken)
     {
-        var scopeResult = currentUser.GetSucursalScope();
-        if (scopeResult.IsFailure)
-        {
-            return Result.Failure<SesionResumenDto>(scopeResult.Error);
-        }
-
-        var sucursalScope = scopeResult.Value;
+        var allowed = await sucursalAccess.GetAllowedSucursalesAsync(cancellationToken);
         var dto = await (
-            from s in context.POSSesionesCaja.AsNoTracking().Where(o => o.Id == request.Id && !o.IsDeleted && (sucursalScope == null || o.SucursalId == sucursalScope))
+            from s in context.POSSesionesCaja.AsNoTracking().Where(o => o.Id == request.Id && !o.IsDeleted).WhereSucursalIn(o => o.SucursalId, allowed)
             join suc in context.Sucursales on s.SucursalId equals suc.Id into sucGroup
             from suc in sucGroup.DefaultIfEmpty()
             join emp in context.Empleados on s.EmpleadoId equals emp.Id into empGroup
@@ -42,7 +36,7 @@ public class GetSesionByIdQueryHandler(IApplicationDbContext context, ICurrentUs
 
         if (dto == null)
         {
-            return Result.Failure<SesionResumenDto>(Error.NotFound("SesionCaja.NotFound", "Sesion de Caja not found."));
+            return Result.Failure<SesionResumenDto>(Error.NotFound("SesionCaja.NotFound", "Sesion de Caja not found."), 404);
         }
 
         return Result.Success(dto);

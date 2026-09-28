@@ -10,12 +10,16 @@ namespace SOFIA.UnitTests.Magistrales.Commands.CompletarOrdenMagistral;
 public class CompletarOrdenMagistralCommandHandlerTests
 {
     private readonly Mock<IApplicationDbContext> _dbContextMock;
+    private readonly Mock<ICurrentUser> _currentUserMock = new();
+    private readonly Guid _sucursalId = Guid.NewGuid();
     private readonly CompletarOrdenMagistralCommandHandler _handler;
 
     public CompletarOrdenMagistralCommandHandlerTests()
     {
         _dbContextMock = new Mock<IApplicationDbContext>();
-        _handler = new CompletarOrdenMagistralCommandHandler(_dbContextMock.Object);
+        _ = _currentUserMock.Setup(u => u.IsAuthenticated).Returns(true);
+        _ = _currentUserMock.Setup(u => u.SucursalId).Returns(_sucursalId.ToString());
+        _handler = new CompletarOrdenMagistralCommandHandler(_dbContextMock.Object, _currentUserMock.Object);
     }
 
     [Fact]
@@ -23,7 +27,7 @@ public class CompletarOrdenMagistralCommandHandlerTests
     {
         // Arrange
         var orden = MagistralOrdenProduccion.Create(
-            Guid.NewGuid(),
+            _sucursalId,
             Guid.NewGuid(),
             Guid.NewGuid(),
             null,
@@ -87,7 +91,7 @@ public class CompletarOrdenMagistralCommandHandlerTests
     {
         // Arrange
         var orden = MagistralOrdenProduccion.Create(
-            Guid.NewGuid(),
+            _sucursalId,
             Guid.NewGuid(),
             Guid.NewGuid(),
             null,
@@ -121,7 +125,7 @@ public class CompletarOrdenMagistralCommandHandlerTests
     {
         // Arrange
         var orden = MagistralOrdenProduccion.Create(
-            Guid.NewGuid(),
+            _sucursalId,
             Guid.NewGuid(),
             Guid.NewGuid(),
             null,
@@ -147,6 +151,24 @@ public class CompletarOrdenMagistralCommandHandlerTests
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Orden.Cantidad");
 
+        _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_OrderOfAnotherBranch_ShouldReturnForbidden()
+    {
+        // Arrange
+        var orden = MagistralOrdenProduccion.Create(Guid.NewGuid(), null, Guid.NewGuid(), null, 50m, Guid.NewGuid(), "Iniciada", DateTime.UtcNow).Value;
+        var ordenes = new List<MagistralOrdenProduccion> { orden! }.BuildMockDbSet();
+        _ = _dbContextMock.Setup(db => db.MagistralesOrdenesProduccion).Returns(ordenes.Object);
+
+        // Act
+        var result = await _handler.Handle(new CompletarOrdenMagistralCommand(orden!.Id, "LOTE-MFR-001", DateTimeOffset.UtcNow.AddMonths(6)), CancellationToken.None);
+
+        // Assert
+        _ = result.Error.Code.Should().Be("OrdenMagistral.OtraSucursal");
+        _ = result.StatusCode.Should().Be(403);
+        _ = orden.EstadoProduccion.Should().Be("Iniciada");
         _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

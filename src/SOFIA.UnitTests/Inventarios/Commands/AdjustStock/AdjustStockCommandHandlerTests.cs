@@ -10,6 +10,7 @@ namespace SOFIA.UnitTests.Inventarios.Commands.AdjustStock;
 public class AdjustStockCommandHandlerTests
 {
     private readonly Mock<IApplicationDbContext> _dbContextMock = new();
+    private readonly Mock<ISucursalAccess> _sucursalAccessMock = new();
     private Mock<Microsoft.EntityFrameworkCore.DbSet<InventarioSucursal>> _stockMock = new List<InventarioSucursal>().BuildMockDbSet();
     private readonly AdjustStockCommandHandler _handler;
 
@@ -17,7 +18,8 @@ public class AdjustStockCommandHandlerTests
     {
         _ = _dbContextMock.Setup(c => c.LotesEnSucursal).Returns(() => _stockMock.Object);
         _ = _dbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
-        _handler = new AdjustStockCommandHandler(_dbContextMock.Object);
+        _ = _sucursalAccessMock.Setup(a => a.CanAccessAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _handler = new AdjustStockCommandHandler(_dbContextMock.Object, _sucursalAccessMock.Object);
     }
 
     private static InventarioSucursal NewEntry(decimal cantidad = 50) =>
@@ -56,6 +58,22 @@ public class AdjustStockCommandHandlerTests
 
         _ = result.IsSuccess.Should().BeTrue();
         _ = entry.CantidadFisica.Should().Be(12);
+        _sucursalAccessMock.Verify(a => a.CanAccessAsync(entry.SucursalId, It.IsAny<CancellationToken>()), Times.Once);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnForbidden_WhenBranchIsNotAllowed()
+    {
+        var entry = NewEntry(50);
+        _stockMock = new List<InventarioSucursal> { entry }.BuildMockDbSet();
+        _ = _sucursalAccessMock.Setup(a => a.CanAccessAsync(entry.SucursalId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+        var result = await _handler.Handle(new AdjustStockCommand(entry.Id, 12), CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Inventario.Sucursal.NoPermitida");
+        _ = result.StatusCode.Should().Be(403);
+        _ = entry.CantidadFisica.Should().Be(50);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

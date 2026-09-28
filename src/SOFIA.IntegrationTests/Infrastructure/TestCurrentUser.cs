@@ -12,6 +12,7 @@ public sealed class TestCurrentUser : ICurrentUser
     public Guid? Empresa { get; set; } = DefaultEmpresaId;
 
     public string? Id => null;
+    public string? CuentaId => null;
     public string? Name => "integration-test";
     public string? SucursalId => null;
     public string? EmpresaId => Empresa?.ToString();

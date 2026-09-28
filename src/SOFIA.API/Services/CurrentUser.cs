@@ -9,6 +9,10 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUse
                       ?? httpContextAccessor.HttpContext?.User?.FindFirstValue("sub")
                       ?? httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
 
+    // The account id travels in "sub" while Id prefers the employee id
+    public string? CuentaId => httpContextAccessor.HttpContext?.User?.FindFirstValue("sub")
+                            ?? httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+
     public string? Name => httpContextAccessor.HttpContext?.User?.FindFirstValue("unique_name")
                         ?? httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Name)
                         ?? httpContextAccessor.HttpContext?.User?.Identity?.Name;

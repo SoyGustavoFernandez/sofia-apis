@@ -1,6 +1,8 @@
 using System.Reflection;
 using FluentValidation;
 using SOFIA.Application.Common.Behaviors;
+using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Services;
 
 namespace SOFIA.Application;
 
@@ -15,6 +17,8 @@ public static class DependencyInjection
             _ = cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
             _ = cfg.AddOpenBehavior(typeof(TransactionBehavior<,>));
         });
+
+        _ = services.AddScoped<ISucursalAccess, SucursalAccess>();
 
         _ = services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 

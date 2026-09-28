@@ -39,7 +39,7 @@ public class PosController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetSesionCajaById(Guid id)
     {
         var result = await sender.Send(new Application.POS.Queries.GetSesionById.GetSesionByIdQuery(id));
-        return !result.IsSuccess ? NotFound(result) : Ok(result);
+        return !result.IsSuccess ? result.ToProblemResult() : Ok(result);
     }
 
     [HasPermission("POS", "Leer")]

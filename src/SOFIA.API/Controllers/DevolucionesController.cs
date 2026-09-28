@@ -30,6 +30,6 @@ public class DevolucionesController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetDevolucionById(Guid id)
     {
         var result = await sender.Send(new Application.Devoluciones.Queries.GetDevolucionById.GetDevolucionByIdQuery(id));
-        return !result.IsSuccess ? NotFound(result) : Ok(result);
+        return !result.IsSuccess ? result.ToProblemResult() : Ok(result);
     }
 }

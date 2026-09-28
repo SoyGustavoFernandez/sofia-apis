@@ -1,12 +1,13 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Inventarios.Queries.GetStockPorSucursal;
 
-public class GetStockPorSucursalQueryHandler(IApplicationDbContext context)
+public class GetStockPorSucursalQueryHandler(IApplicationDbContext context, ISucursalAccess sucursalAccess)
     : IRequestHandler<GetStockPorSucursalQuery, Result<PaginatedList<StockPorSucursalDto>>>
 {
     public async Task<Result<PaginatedList<StockPorSucursalDto>>> Handle(GetStockPorSucursalQuery request, CancellationToken cancellationToken)
@@ -15,6 +16,9 @@ public class GetStockPorSucursalQueryHandler(IApplicationDbContext context)
         var query = context.LotesEnSucursal
             .AsNoTracking()
             .Where(x => x.Sucursal != null && x.Lote != null && x.Lote.Producto != null);
+
+        var allowed = await sucursalAccess.GetAllowedSucursalesAsync(cancellationToken);
+        query = query.WhereSucursalIn(x => x.SucursalId, allowed);
 
         if (request.SoloConStock)
         {

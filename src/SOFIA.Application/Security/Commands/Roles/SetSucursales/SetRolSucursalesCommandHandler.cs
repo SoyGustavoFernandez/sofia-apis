@@ -19,15 +19,21 @@ public class SetRolSucursalesCommandHandler(IApplicationDbContext context)
             return Result.Failure(Error.NotFound("Rol.NotFound", "El rol no existe."));
         }
 
+        // RolSucursal has no tenant filter, so every branch must be checked against the tenant-filtered set
+        var sucursalIds = request.SucursalIds.Distinct().ToList();
+        var foundCount = await context.Sucursales.CountAsync(s => sucursalIds.Contains(s.Id), cancellationToken);
+        if (foundCount != sucursalIds.Count)
+        {
+            return Result.Failure(Error.NotFound("Sucursal.NotFound", "La sucursal no existe."), 404);
+        }
+
         var existing = await context.RolesSucursales
             .Where(rs => rs.RolId == request.RolId)
             .ToListAsync(cancellationToken);
 
         context.RolesSucursales.RemoveRange(existing);
 
-        var newAssignments = request.SucursalIds
-            .Distinct()
-            .Select(sucursalId => RolSucursal.Create(request.RolId, sucursalId));
+        var newAssignments = sucursalIds.Select(sucursalId => RolSucursal.Create(request.RolId, sucursalId));
 
         await context.RolesSucursales.AddRangeAsync(newAssignments, cancellationToken);
         _ = await context.SaveChangesAsync(cancellationToken);

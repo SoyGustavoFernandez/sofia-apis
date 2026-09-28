@@ -8,7 +8,7 @@ using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Inventarios.Commands.RegisterInventario;
 
-public class RegisterInventarioHandler(IApplicationDbContext context)
+public class RegisterInventarioHandler(IApplicationDbContext context, ISucursalAccess sucursalAccess)
     : IRequestHandler<RegisterInventarioCommand, Result<Guid>>
 {
     private const string InventarioSucursalIndexName = "UX_Inventario_Sucursal_Lote";
@@ -20,6 +20,11 @@ public class RegisterInventarioHandler(IApplicationDbContext context)
         if (!sucursalExists)
         {
             return Result.Failure<Guid>(Error.NotFound("Sucursal.NotFound", "The specified branch does not exist."));
+        }
+
+        if (!await sucursalAccess.CanAccessAsync(request.SucursalId, cancellationToken))
+        {
+            return Result.Failure<Guid>(Error.Forbidden("Inventario.Sucursal.NoPermitida", "You are not allowed to operate on this branch's stock."), 403);
         }
 
         // 2. Verify Lote existence

@@ -90,4 +90,6 @@ public sealed class LoteInventario : BaseEntity
 
         return Result.Success();
     }
+
+    public bool EstaVencido(DateTimeOffset ahora) => FechaCaducidad <= ahora;
 }

@@ -98,4 +98,28 @@ public class LoteInventarioTests
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("LoteInventario.FechaCaducidad");
     }
+
+    [Fact]
+    public void EstaVencido_ShouldBeFalse_BeforeExpirationDate()
+    {
+        var lote = LoteInventario.Create(ProductoId, "LOT-001", null, FutureDate).Value!;
+
+        _ = lote.EstaVencido(FutureDate.AddDays(-1)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void EstaVencido_ShouldBeTrue_OnExpirationDate()
+    {
+        var lote = LoteInventario.Create(ProductoId, "LOT-001", null, FutureDate).Value!;
+
+        _ = lote.EstaVencido(FutureDate).Should().BeTrue();
+    }
+
+    [Fact]
+    public void EstaVencido_ShouldBeTrue_AfterExpirationDate()
+    {
+        var lote = LoteInventario.Create(ProductoId, "LOT-001", null, FutureDate).Value!;
+
+        _ = lote.EstaVencido(FutureDate.AddDays(1)).Should().BeTrue();
+    }
 }

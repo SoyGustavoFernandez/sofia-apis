@@ -1,4 +1,5 @@
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Enums;
 
 namespace SOFIA.Domain.Entities;
 
@@ -97,5 +98,22 @@ public sealed class RecetaMedica : BaseEntity
         IndicacionesUso = indicacionesUso;
 
         return Result.Success();
+    }
+
+    // Controlled prescriptions dispense once; a simple one allows the first dispensation plus RepeticionesMax refills
+    public Result PuedeDispensar(int dispensacionesPrevias, CondicionVenta condicion)
+    {
+        var permitidas = condicion switch
+        {
+            CondicionVenta.VentaLibreOTC => int.MaxValue,
+            CondicionVenta.RecetaSimple => 1 + RepeticionesMax,
+            CondicionVenta.RecetaRetenida => 1,
+            CondicionVenta.Estupefaciente => 1,
+            _ => 1
+        };
+
+        return dispensacionesPrevias < permitidas
+            ? Result.Success()
+            : Result.Failure(Error.Validation("Venta.Receta.Agotada", "The prescription has no dispensations left."));
     }
 }

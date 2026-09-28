@@ -45,7 +45,7 @@ public class CreateVentaCommandHandler(
             return Result.Failure<VentaCreadaDto>(coberturaResult.Error, coberturaResult.StatusCode);
         }
 
-        var detallesResult = await VentaDetalleFactory.BuildAsync(context, request.Detalles, sucursalId, cancellationToken);
+        var detallesResult = await VentaDetalleFactory.BuildAsync(context, request.Detalles, sucursalId, request.ClienteId, null, cancellationToken);
         if (detallesResult.IsFailure)
         {
             return Result.Failure<VentaCreadaDto>(detallesResult.Error);

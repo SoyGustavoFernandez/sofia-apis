@@ -20,7 +20,7 @@ public static class VentaDetalleUpdater
             inventario?.UpdateStock(inventario.CantidadFisica + detalle.CantidadVendida);
         }
 
-        var nuevosResult = await VentaDetalleFactory.BuildAsync(context, nuevosDtos, sucursalId, cancellationToken);
+        var nuevosResult = await VentaDetalleFactory.BuildAsync(context, nuevosDtos, sucursalId, clienteId, venta.Id, cancellationToken);
         if (nuevosResult.IsFailure)
         {
             return Result.Failure(nuevosResult.Error);

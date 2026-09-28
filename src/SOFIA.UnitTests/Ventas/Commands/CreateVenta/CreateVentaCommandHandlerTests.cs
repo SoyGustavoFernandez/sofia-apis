@@ -636,6 +636,27 @@ public class CreateVentaCommandHandlerTests
         _ = reclamo.MontoCopagoPaciente.Should().Be(5);
     }
 
+    [Fact]
+    public async Task Handle_ShouldReturnRecetaRequerida_WhenControlledProductIsSoldWithoutPrescription()
+    {
+        // Arrange
+        var inventarioItem = InventarioSucursal.Create(_sucursalId, _loteId, 20).Value!;
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: [inventarioItem], condicionVenta: CondicionVenta.Estupefaciente);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId,
+            [new CreateVentaDetailDto(_loteId, 1)],
+            [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Receta.Requerida");
+        _ = _ventasList.Should().BeEmpty();
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     private List<PosSesionCaja> SesionAbierta()
     {
         var sesion = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100).Value!;
@@ -651,7 +672,8 @@ public class CreateVentaCommandHandlerTests
         List<PresentacionVenta>? presentaciones = null,
         decimal? precioCatalogo = 10,
         List<HistorialPrecioProveedor>? historialPrecios = null,
-        List<AseguradoraMedica>? aseguradoras = null)
+        List<AseguradoraMedica>? aseguradoras = null,
+        CondicionVenta condicionVenta = CondicionVenta.VentaLibreOTC)
     {
         sesionesCaja ??= [];
         cuarentenas ??= [];
@@ -663,7 +685,7 @@ public class CreateVentaCommandHandlerTests
 
         var lote = LoteInventario.Create(_productoId, "L-001", null, DateTimeOffset.UtcNow.AddYears(1)).Value!;
         lote.SetId(_loteId);
-        var medicamento = Medicamento.Create("COD-1", "Producto", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.VentaLibreOTC, precioCatalogo).Value!;
+        var medicamento = Medicamento.Create("COD-1", "Producto", Guid.NewGuid(), Guid.NewGuid(), condicionVenta, precioCatalogo).Value!;
         medicamento.SetId(_productoId);
         _ = _dbContextMock.Setup(c => c.LotesInventario).Returns(new List<LoteInventario> { lote }.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.Medicamentos).Returns(new List<Medicamento> { medicamento }.BuildMockDbSet().Object);

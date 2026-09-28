@@ -8,7 +8,7 @@ public class AislarLoteCuarentenaCommandValidatorTests
     private readonly AislarLoteCuarentenaCommandValidator _validator = new();
 
     private static AislarLoteCuarentenaCommand ValidCommand() =>
-        new(Guid.NewGuid(), null, 3m, "Producto vencido", "Pendiente");
+        new(Guid.NewGuid(), null, 3m, "Producto vencido", "Retenido");
 
     [Fact]
     public void Validate_ShouldPass_WhenCommandIsValid() =>
@@ -31,4 +31,20 @@ public class AislarLoteCuarentenaCommandValidatorTests
     [Fact]
     public void Validate_ShouldFail_WhenEstadoResolucionIsEmpty() =>
         _ = _validator.Validate(ValidCommand() with { EstadoResolucion = "" }).IsValid.Should().BeFalse();
+
+    [Theory]
+    [InlineData("Retenido")]
+    [InlineData("Liberado")]
+    [InlineData("Destruido")]
+    [InlineData("Devuelto")]
+    public void Validate_ShouldPass_WhenEstadoResolucionIsAKnownState(string estado) =>
+        _ = _validator.Validate(ValidCommand() with { EstadoResolucion = estado }).IsValid.Should().BeTrue();
+
+    [Theory]
+    [InlineData("retenido")]
+    [InlineData("RETENIDO")]
+    [InlineData("Retenido ")]
+    [InlineData("Pendiente")]
+    public void Validate_ShouldFail_WhenEstadoResolucionIsNotAKnownState(string estado) =>
+        _ = _validator.Validate(ValidCommand() with { EstadoResolucion = estado }).IsValid.Should().BeFalse();
 }

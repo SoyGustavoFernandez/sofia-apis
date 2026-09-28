@@ -40,7 +40,8 @@ public record VentaDetalleDto(
     decimal Subtotal,
     Guid? PresentacionVentaId,
     string? PresentacionDescripcion,
-    decimal? CantidadEnPresentacion);
+    decimal? CantidadEnPresentacion,
+    Guid? RecetaId);
 
 public record VentaPagoDto(
     Guid Id,

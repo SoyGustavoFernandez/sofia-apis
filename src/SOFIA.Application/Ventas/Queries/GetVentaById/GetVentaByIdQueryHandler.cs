@@ -71,7 +71,8 @@ public class GetVentaByIdQueryHandler(
                 d.CantidadVendida * d.PrecioFijadoUnidad,
                 d.PresentacionVentaId,
                 d.PresentacionVenta?.Descripcion,
-                d.CantidadEnPresentacion
+                d.CantidadEnPresentacion,
+                d.RecetaId
             ))],
             comprobante != null ? new ComprobanteDto(
                 comprobante.Serie?.TipoComprobante.ToString() ?? "Boleta",

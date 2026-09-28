@@ -1,4 +1,5 @@
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Enums;
 
 namespace SOFIA.Domain.Entities;
 
@@ -65,9 +66,9 @@ public sealed class DigemidInventarioCuarentena : BaseEntity
             return Result.Failure<DigemidInventarioCuarentena>(Error.Validation("DigemidInventarioCuarentena.EstadoResolucion", "Estado Resolucion is required."));
         }
 
-        if (estadoResolucion.Length > 20)
+        if (!EstadoResolucionCuarentena.EsValido(estadoResolucion))
         {
-            return Result.Failure<DigemidInventarioCuarentena>(Error.Validation("DigemidInventarioCuarentena.EstadoResolucion", "Estado Resolucion must not exceed 20 characters."));
+            return Result.Failure<DigemidInventarioCuarentena>(Error.Validation("DigemidInventarioCuarentena.EstadoResolucion", "Estado Resolucion must be one of: Retenido, Liberado, Destruido, Devuelto."));
         }
 
         return Result.Success(new DigemidInventarioCuarentena
@@ -127,9 +128,9 @@ public sealed class DigemidInventarioCuarentena : BaseEntity
             return Result.Failure(Error.Validation("DigemidInventarioCuarentena.EstadoResolucion", "Estado Resolucion is required."));
         }
 
-        if (estadoResolucion.Length > 20)
+        if (!EstadoResolucionCuarentena.EsValido(estadoResolucion))
         {
-            return Result.Failure(Error.Validation("DigemidInventarioCuarentena.EstadoResolucion", "Estado Resolucion must not exceed 20 characters."));
+            return Result.Failure(Error.Validation("DigemidInventarioCuarentena.EstadoResolucion", "Estado Resolucion must be one of: Retenido, Liberado, Destruido, Devuelto."));
         }
 
         SucursalId = sucursalId;

@@ -33,7 +33,7 @@ public class AislarLoteCuarentenaCommandHandlerTests
     }
 
     private AislarLoteCuarentenaCommand Command(Guid? loteId = null, Guid? detalleDevId = null) =>
-        new(loteId ?? _lote.Id, detalleDevId, 3m, "Producto vencido", "Pendiente");
+        new(loteId ?? _lote.Id, detalleDevId, 3m, "Producto vencido", "Retenido");
 
     [Fact]
     public async Task Handle_ShouldRecordSessionBranchEmployeeAndTime_WhenBatchExists()

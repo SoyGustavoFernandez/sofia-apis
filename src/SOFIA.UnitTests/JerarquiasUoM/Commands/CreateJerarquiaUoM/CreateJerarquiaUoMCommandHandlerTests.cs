@@ -4,6 +4,7 @@ using Moq;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.JerarquiasUoM.Commands.CreateJerarquiaUoM;
 using SOFIA.Domain.Entities;
+using SOFIA.Domain.Enums;
 
 namespace SOFIA.UnitTests.JerarquiasUoM.Commands.CreateJerarquiaUoM;
 
@@ -13,13 +14,19 @@ public class CreateJerarquiaUoMCommandHandlerTests
     private readonly List<JerarquiaUoM> _jerarquiasList = [];
     private readonly CreateJerarquiaUoMCommandHandler _handler;
 
-    private readonly Guid _productoId = Guid.NewGuid();
-    private readonly Guid _caja = Guid.NewGuid();
-    private readonly Guid _blister = Guid.NewGuid();
-    private readonly Guid _unidad = Guid.NewGuid();
+    private readonly Guid _productoId;
+    private readonly Guid _caja;
+    private readonly Guid _blister;
+    private readonly Guid _unidad;
 
     public CreateJerarquiaUoMCommandHandlerTests()
     {
+        var producto = Medicamento.Create("COD-001", "Paracetamol", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.VentaLibreOTC).Value!;
+        var unidades = new List<UnidadMedida> { UnidadMedida.Create("CJA", "Caja").Value!, UnidadMedida.Create("BLI", "Blister").Value!, UnidadMedida.Create("UND", "Unidad").Value! };
+        (_productoId, _caja, _blister, _unidad) = (producto.Id, unidades[0].Id, unidades[1].Id, unidades[2].Id);
+        _ = _dbContextMock.Setup(c => c.Medicamentos).Returns(new List<Medicamento> { producto }.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.UnidadesMedida).Returns(unidades.BuildMockDbSet().Object);
+
         var jerarquiasMock = _jerarquiasList.BuildMockDbSet();
         _ = jerarquiasMock.Setup(d => d.Add(It.IsAny<JerarquiaUoM>())).Callback<JerarquiaUoM>(_jerarquiasList.Add);
         _ = _dbContextMock.Setup(c => c.JerarquiasUoM).Returns(jerarquiasMock.Object);
@@ -30,6 +37,34 @@ public class CreateJerarquiaUoMCommandHandlerTests
 
     private void SeedExisting(Guid unidadMayorId, Guid unidadMenorId, decimal multiplicador) =>
         _jerarquiasList.Add(JerarquiaUoM.Create(_productoId, unidadMayorId, unidadMenorId, multiplicador).Value!);
+
+    [Fact]
+    public async Task Handle_ShouldReturnNotFoundAndNotSave_WhenProductoIsUnknownOrForeign()
+    {
+        var result = await _handler.Handle(new CreateJerarquiaUoMCommand(Guid.NewGuid(), _caja, _blister, 4m), CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Medicamento.NotFound");
+        _ = result.StatusCode.Should().Be(404);
+        _ = _jerarquiasList.Should().BeEmpty();
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_ShouldReturnNotFoundAndNotSave_WhenAUnitIsUnknownOrForeign(bool mayorDesconocida)
+    {
+        var command = mayorDesconocida
+            ? new CreateJerarquiaUoMCommand(_productoId, Guid.NewGuid(), _blister, 4m)
+            : new CreateJerarquiaUoMCommand(_productoId, _caja, Guid.NewGuid(), 4m);
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("UnidadMedida.NotFound");
+        _ = result.StatusCode.Should().Be(404);
+        _ = _jerarquiasList.Should().BeEmpty();
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
 
     [Fact]
     public async Task Handle_ShouldCreate_WhenNoExistingConversionConnectsTheUnits()

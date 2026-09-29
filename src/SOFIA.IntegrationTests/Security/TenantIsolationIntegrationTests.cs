@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SOFIA.Application.Empleados.Commands.UpdateEmpleado;
 using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 using SOFIA.Application.Security.Commands.Login;
+using SOFIA.Application.Security.Commands.RefreshToken;
 using SOFIA.Domain.Entities;
 using SOFIA.Infrastructure.Authentication;
 using SOFIA.IntegrationTests.Infrastructure;
@@ -132,6 +134,44 @@ public class TenantIsolationIntegrationTests(SofiaWebAppFactory factory) : BaseI
 
         // Assert
         _ = result.IsSuccess.Should().BeTrue(because: "login resolves the tenant from the account, not from the request");
+    }
+
+    [Fact]
+    public async Task LoginAndRefresh_ShouldIgnoreLinkedRoles_WhenTheyBelongToAnotherTenantOrToNone()
+    {
+        // Arrange: a stray link from company A's account to a role of company B and to a NULL-tenant role
+        CurrentUser.Empresa = null;
+        var registro = NewRegistro();
+        var registroResult = await Sender.Send(registro);
+        _ = registroResult.IsSuccess.Should().BeTrue();
+
+        var rolSinTenant = Rol.Create($"Huerfano{Guid.NewGuid():N}"[..20], null).Value!;
+        _ = DbContext.Roles.Add(rolSinTenant);
+        _ = await DbContext.SaveChangesAsync();
+
+        CurrentUser.Empresa = EmpresaB;
+        var rolAjeno = Rol.Create($"Ajeno{Guid.NewGuid():N}"[..20], null).Value!;
+        _ = DbContext.Roles.Add(rolAjeno);
+        _ = await DbContext.SaveChangesAsync();
+
+        var cuenta = await DbContext.Cuentas.IgnoreQueryFilters().Include(c => c.Roles).SingleAsync(c => c.NombreUsuario == registro.Usuario);
+        cuenta.AddRol(rolAjeno);
+        cuenta.AddRol(rolSinTenant);
+        _ = await DbContext.SaveChangesAsync();
+        DbContext.ChangeTracker.Clear();
+        CurrentUser.Empresa = null;
+
+        // Act
+        var login = await Sender.Send(new LoginCommand(registro.Usuario, registro.Password));
+        var refresh = await Sender.Send(new RefreshTokenCommand(login.Value!.RefreshToken));
+
+        // Assert
+        foreach (var accessToken in new[] { login.Value!.AccessToken, refresh.Value!.AccessToken })
+        {
+            var valores = new JwtSecurityTokenHandler().ReadJwtToken(accessToken).Claims.Select(c => c.Value).ToList();
+            _ = valores.Should().Contain("Admin");
+            _ = valores.Should().NotContain([rolAjeno.NombreRol, rolSinTenant.NombreRol], because: "only the account's own company roles may reach the token");
+        }
     }
 
     [Fact]

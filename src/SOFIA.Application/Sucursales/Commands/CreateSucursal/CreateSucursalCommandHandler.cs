@@ -36,6 +36,12 @@ public class CreateSucursalCommandHandler(IApplicationDbContext context, ICurren
             return Result.Failure<Guid>(Error.Conflict("Sucursal.NumeroLicencia.Duplicado", "Another branch already uses this license number."), 409);
         }
 
+        // Tenant-filtered lookup: an employee of another company must not be stored as manager
+        if (request.GerenteId is { } gerenteId && !await context.Empleados.AnyAsync(e => e.Id == gerenteId, cancellationToken))
+        {
+            return Result.Failure<Guid>(Error.NotFound("Empleado.NotFound", "El empleado especificado no existe."), 404);
+        }
+
         _ = context.Sucursales.Add(result.Value);
         _ = await context.SaveChangesAsync(cancellationToken);
 

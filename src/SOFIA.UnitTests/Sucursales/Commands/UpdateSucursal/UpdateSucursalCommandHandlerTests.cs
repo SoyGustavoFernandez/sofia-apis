@@ -34,6 +34,31 @@ public class UpdateSucursalCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldReturnNotFoundAndNotChange_WhenNewGerenteIsUnknownOrForeign()
+    {
+        _ = _dbContextMock.Setup(c => c.Empleados).Returns(new List<Empleado>().BuildMockDbSet().Object);
+
+        var result = await _handler.Handle(new UpdateSucursalCommand { Id = _entity.Id, Nombre = "Sede", DireccionFisica = "Av. Uno 123", NumeroLicencia = "K-001", GerenteId = Guid.NewGuid() }, CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Empleado.NotFound");
+        _ = result.StatusCode.Should().Be(404);
+        _ = _entity.Gerente_ID.Should().BeNull();
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSave_WhenNewGerenteExistsInTheTenant()
+    {
+        var gerente = Empleado.Create(Guid.NewGuid(), "Ana", "Perez", "Gomez").Value!;
+        _ = _dbContextMock.Setup(c => c.Empleados).Returns(new List<Empleado> { gerente }.BuildMockDbSet().Object);
+
+        var result = await _handler.Handle(new UpdateSucursalCommand { Id = _entity.Id, Nombre = "Sede", DireccionFisica = "Av. Uno 123", NumeroLicencia = "K-001", GerenteId = gerente.Id }, CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = _entity.Gerente_ID.Should().Be(gerente.Id);
+    }
+
+    [Fact]
     public async Task Handle_ShouldReturnConflictAndNotChange_WhenLicenciaBelongsToAnotherRow()
     {
         _existentes.Add(Sucursal.Create("Sede", "Av. Uno 123", "K-002").Value!);

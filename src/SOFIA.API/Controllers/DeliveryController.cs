@@ -17,7 +17,7 @@ public class DeliveryController(ISender sender) : ControllerBase
     public async Task<IActionResult> ProgramarDelivery([FromBody] ProgramarDeliveryCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
     [HasPermission("Delivery", "Actualizar")]
     [HttpPut("{id}/estado")]

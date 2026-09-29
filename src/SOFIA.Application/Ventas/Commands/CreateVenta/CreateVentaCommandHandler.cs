@@ -33,7 +33,7 @@ public class CreateVentaCommandHandler(
 
         var empleadoId = empleadoResult.Value;
 
-        var sesionResult = await ValidateSesionCajaAsync(request.SesionId, empleadoId, sucursalId, cancellationToken);
+        var sesionResult = await ValidateClienteYSesionAsync(request, empleadoId, sucursalId, cancellationToken);
         if (sesionResult.IsFailure)
         {
             return Result.Failure<VentaCreadaDto>(sesionResult.Error, sesionResult.StatusCode);
@@ -96,6 +96,17 @@ public class CreateVentaCommandHandler(
         _ = await context.SaveChangesAsync(cancellationToken);
 
         return Result.Success(new VentaCreadaDto(ventaResult.Value.Id, dtoComprobante), 201);
+    }
+
+    // Tenant-filtered lookup: a patient of another company must not be stored as the customer
+    private async Task<Result> ValidateClienteYSesionAsync(CreateVentaCommand request, Guid empleadoId, Guid sucursalId, CancellationToken cancellationToken)
+    {
+        if (request.ClienteId is { } clienteId && !await context.Pacientes.AnyAsync(p => p.Id == clienteId, cancellationToken))
+        {
+            return Result.Failure(Error.NotFound("Paciente.NotFound", "The specified patient does not exist."), 404);
+        }
+
+        return await ValidateSesionCajaAsync(request.SesionId, empleadoId, sucursalId, cancellationToken);
     }
 
     private async Task<Result> ValidateSesionCajaAsync(Guid? sesionId, Guid empleadoId, Guid sucursalId, CancellationToken cancellationToken)

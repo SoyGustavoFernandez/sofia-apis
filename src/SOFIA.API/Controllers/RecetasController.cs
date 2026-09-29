@@ -18,7 +18,7 @@ public class RecetasController(ISender sender) : ControllerBase
     public async Task<IActionResult> CreateReceta([FromBody] CreateRecetaCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HasPermission("Recetas", "Leer")]

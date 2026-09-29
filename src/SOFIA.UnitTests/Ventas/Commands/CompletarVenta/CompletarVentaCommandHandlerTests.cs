@@ -73,6 +73,22 @@ public class CompletarVentaCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldReturnNotFoundAndNotSave_WhenNewClienteIsUnknownOrForeign()
+    {
+        var venta = CrearVentaPendiente();
+        SetupMocks([venta]);
+        _ = _dbContextMock.Setup(c => c.Pacientes).Returns(new List<PacienteCliente>().BuildMockDbSet().Object);
+        var command = new CompletarVentaCommand(venta.Id, [new CreateVentaPagoDto(MetodoPago.Efectivo, 20, null)], [new CreateVentaDetailDto(Guid.NewGuid(), 1)], Guid.NewGuid());
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Paciente.NotFound");
+        _ = result.StatusCode.Should().Be(404);
+        _ = venta.Estado.Should().Be(EstadoVenta.Pendiente);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_ShouldReturnError_WhenVentaDoesNotExist()
     {
         // Arrange

@@ -58,10 +58,9 @@ public class CreateMedicamentoIntegrationTests(SofiaWebAppFactory factory)
     }
 
     [Fact]
-    public async Task CreateMedicamento_ShouldRollback_WhenExceptionOccursDuringTransaction()
+    public async Task CreateMedicamento_ShouldReturnNotFoundAndPersistNothing_WhenLaboratorioDoesNotExist()
     {
-        // Este test verifica que el TransactionBehavior hace rollback correctamente.
-        // Enviamos un command con LaboratorioId inválido que causará FK violation en SaveChanges.
+        // An unknown (or another company's) laboratory is rejected before SaveChanges, so no FK violation is reached
         var unidadId = await SeedUnidadMedidaAsync();
 
         var command = new CreateMedicamentoCommand(
@@ -73,15 +72,15 @@ public class CreateMedicamentoIntegrationTests(SofiaWebAppFactory factory)
             PrecioVentaBase: 15m);
 
         // Act
-        var act = async () => await Sender.Send(command);
+        var result = await Sender.Send(command);
 
-        // Assert — debe lanzar excepción por FK violation (no un Result failure)
-        _ = await act.Should().ThrowAsync<Exception>(because: "FK violation debe hacer rollback y propagar la excepción");
+        // Assert
+        _ = result.Error.Code.Should().Be("Laboratorio.NotFound");
+        _ = result.StatusCode.Should().Be(404);
 
-        // Verificar que no quedó nada en la BD
         var count = await DbContext.Medicamentos
             .CountAsync(m => m.NombreComercial == "Test Rollback");
-        _ = count.Should().Be(0, because: "el rollback debe haber deshecho la inserción");
+        _ = count.Should().Be(0);
     }
 
     // Helpers de seeding para el entorno de test

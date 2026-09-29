@@ -13,11 +13,15 @@ public class UpdateMedicamentoCommandHandlerTests
     private readonly Mock<IApplicationDbContext> _dbContextMock = new();
     private readonly Mock<Microsoft.EntityFrameworkCore.DbSet<Medicamento>> _medicamentosMock;
     private readonly UpdateMedicamentoCommandHandler _handler;
+    private static readonly Laboratorio Lab = Laboratorio.Create("Lab Uno", null).Value!;
+    private static readonly UnidadMedida Und = UnidadMedida.Create("UND", "Unidad").Value!;
 
     public UpdateMedicamentoCommandHandlerTests()
     {
         _medicamentosMock = new List<Medicamento>().BuildMockDbSet();
         _ = _dbContextMock.Setup(c => c.Medicamentos).Returns(_medicamentosMock.Object);
+        _ = _dbContextMock.Setup(c => c.Laboratorios).Returns(new List<Laboratorio> { Lab }.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.UnidadesMedida).Returns(new List<UnidadMedida> { Und }.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         _handler = new UpdateMedicamentoCommandHandler(_dbContextMock.Object);
     }
@@ -27,8 +31,50 @@ public class UpdateMedicamentoCommandHandlerTests
             .Setup(m => m.FindAsync(It.IsAny<object[]>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.FromResult(entity));
 
-    private static UpdateMedicamentoCommand Command(Guid id, string codigo = "COD-002") => new(
-        id, codigo, "Nombre Nuevo", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.RecetaRetenida, 25m);
+    private static UpdateMedicamentoCommand Command(Guid id, string codigo = "COD-002", Guid? laboratorioId = null, Guid? unidadId = null) => new(
+        id, codigo, "Nombre Nuevo", laboratorioId ?? Lab.Id, unidadId ?? Und.Id, CondicionVenta.RecetaRetenida, 25m);
+
+    [Fact]
+    public async Task Handle_ShouldReturnNotFoundAndNotSave_WhenLaboratorioIsUnknownOrForeign()
+    {
+        var medicamento = Medicamento.Create("COD-001", "Viejo", Lab.Id, Und.Id, CondicionVenta.VentaLibreOTC).Value!;
+        SetupFind(medicamento);
+
+        var result = await _handler.Handle(Command(medicamento.Id, laboratorioId: Guid.NewGuid()), CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Laboratorio.NotFound");
+        _ = result.StatusCode.Should().Be(404);
+        _ = medicamento.LaboratorioId.Should().Be(Lab.Id);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnNotFoundAndNotSave_WhenUnidadBaseIsUnknownOrForeign()
+    {
+        var medicamento = Medicamento.Create("COD-001", "Viejo", Lab.Id, Und.Id, CondicionVenta.VentaLibreOTC).Value!;
+        SetupFind(medicamento);
+
+        var result = await _handler.Handle(Command(medicamento.Id, unidadId: Guid.NewGuid()), CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("UnidadMedida.NotFound");
+        _ = result.StatusCode.Should().Be(404);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSkipLookups_WhenReferencesAreUnchanged()
+    {
+        var laboratorioId = Guid.NewGuid();
+        var unidadId = Guid.NewGuid();
+        var medicamento = Medicamento.Create("COD-001", "Viejo", laboratorioId, unidadId, CondicionVenta.VentaLibreOTC).Value!;
+        SetupFind(medicamento);
+
+        var result = await _handler.Handle(Command(medicamento.Id, laboratorioId: laboratorioId, unidadId: unidadId), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _dbContextMock.Verify(c => c.Laboratorios, Times.Never);
+        _dbContextMock.Verify(c => c.UnidadesMedida, Times.Never);
+    }
 
     [Fact]
     public async Task Handle_ShouldReturnNotFound_WhenMedicamentoDoesNotExist()

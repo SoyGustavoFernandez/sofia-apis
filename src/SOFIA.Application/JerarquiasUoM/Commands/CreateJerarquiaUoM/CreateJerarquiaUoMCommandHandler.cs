@@ -23,6 +23,18 @@ public class CreateJerarquiaUoMCommandHandler(IApplicationDbContext context) : I
             return Result.Failure<Guid>(result.Error);
         }
 
+        // Tenant-filtered lookups: an id from another company must not be stored as a reference
+        if (!await context.Medicamentos.AnyAsync(m => m.Id == request.ProductoId, cancellationToken))
+        {
+            return Result.Failure<Guid>(Error.NotFound("Medicamento.NotFound", "The specified product does not exist."), 404);
+        }
+
+        if (!await context.UnidadesMedida.AnyAsync(u => u.Id == request.UnidadMayorId, cancellationToken)
+            || !await context.UnidadesMedida.AnyAsync(u => u.Id == request.UnidadMenorId, cancellationToken))
+        {
+            return Result.Failure<Guid>(Error.NotFound("UnidadMedida.NotFound", "The specified unit of measure does not exist."), 404);
+        }
+
         var existingEdges = await context.JerarquiasUoM
             .Where(x => x.ProductoId == request.ProductoId)
             .Select(x => new JerarquiaConversionResolver.Edge(x.UnidadMayorId, x.UnidadMenorId, x.Multiplicador))

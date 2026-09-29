@@ -19,6 +19,19 @@ public class UpdateJerarquiaUoMCommandHandler(IApplicationDbContext context) : I
             return Result.Failure(Error.NotFound("JerarquiaUoM.NotFound", $"JerarquÃ­a with ID {request.Id} was not found."), 404);
         }
 
+        // Tenant-filtered lookups: an id from another company must not be stored as a reference
+        if (entity.ProductoId != request.ProductoId
+            && !await context.Medicamentos.AnyAsync(m => m.Id == request.ProductoId, cancellationToken))
+        {
+            return Result.Failure(Error.NotFound("Medicamento.NotFound", "The specified product does not exist."), 404);
+        }
+
+        if ((entity.UnidadMayorId != request.UnidadMayorId && !await context.UnidadesMedida.AnyAsync(u => u.Id == request.UnidadMayorId, cancellationToken))
+            || (entity.UnidadMenorId != request.UnidadMenorId && !await context.UnidadesMedida.AnyAsync(u => u.Id == request.UnidadMenorId, cancellationToken)))
+        {
+            return Result.Failure(Error.NotFound("UnidadMedida.NotFound", "The specified unit of measure does not exist."), 404);
+        }
+
         var existingEdges = await context.JerarquiasUoM
             .Where(x => x.ProductoId == request.ProductoId && x.Id != request.Id)
             .Select(x => new JerarquiaConversionResolver.Edge(x.UnidadMayorId, x.UnidadMenorId, x.Multiplicador))

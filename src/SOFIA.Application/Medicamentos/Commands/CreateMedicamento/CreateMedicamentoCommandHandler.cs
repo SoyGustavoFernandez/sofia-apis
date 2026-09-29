@@ -31,6 +31,17 @@ public class CreateMedicamentoCommandHandler(IApplicationDbContext context) : IR
             return Result.Failure<Guid>(Error.Conflict("Medicamento.CodigoNacional.Duplicado", "Another product already uses this national code."), 409);
         }
 
+        // Tenant-filtered lookups: an id from another company must not be stored as a reference
+        if (!await context.Laboratorios.AnyAsync(l => l.Id == request.LaboratorioId, cancellationToken))
+        {
+            return Result.Failure<Guid>(Error.NotFound("Laboratorio.NotFound", "The specified laboratory does not exist."), 404);
+        }
+
+        if (!await context.UnidadesMedida.AnyAsync(u => u.Id == request.UnidadBaseId, cancellationToken))
+        {
+            return Result.Failure<Guid>(Error.NotFound("UnidadMedida.NotFound", "The specified unit of measure does not exist."), 404);
+        }
+
         _ = context.Medicamentos.Add(result.Value);
 
         _ = await context.SaveChangesAsync(cancellationToken);

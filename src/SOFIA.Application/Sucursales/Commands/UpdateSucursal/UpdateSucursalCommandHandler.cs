@@ -25,6 +25,13 @@ public class UpdateSucursalCommandHandler(IApplicationDbContext context) : IRequ
             return Result.Failure(Error.Conflict("Sucursal.NumeroLicencia.Duplicado", "Another branch already uses this license number."), 409);
         }
 
+        // Tenant-filtered lookup: an employee of another company must not be stored as manager
+        if (request.GerenteId is { } gerenteId && entity.Gerente_ID != gerenteId
+            && !await context.Empleados.AnyAsync(e => e.Id == gerenteId, cancellationToken))
+        {
+            return Result.Failure(Error.NotFound("Empleado.NotFound", "El empleado especificado no existe."), 404);
+        }
+
         var result = entity.Update(
             request.Nombre,
             request.DireccionFisica,

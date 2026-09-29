@@ -29,7 +29,9 @@ public class LoginCommandHandler(
         // Anonymous request: the tenant is resolved from the account itself
         var cuenta = await context.Cuentas
             .IgnoreQueryFilters([QueryFilters.Tenant])
-            .Include(c => c.Roles)
+            // Only the account's own live roles: a stray link to a foreign or NULL-tenant role must never grant access
+            .Include(c => c.Roles.Where(r => r.TenantId != null && !r.IsDeleted
+                && r.Cuentas.Any(x => x.NombreUsuario == request.NombreUsuario && !x.IsDeleted && x.TenantId == r.TenantId)))
             .Include(c => c.Empleado).ThenInclude(e => e!.Sucursal_Base).ThenInclude(s => s!.Empresa)
             .FirstOrDefaultAsync(c => c.NombreUsuario == request.NombreUsuario && !c.IsDeleted, cancellationToken);
 

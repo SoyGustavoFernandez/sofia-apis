@@ -18,6 +18,19 @@ public class UpdateRecetaCommandHandler(IApplicationDbContext context) : IReques
             return Result.Failure<Guid>(Error.NotFound("RecetaMedica.NotFound", "Receta médica not found."));
         }
 
+        // Tenant-filtered lookups: an id from another company must not be stored as a reference
+        if (entity.ClienteId != request.ClienteId
+            && !await context.Pacientes.AnyAsync(p => p.Id == request.ClienteId, cancellationToken))
+        {
+            return Result.Failure<Guid>(Error.NotFound("Paciente.NotFound", "The specified patient does not exist."), 404);
+        }
+
+        if (entity.MedicoId != request.MedicoId
+            && !await context.ProfesionalesSalud.AnyAsync(m => m.Id == request.MedicoId, cancellationToken))
+        {
+            return Result.Failure<Guid>(Error.NotFound("ProfesionalSalud.NotFound", "The specified health professional does not exist."), 404);
+        }
+
         var updateResult = entity.Update(
             request.ClienteId,
             request.MedicoId,

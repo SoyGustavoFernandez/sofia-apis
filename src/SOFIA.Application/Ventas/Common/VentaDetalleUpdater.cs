@@ -10,6 +10,13 @@ public static class VentaDetalleUpdater
 {
     public static async Task<Result> ReplaceAsync(IApplicationDbContext context, Venta venta, List<CreateVentaDetailDto> nuevosDtos, Guid? clienteId, Guid sucursalId, CancellationToken cancellationToken)
     {
+        // Tenant-filtered lookup: a patient of another company must not be stored as the customer
+        if (clienteId is { } nuevoClienteId && nuevoClienteId != venta.ClienteId
+            && !await context.Pacientes.AnyAsync(p => p.Id == nuevoClienteId, cancellationToken))
+        {
+            return Result.Failure(Error.NotFound("Paciente.NotFound", "The specified patient does not exist."), 404);
+        }
+
         var detallesAnteriores = venta.Detalles.ToList();
 
         foreach (var detalle in detallesAnteriores)

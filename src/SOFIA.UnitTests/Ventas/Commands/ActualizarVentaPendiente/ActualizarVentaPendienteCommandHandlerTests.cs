@@ -64,6 +64,35 @@ public class ActualizarVentaPendienteCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldReturnNotFoundAndNotChange_WhenNewClienteIsUnknownOrForeign()
+    {
+        var venta = CrearVentaPendiente();
+        SetupMocks([venta], [InventarioSucursal.Create(_sucursalId, _loteNuevoId, 10).Value!]);
+        _ = _dbContextMock.Setup(c => c.Pacientes).Returns(new List<PacienteCliente>().BuildMockDbSet().Object);
+
+        var result = await _handler.Handle(new ActualizarVentaPendienteCommand(venta.Id, [new CreateVentaDetailDto(_loteNuevoId, 1)], Guid.NewGuid()), CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Paciente.NotFound");
+        _ = result.StatusCode.Should().Be(404);
+        _ = venta.ClienteId.Should().BeNull();
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldAssignCliente_WhenNewClienteBelongsToTheTenant()
+    {
+        var venta = CrearVentaPendiente();
+        var cliente = PacienteCliente.Create("12345678", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!;
+        SetupMocks([venta], [InventarioSucursal.Create(_sucursalId, _loteNuevoId, 10).Value!]);
+        _ = _dbContextMock.Setup(c => c.Pacientes).Returns(new List<PacienteCliente> { cliente }.BuildMockDbSet().Object);
+
+        var result = await _handler.Handle(new ActualizarVentaPendienteCommand(venta.Id, [new CreateVentaDetailDto(_loteNuevoId, 1)], cliente.Id), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = venta.ClienteId.Should().Be(cliente.Id);
+    }
+
+    [Fact]
     public async Task Handle_ShouldReturnError_WhenVentaDoesNotExist()
     {
         // Arrange

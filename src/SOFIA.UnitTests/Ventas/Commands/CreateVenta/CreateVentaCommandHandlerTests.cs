@@ -20,13 +20,17 @@ public class CreateVentaCommandHandlerTests
     private readonly Guid _empleadoId = Guid.NewGuid();
     private readonly Guid _sesionId = Guid.NewGuid();
     private readonly Guid _loteId = Guid.NewGuid();
-    private readonly Guid _clienteId = Guid.NewGuid();
+    private readonly PacienteCliente _cliente = PacienteCliente.Create("12345678", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!;
     private readonly Guid _productoId = Guid.NewGuid();
+
+    private readonly Guid _clienteId;
 
     public CreateVentaCommandHandlerTests()
     {
+        _clienteId = _cliente.Id;
         _dbContextMock = new Mock<IApplicationDbContext>();
         _currentUserMock = new Mock<ICurrentUser>();
+        _ = _dbContextMock.Setup(c => c.Pacientes).Returns(new List<PacienteCliente> { _cliente }.BuildMockDbSet().Object);
 
         _ = _currentUserMock.Setup(c => c.IsAuthenticated).Returns(true);
         _ = _currentUserMock.Setup(c => c.SucursalId).Returns(_sucursalId.ToString());
@@ -48,6 +52,18 @@ public class CreateVentaCommandHandlerTests
         // Assert
         _ = result.IsSuccess.Should().BeFalse();
         _ = result.Error.Code.Should().Be("Auth.Sucursal");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnNotFoundAndNotSave_WhenClienteIsUnknownOrForeign()
+    {
+        var command = new CreateVentaCommand(Guid.NewGuid(), _sesionId, [new CreateVentaDetailDto(_loteId, 1)], [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)]);
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Paciente.NotFound");
+        _ = result.StatusCode.Should().Be(404);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

@@ -61,7 +61,7 @@ public class CompletarVentaCommandHandler(
             var updateResult = await VentaDetalleUpdater.ReplaceAsync(context, venta, request.Detalles, request.ClienteId, sucursalId, cancellationToken);
             if (!updateResult.IsSuccess)
             {
-                return Result.Failure<VentaCreadaDto>(updateResult.Error);
+                return Result.Failure<VentaCreadaDto>(updateResult.Error, updateResult.StatusCode);
             }
         }
 

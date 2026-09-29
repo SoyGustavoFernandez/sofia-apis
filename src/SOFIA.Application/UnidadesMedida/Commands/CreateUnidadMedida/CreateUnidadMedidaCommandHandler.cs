@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
@@ -15,6 +16,13 @@ public class CreateUnidadMedidaCommandHandler(IApplicationDbContext context) : I
         if (!result.IsSuccess)
         {
             return Result.Failure<Guid>(result.Error);
+        }
+
+        var duplicado = await context.UnidadesMedida
+            .AnyAsync(u => u.Codigo == request.Codigo && !u.IsDeleted, cancellationToken);
+        if (duplicado)
+        {
+            return Result.Failure<Guid>(Error.Conflict("UnidadMedida.Codigo.Duplicado", "Another unit of measure already uses this code."), 409);
         }
 
         _ = context.UnidadesMedida.Add(result.Value);

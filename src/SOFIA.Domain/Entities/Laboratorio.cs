@@ -11,6 +11,8 @@ public sealed class Laboratorio : BaseEntity
 
     public static Result<Laboratorio> Create(string nombreCompania, string? codigoIdentificador)
     {
+        codigoIdentificador = NormalizarCodigo(codigoIdentificador);
+
         if (string.IsNullOrWhiteSpace(nombreCompania))
         {
             return Result.Failure<Laboratorio>(Error.Validation("Laboratorio.NombreCompania", "Nombre de Compañía is required."));
@@ -35,6 +37,8 @@ public sealed class Laboratorio : BaseEntity
 
     public Result Update(string nombreCompania, string? codigoIdentificador)
     {
+        codigoIdentificador = NormalizarCodigo(codigoIdentificador);
+
         if (string.IsNullOrWhiteSpace(nombreCompania))
         {
             return Result.Failure(Error.Validation("Laboratorio.NombreCompania", "Nombre de Compañía is required."));
@@ -55,4 +59,7 @@ public sealed class Laboratorio : BaseEntity
 
         return Result.Success();
     }
+
+    // A blank optional code is stored as NULL so it never collides with other labs without code
+    private static string? NormalizarCodigo(string? codigo) => string.IsNullOrWhiteSpace(codigo) ? null : codigo;
 }

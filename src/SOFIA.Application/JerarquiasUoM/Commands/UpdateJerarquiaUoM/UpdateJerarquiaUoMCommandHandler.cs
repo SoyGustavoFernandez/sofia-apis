@@ -24,6 +24,11 @@ public class UpdateJerarquiaUoMCommandHandler(IApplicationDbContext context) : I
             .Select(x => new JerarquiaConversionResolver.Edge(x.UnidadMayorId, x.UnidadMenorId, x.Multiplicador))
             .ToListAsync(cancellationToken);
 
+        if (existingEdges.Exists(e => e.UnidadMayorId == request.UnidadMayorId && e.UnidadMenorId == request.UnidadMenorId))
+        {
+            return Result.Failure(Error.Conflict("JerarquiaUoM.Duplicada", "This product already has a conversion between these units."), 409);
+        }
+
         var yaResuelto = JerarquiaConversionResolver.Resolve(existingEdges, request.UnidadMayorId, request.UnidadMenorId);
         if (yaResuelto.HasValue && decimal.Round(yaResuelto.Value, 4) != decimal.Round(request.Multiplicador, 4))
         {

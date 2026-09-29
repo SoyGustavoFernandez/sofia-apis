@@ -63,5 +63,9 @@ public sealed class DigemidActaDestruccionConfiguration : IEntityTypeConfigurati
             .OnDelete(DeleteBehavior.Cascade);
 
         // Soft delete query filter
+
+        _ = builder.HasIndex(x => new { x.TenantId, x.NumeroResolucionInterna }, "UX_DIGEMID_Actas_Destruccion_Tenant_Numero_Resolucion_Interna")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
     }
 }

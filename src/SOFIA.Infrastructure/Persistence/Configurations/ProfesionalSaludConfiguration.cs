@@ -40,7 +40,7 @@ public class ProfesionalSaludConfiguration : IEntityTypeConfiguration<Profesiona
         _ = builder.Property(x => x.DeletedBy).HasColumnName("DeletedBy");
 
         // Indexes
-        _ = builder.HasIndex(x => new { x.TenantId, x.NumeroRegistro })
+        _ = builder.HasIndex(x => new { x.TenantId, x.NumeroRegistro }, "UX_Profesionales_Salud_Tenant_Numero_Registro")
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
 

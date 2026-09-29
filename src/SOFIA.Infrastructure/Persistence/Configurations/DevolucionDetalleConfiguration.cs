@@ -55,5 +55,7 @@ public class DevolucionDetalleConfiguration : IEntityTypeConfiguration<Devolucio
             .WithMany()
             .HasForeignKey(x => x.DetalleVentaId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.ToTable(t => t.HasCheckConstraint("CHK_Devoluciones_Detalle_Cantidad_Devuelta", "[Cantidad_Devuelta] > 0"));
     }
 }

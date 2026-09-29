@@ -28,6 +28,13 @@ public class UpdateFormulacionClinicaCommandHandler(IApplicationDbContext contex
             {
                 return Result.Failure(Error.NotFound("IngredienteActivo.NotFound", $"Ingrediente Activo with ID {request.IngredienteId} not found."));
             }
+
+            var duplicada = await context.FormulacionesClinicas
+                .AnyAsync(x => x.Id != formulacion.Id && x.ProductoId == formulacion.ProductoId && x.IngredienteId == request.IngredienteId && !x.IsDeleted, cancellationToken);
+            if (duplicada)
+            {
+                return Result.Failure(Error.Conflict("Formulacion.Ingrediente.Duplicado", "This product already lists that active ingredient."), 409);
+            }
         }
 
         // Check that the unit of measure exists (only if it changed)

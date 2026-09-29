@@ -56,6 +56,8 @@ public class MedicamentoConfiguration : IEntityTypeConfiguration<Medicamento>
             .HasForeignKey(x => x.UnidadBaseId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        _ = builder.HasIndex(x => new { x.TenantId, x.CodigoNacional }).IsUnique();
+        _ = builder.HasIndex(x => new { x.TenantId, x.CodigoNacional }, "UX_Medicamentos_Tenant_Codigo_Nacional").IsUnique().HasFilter("[IsDeleted] = 0");
+
+        _ = builder.ToTable(t => t.HasCheckConstraint("CHK_Medicamentos_Precio_Venta_Base", "[Precio_Venta_Base] >= 0"));
     }
 }

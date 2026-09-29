@@ -1,6 +1,8 @@
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Laboratorios.Common;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 
@@ -15,6 +17,12 @@ public class CreateLaboratorioCommandHandler(IApplicationDbContext context) : IR
         if (!result.IsSuccess)
         {
             return Result.Failure<Guid>(result.Error);
+        }
+
+        var duplicado = await LaboratorioDuplicateChecker.FindAsync(context, null, result.Value.NombreCompania, result.Value.CodigoIdentificador, cancellationToken);
+        if (duplicado is not null)
+        {
+            return Result.Failure<Guid>(duplicado, 409);
         }
 
         _ = context.Laboratorios.Add(result.Value);

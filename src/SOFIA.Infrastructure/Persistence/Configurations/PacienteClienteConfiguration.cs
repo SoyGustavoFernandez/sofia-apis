@@ -44,7 +44,7 @@ public class PacienteClienteConfiguration : IEntityTypeConfiguration<PacienteCli
         _ = builder.Property(x => x.DeletedBy).HasColumnName("DeletedBy");
 
         // Indexes
-        _ = builder.HasIndex(x => new { x.TenantId, x.DocIdentidadGub })
+        _ = builder.HasIndex(x => new { x.TenantId, x.DocIdentidadGub }, "UX_Pacientes_Clientes_Tenant_Doc_Identidad_Gub")
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
 

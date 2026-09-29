@@ -1,5 +1,6 @@
 using MediatR;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Proveedores.Common;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Proveedores.Commands.CreateProveedor;
@@ -15,6 +16,12 @@ public class CreateProveedorCommandHandler(IApplicationDbContext dbContext) : IR
         }
 
         var entity = createResult.Value!;
+        var duplicado = await ProveedorDuplicateChecker.FindAsync(dbContext, null, request.RazonSocial, request.TaxId, cancellationToken);
+        if (duplicado is not null)
+        {
+            return Result.Failure<Guid>(duplicado, 409);
+        }
+
         _ = dbContext.Proveedores.Add(entity);
         _ = await dbContext.SaveChangesAsync(cancellationToken);
 

@@ -19,6 +19,11 @@ public class CargaMasivaMedicamentosCommandHandler(IApplicationDbContext context
             .Select(u => new { u.Descripcion, u.Id })
             .ToListAsync(cancellationToken)).Select(u => (u.Descripcion, u.Id)));
 
+        // Keys already taken in the database or by an earlier row of the file are skipped like any other invalid row
+        var tomados = new HashSet<string>(
+            await context.Medicamentos.Where(x => !x.IsDeleted).Select(x => x.CodigoNacional).ToListAsync(cancellationToken),
+            StringComparer.OrdinalIgnoreCase);
+
         var saved = 0;
         foreach (var row in request.Rows)
         {
@@ -48,7 +53,7 @@ public class CargaMasivaMedicamentosCommandHandler(IApplicationDbContext context
                 unidadBaseId,
                 (Domain.Enums.CondicionVenta)condicionIndex);
 
-            if (result.IsSuccess)
+            if (result.IsSuccess && tomados.Add(result.Value.CodigoNacional))
             {
                 _ = context.Medicamentos.Add(result.Value);
                 saved++;

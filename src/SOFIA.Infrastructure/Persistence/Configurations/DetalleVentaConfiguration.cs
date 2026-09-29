@@ -57,5 +57,11 @@ public class DetalleVentaConfiguration : IEntityTypeConfiguration<DetalleVenta>
             .WithMany()
             .HasForeignKey(x => x.PresentacionVentaId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.ToTable(t =>
+        {
+            _ = t.HasCheckConstraint("CHK_Ventas_Detalle_Cantidad_Vendida", "[Cantidad_Vendida] > 0");
+            _ = t.HasCheckConstraint("CHK_Ventas_Detalle_Precio_Fijado_Unidad", "[Precio_Fijado_Unidad] >= 0");
+        });
     }
 }

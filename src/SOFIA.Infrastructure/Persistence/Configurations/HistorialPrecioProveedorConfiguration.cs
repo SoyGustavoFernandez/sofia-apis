@@ -69,5 +69,12 @@ public class HistorialPrecioProveedorConfiguration : IEntityTypeConfiguration<Hi
         _ = builder.HasIndex(x => x.ProductoId);
 
         // Soft delete query filter
+
+        _ = builder.ToTable(t =>
+        {
+            _ = t.HasCheckConstraint("CHK_Historial_Precios_Prov_Costo", "[Costo_Por_Unidad_Base] >= 0");
+            _ = t.HasCheckConstraint("CHK_Historial_Precios_Prov_Lead_Time", "[Lead_Time_Dias] >= 0");
+            _ = t.HasCheckConstraint("CHK_Historial_Precios_Prov_Cantidad_Min", "[Cantidad_Min_Compra] >= 1");
+        });
     }
 }

@@ -66,4 +66,28 @@ public class CreateEmpleadoCommandHandlerTests
         _empleadosMock.Verify(m => m.Add(It.IsAny<Empleado>()), Times.Never);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_ShouldReturnConflictAndNotSave_WhenLicenciaIsTaken()
+    {
+        _ = _dbContextMock.Setup(c => c.Empleados).Returns(new List<Empleado> { Empleado.Create(_sucursal.Id, "Luis", "Rios", "Paz", "CQFP-1").Value! }.BuildMockDbSet().Object);
+
+        var result = await _handler.Handle(Command() with { Licencia_Prof = "CQFP-1" }, CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Empleado.LicenciaProf.Duplicado");
+        _ = result.StatusCode.Should().Be(409);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreate_WhenLicenciaOnlyBelongsToADeletedEmpleado()
+    {
+        var eliminado = Empleado.Create(_sucursal.Id, "Luis", "Rios", "Paz", "CQFP-1").Value!;
+        eliminado.IsDeleted = true;
+        _ = _dbContextMock.Setup(c => c.Empleados).Returns(new List<Empleado> { eliminado }.BuildMockDbSet().Object);
+
+        var result = await _handler.Handle(Command() with { Licencia_Prof = "CQFP-1" }, CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+    }
 }

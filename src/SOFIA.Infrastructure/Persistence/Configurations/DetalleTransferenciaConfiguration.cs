@@ -52,5 +52,11 @@ public sealed class DetalleTransferenciaConfiguration : IEntityTypeConfiguration
             .WithMany()
             .HasForeignKey(x => x.LoteId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.ToTable(t =>
+        {
+            _ = t.HasCheckConstraint("CHK_Transferencias_Det_Cantidad_Enviada", "[Cantidad_Enviada] > 0");
+            _ = t.HasCheckConstraint("CHK_Transferencias_Det_Cantidad_Recibida", "[Cantidad_Recibida] >= 0 AND [Cantidad_Recibida] <= [Cantidad_Enviada]");
+        });
     }
 }

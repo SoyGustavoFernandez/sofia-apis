@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
@@ -15,6 +16,13 @@ public class CreatePacienteCommandHandler(IApplicationDbContext dbContext) : IRe
         }
 
         var entity = createResult.Value!;
+        var duplicado = await dbContext.Pacientes
+            .AnyAsync(p => p.DocIdentidadGub == request.DocIdentidadGub && !p.IsDeleted, cancellationToken);
+        if (duplicado)
+        {
+            return Result.Failure<Guid>(Error.Conflict("Paciente.DocIdentidadGub.Duplicado", "Another patient already uses this identity document."), 409);
+        }
+
         _ = dbContext.Pacientes.Add(entity);
         _ = await dbContext.SaveChangesAsync(cancellationToken);
 

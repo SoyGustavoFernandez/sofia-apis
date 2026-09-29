@@ -38,6 +38,8 @@ public class SucursalConfiguration : IEntityTypeConfiguration<Sucursal>
             .HasForeignKey<Sucursal>(x => x.Gerente_ID)
             .IsRequired(false);
 
-        // Soft delete filter
+        _ = builder.HasIndex(x => new { x.EmpresaId, x.Numero_Licencia }, "UX_Sucursales_Empresa_Licencia")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0 AND [Empresa_ID] IS NOT NULL");
     }
 }

@@ -157,4 +157,33 @@ public class UpdateEmpleadoCommandHandlerTests
         _ = result.IsSuccess.Should().BeTrue();
         _ = cuenta.SecurityStamp.Should().Be(stampAntes);
     }
+
+    [Fact]
+    public async Task Handle_ShouldReturnConflictAndNotSave_WhenLicenciaBelongsToAnotherEmpleado()
+    {
+        var empleado = Empleado.Create(_sucursalActual.Id, "Ana", "Pérez", "Gómez", "CQFP-1").Value!;
+        var otro = Empleado.Create(_sucursalActual.Id, "Luis", "Rios", "Paz", "CQFP-2").Value!;
+        var setMock = new List<Empleado> { empleado, otro }.BuildMockDbSet();
+        _ = setMock.Setup(m => m.FindAsync(It.IsAny<object[]>(), It.IsAny<CancellationToken>())).Returns(ValueTask.FromResult<Empleado?>(empleado));
+        _ = _dbContextMock.Setup(c => c.Empleados).Returns(setMock.Object);
+
+        var result = await _handler.Handle(Command(empleado.Id, _sucursalActual.Id) with { Licencia_Prof = "CQFP-2" }, CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Empleado.LicenciaProf.Duplicado");
+        _ = result.StatusCode.Should().Be(409);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSave_WhenKeepingItsOwnLicencia()
+    {
+        var empleado = Empleado.Create(_sucursalActual.Id, "Ana", "Pérez", "Gómez", "CQFP-1").Value!;
+        var setMock = new List<Empleado> { empleado }.BuildMockDbSet();
+        _ = setMock.Setup(m => m.FindAsync(It.IsAny<object[]>(), It.IsAny<CancellationToken>())).Returns(ValueTask.FromResult<Empleado?>(empleado));
+        _ = _dbContextMock.Setup(c => c.Empleados).Returns(setMock.Object);
+
+        var result = await _handler.Handle(Command(empleado.Id, _sucursalActual.Id) with { Licencia_Prof = "CQFP-1" }, CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+    }
 }

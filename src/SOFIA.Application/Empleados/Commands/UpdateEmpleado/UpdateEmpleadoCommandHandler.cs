@@ -36,6 +36,12 @@ public class UpdateEmpleadoCommandHandler(IApplicationDbContext context, ICurren
             }
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Licencia_Prof)
+            && await context.Empleados.AnyAsync(e => e.Id != empleado.Id && e.Licencia_Prof == request.Licencia_Prof && !e.IsDeleted, cancellationToken))
+        {
+            return Result.Failure(Error.Conflict("Empleado.LicenciaProf.Duplicado", "Another employee already uses this professional license."), 409);
+        }
+
         var result = empleado.Update(
             request.Sucursal_Base_ID,
             request.Nombres,

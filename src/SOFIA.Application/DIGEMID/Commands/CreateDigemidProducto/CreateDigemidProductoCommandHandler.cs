@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
@@ -22,6 +23,13 @@ public class CreateDigemidProductoCommandHandler(IApplicationDbContext context) 
         if (!result.IsSuccess)
         {
             return Result.Failure<Guid>(result.Error);
+        }
+
+        var duplicado = await context.DigemidCatalogoProductos
+            .AnyAsync(p => p.CodProd == request.CodProd && !p.IsDeleted, cancellationToken);
+        if (duplicado)
+        {
+            return Result.Failure<Guid>(Error.Conflict("DigemidCatalogo.CodProd.Duplicado", "Another catalog product already uses this code."), 409);
         }
 
         _ = context.DigemidCatalogoProductos.Add(result.Value);

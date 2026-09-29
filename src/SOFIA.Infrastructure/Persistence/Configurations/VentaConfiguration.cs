@@ -70,5 +70,7 @@ public class VentaConfiguration : IEntityTypeConfiguration<Venta>
             .WithMany()
             .HasForeignKey(x => x.SesionId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.ToTable(t => t.HasCheckConstraint("CHK_Ventas_Cabecera_Monto_Total_Bruto", "[Monto_Total_Bruto] >= 0"));
     }
 }

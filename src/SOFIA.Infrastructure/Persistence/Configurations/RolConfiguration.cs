@@ -43,5 +43,9 @@ public class RolConfiguration : IEntityTypeConfiguration<Rol>
                     _ = j.Property(rs => rs.RolId).HasColumnName("Rol_ID");
                     _ = j.Property(rs => rs.SucursalId).HasColumnName("Sucursal_ID");
                 });
+
+        _ = builder.HasIndex(x => new { x.TenantId, x.NombreRol }, "UX_Seguridad_Roles_Tenant_Nombre_Rol")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
     }
 }

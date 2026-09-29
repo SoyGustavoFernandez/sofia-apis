@@ -1,4 +1,6 @@
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Excel;
 using SOFIA.Domain.Common;
@@ -10,6 +12,13 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
     public const string ConcurrencyConflictCode = "Concurrency.Conflict";
     public const string RequestTooLargeCode = "Request.TooLarge";
     public const string RequestInvalidCode = "Request.Invalid";
+    public const string DuplicadoCode = "Db.Duplicado";
+    public const string ReferenciaInvalidaCode = "Db.ReferenciaInvalida";
+    public const string ValorInvalidoCode = "Db.ValorInvalido";
+
+    private const int SqlUniqueIndexViolation = 2601;
+    private const int SqlUniqueConstraintViolation = 2627;
+    private const int SqlConstraintConflict = 547;
 
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
@@ -22,6 +31,11 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         if (exception is DbUpdateConcurrencyException)
         {
             return await WriteConcurrencyConflictAsync(httpContext, traceId, cancellationToken);
+        }
+
+        if (exception is DbUpdateException { InnerException: SqlException sqlException } && IsConstraintViolation(sqlException))
+        {
+            return await WriteConstraintViolationAsync(httpContext, sqlException, traceId, cancellationToken);
         }
 
         if (exception is ExcelImportException excelImport)
@@ -72,6 +86,32 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
 
         var error = Error.Conflict(ConcurrencyConflictCode, "The record was changed by another operation. Reload it and try again.");
         return await WriteErrorAsync(httpContext, error, StatusCodes.Status409Conflict, traceId, cancellationToken);
+    }
+
+    private static bool IsConstraintViolation(SqlException sqlException) =>
+        sqlException.Number is SqlUniqueIndexViolation or SqlUniqueConstraintViolation or SqlConstraintConflict;
+
+    // SQL Server messages carry the offending key values (e.g. a DNI), so only the constraint name is logged
+    private async Task<bool> WriteConstraintViolationAsync(HttpContext httpContext, SqlException sqlException, string traceId, CancellationToken cancellationToken)
+    {
+        var constraint = ExtractConstraintName(sqlException.Message);
+        logger.LogWarning("Database constraint {Constraint} (SQL error {SqlError}) rejected {Method} {Path}. [TraceId: {TraceId}]", constraint, sqlException.Number, httpContext.Request.Method, httpContext.Request.Path, traceId);
+
+        var (error, statusCode) = sqlException.Number switch
+        {
+            SqlUniqueIndexViolation or SqlUniqueConstraintViolation => (Error.Conflict(DuplicadoCode, "A record with the same unique value already exists."), StatusCodes.Status409Conflict),
+            _ when sqlException.Message.Contains("CHECK constraint", StringComparison.Ordinal) => (Error.Validation(ValorInvalidoCode, "A value is outside the allowed range."), StatusCodes.Status400BadRequest),
+            _ => (Error.Conflict(ReferenciaInvalidaCode, "The operation references a record that does not exist or is still in use."), StatusCodes.Status409Conflict),
+        };
+
+        return await WriteErrorAsync(httpContext, error, statusCode, traceId, cancellationToken);
+    }
+
+    // Index/constraint names are the first single- or double-quoted token after the violated object kind
+    private static string ExtractConstraintName(string message)
+    {
+        var match = Regex.Match(message, @"(?:unique index|constraint)\s+['""](?<name>[^'""]+)['""]", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+        return match.Success ? match.Groups["name"].Value : "unknown";
     }
 
     private static async Task<bool> WriteErrorAsync(HttpContext httpContext, Error error, int statusCode, string traceId, CancellationToken cancellationToken)

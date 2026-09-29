@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
@@ -14,6 +15,13 @@ public class UpdateDigemidProductoCommandHandler(IApplicationDbContext context) 
         if (entity == null || entity.IsDeleted)
         {
             return Result.Failure(Error.NotFound("DigemidCatalogo.NotFound", $"DigemidCatalogoProducto with ID {request.Id} was not found."), 404);
+        }
+
+        var duplicado = await context.DigemidCatalogoProductos
+            .AnyAsync(p => p.Id != entity.Id && p.CodProd == request.CodProd && !p.IsDeleted, cancellationToken);
+        if (duplicado)
+        {
+            return Result.Failure(Error.Conflict("DigemidCatalogo.CodProd.Duplicado", "Another catalog product already uses this code."), 409);
         }
 
         var result = entity.Update(

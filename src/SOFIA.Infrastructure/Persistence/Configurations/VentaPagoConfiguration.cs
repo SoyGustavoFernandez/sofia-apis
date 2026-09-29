@@ -60,5 +60,7 @@ public class VentaPagoConfiguration : IEntityTypeConfiguration<VentaPago>
         _ = builder.HasIndex(x => x.TransaccionId);
 
         // Soft delete query filter
+
+        _ = builder.ToTable(t => t.HasCheckConstraint("CHK_Ventas_Pagos_Monto_Pagado", "[Monto_Pagado] > 0"));
     }
 }

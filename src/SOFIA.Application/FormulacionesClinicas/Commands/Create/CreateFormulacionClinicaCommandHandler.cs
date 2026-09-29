@@ -29,6 +29,14 @@ public class CreateFormulacionClinicaCommandHandler(IApplicationDbContext contex
             return Result.Failure<Guid>(Error.NotFound("IngredienteActivo.NotFound", $"Ingrediente Activo with ID {request.IngredienteId} not found."));
         }
 
+        // A product lists each active ingredient once; its concentration is edited on that row
+        var duplicada = await context.FormulacionesClinicas
+            .AnyAsync(x => x.ProductoId == request.ProductoId && x.IngredienteId == request.IngredienteId && !x.IsDeleted, cancellationToken);
+        if (duplicada)
+        {
+            return Result.Failure<Guid>(Error.Conflict("Formulacion.Ingrediente.Duplicado", "This product already lists that active ingredient."), 409);
+        }
+
         // Check that the unit of measure exists
         var unidadMedidaExists = await context.UnidadesMedida
             .AnyAsync(x => x.Id == request.UnidadMedidaId && !x.IsDeleted, cancellationToken);

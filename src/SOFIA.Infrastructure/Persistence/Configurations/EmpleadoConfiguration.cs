@@ -46,5 +46,9 @@ public class EmpleadoConfiguration : IEntityTypeConfiguration<Empleado>
             .OnDelete(DeleteBehavior.Restrict);
 
         // Soft delete filter
+
+        _ = builder.HasIndex(x => new { x.TenantId, x.Licencia_Prof }, "UX_Empleados_Tenant_Licencia_Prof")
+            .IsUnique()
+            .HasFilter("[Licencia_Prof] IS NOT NULL AND [IsDeleted] = 0");
     }
 }

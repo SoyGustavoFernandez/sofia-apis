@@ -128,4 +128,35 @@ public class UpdateFormulacionClinicaCommandHandlerTests
         _ = result.Error.Code.Should().Be("Formulacion.Concentracion");
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_ShouldReturnConflictAndNotSave_WhenTheNewIngredientIsAlreadyListedForTheProduct()
+    {
+        var otroIngrediente = IngredienteActivo.Create("Furosemida", "C03CA01").Value!;
+        SetupIngredientes(_ingrediente, otroIngrediente);
+        var formulacion = NewFormulacion();
+        var otra = FormulacionClinica.Create(formulacion.ProductoId, otroIngrediente.Id, 40m, _unidadMedida.Id, null).Value!;
+        SetupFormulaciones(formulacion, otra);
+
+        var result = await _handler.Handle(Command(formulacion.Id) with { IngredienteId = otroIngrediente.Id }, CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Formulacion.Ingrediente.Duplicado");
+        _ = result.StatusCode.Should().Be(409);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSave_WhenTheNewIngredientOnlyBelongsToADeletedFormulacion()
+    {
+        var otroIngrediente = IngredienteActivo.Create("Furosemida", "C03CA01").Value!;
+        SetupIngredientes(_ingrediente, otroIngrediente);
+        var formulacion = NewFormulacion();
+        var eliminada = FormulacionClinica.Create(formulacion.ProductoId, otroIngrediente.Id, 40m, _unidadMedida.Id, null).Value!;
+        eliminada.IsDeleted = true;
+        SetupFormulaciones(formulacion, eliminada);
+
+        var result = await _handler.Handle(Command(formulacion.Id) with { IngredienteId = otroIngrediente.Id }, CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+    }
 }

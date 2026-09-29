@@ -28,6 +28,11 @@ public class CreateJerarquiaUoMCommandHandler(IApplicationDbContext context) : I
             .Select(x => new JerarquiaConversionResolver.Edge(x.UnidadMayorId, x.UnidadMenorId, x.Multiplicador))
             .ToListAsync(cancellationToken);
 
+        if (existingEdges.Exists(e => e.UnidadMayorId == request.UnidadMayorId && e.UnidadMenorId == request.UnidadMenorId))
+        {
+            return Result.Failure<Guid>(Error.Conflict("JerarquiaUoM.Duplicada", "This product already has a conversion between these units."), 409);
+        }
+
         // A path may already connect these two units through other units (e.g. Caja -> Blister -> Unidad).
         // Adding a direct edge is fine if it agrees with that path, but a contradicting value would let the
         // conversion silently depend on which edge happens to get picked, so it's rejected instead.

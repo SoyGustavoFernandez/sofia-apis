@@ -27,7 +27,12 @@ public static class DependencyInjection
         _ = services.AddDbContext<ApplicationDbContext>(options =>
         {
             _ = options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
-            _ = options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning));
+            _ = options.ConfigureWarnings(w => w
+                .Ignore(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning)
+                // Failed saves carry SQL messages with key values (e.g. DNIs); GlobalExceptionHandler logs them sanitized instead
+                .Log(
+                    (Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.SaveChangesFailed, Microsoft.Extensions.Logging.LogLevel.Debug),
+                    (Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.CommandError, Microsoft.Extensions.Logging.LogLevel.Debug)));
         });
 
         _ = services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());

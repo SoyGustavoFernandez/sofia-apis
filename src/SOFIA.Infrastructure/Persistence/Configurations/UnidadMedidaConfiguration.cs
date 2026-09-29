@@ -27,5 +27,9 @@ public class UnidadMedidaConfiguration : IEntityTypeConfiguration<UnidadMedida>
 
         // Audit properties are handled by ApplicationDbContext but we can map names if needed
         // The script has them as CreatedAt, CreatedBy, etc. which matches BaseEntity names.
+
+        _ = builder.HasIndex(x => new { x.TenantId, x.Codigo }, "UX_Unidades_Medida_Tenant_Codigo_UoM")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0 AND [Codigo_UoM] IS NOT NULL");
     }
 }

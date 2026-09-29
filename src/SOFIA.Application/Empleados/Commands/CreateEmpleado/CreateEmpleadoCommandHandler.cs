@@ -34,6 +34,12 @@ public class CreateEmpleadoCommandHandler(IApplicationDbContext context, ICurren
             return Result.Failure<Guid>(result.Error);
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Licencia_Prof)
+            && await context.Empleados.AnyAsync(e => e.Licencia_Prof == request.Licencia_Prof && !e.IsDeleted, cancellationToken))
+        {
+            return Result.Failure<Guid>(Error.Conflict("Empleado.LicenciaProf.Duplicado", "Another employee already uses this professional license."), 409);
+        }
+
         _ = context.Empleados.Add(result.Value);
 
         _ = await context.SaveChangesAsync(cancellationToken);

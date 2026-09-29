@@ -68,4 +68,34 @@ public class UpdateMedicamentoCommandHandlerTests
         _ = medicamento.CodigoNacional.Should().Be("COD-001");
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_ShouldReturnConflictAndNotChange_WhenCodigoNacionalBelongsToAnotherMedicamento()
+    {
+        var medicamento = Medicamento.Create("COD-001", "Viejo", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.VentaLibreOTC).Value!;
+        var otro = Medicamento.Create("COD-002", "Otro", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.VentaLibreOTC).Value!;
+        var setMock = new List<Medicamento> { medicamento, otro }.BuildMockDbSet();
+        _ = setMock.Setup(m => m.FindAsync(It.IsAny<object[]>(), It.IsAny<CancellationToken>())).Returns(ValueTask.FromResult<Medicamento?>(medicamento));
+        _ = _dbContextMock.Setup(c => c.Medicamentos).Returns(setMock.Object);
+
+        var result = await _handler.Handle(Command(medicamento.Id, codigo: "COD-002"), CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Medicamento.CodigoNacional.Duplicado");
+        _ = result.StatusCode.Should().Be(409);
+        _ = medicamento.CodigoNacional.Should().Be("COD-001");
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSave_WhenKeepingItsOwnCodigoNacional()
+    {
+        var medicamento = Medicamento.Create("COD-001", "Viejo", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.VentaLibreOTC).Value!;
+        var setMock = new List<Medicamento> { medicamento }.BuildMockDbSet();
+        _ = setMock.Setup(m => m.FindAsync(It.IsAny<object[]>(), It.IsAny<CancellationToken>())).Returns(ValueTask.FromResult<Medicamento?>(medicamento));
+        _ = _dbContextMock.Setup(c => c.Medicamentos).Returns(setMock.Object);
+
+        var result = await _handler.Handle(Command(medicamento.Id, codigo: "COD-001"), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+    }
 }

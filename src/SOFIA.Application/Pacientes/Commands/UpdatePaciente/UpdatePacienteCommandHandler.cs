@@ -17,6 +17,13 @@ public class UpdatePacienteCommandHandler(IApplicationDbContext context) : IRequ
             return Result.Failure(Error.NotFound("Paciente.NotFound", $"Paciente with ID {request.Id} was not found."), 404);
         }
 
+        var duplicado = await context.Pacientes
+            .AnyAsync(p => p.Id != entity.Id && p.DocIdentidadGub == request.DocIdentidadGub && !p.IsDeleted, cancellationToken);
+        if (duplicado)
+        {
+            return Result.Failure(Error.Conflict("Paciente.DocIdentidadGub.Duplicado", "Another patient already uses this identity document."), 409);
+        }
+
         var result = entity.Update(request.DocIdentidadGub, request.NombreApellidos, request.FechaNacimiento, request.ContactoPrimario);
 
         if (!result.IsSuccess)

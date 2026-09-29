@@ -60,10 +60,17 @@ public class CuentaConfiguration : IEntityTypeConfiguration<Cuenta>
             .HasForeignKey<Cuenta>(x => x.EmpleadoId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        _ = builder.HasIndex(x => x.NombreUsuario)
+        _ = builder.HasIndex(x => x.NombreUsuario, "IX_Cuentas_Login")
+            .HasFilter("[IsDeleted] = 0 AND [Cuenta_Activa] = 1");
+
+        // Usernames are global because login does not ask for the company; only live accounts count
+        _ = builder.HasIndex(x => x.NombreUsuario, "UX_Seguridad_Cuentas_Nombre_Usuario")
             .IsUnique()
-            .HasDatabaseName("IX_Cuentas_Login")
-            .HasFilter("IsDeleted = 0 AND Cuenta_Activa = 1");
+            .HasFilter("[IsDeleted] = 0");
+
+        _ = builder.HasIndex(x => x.EmpleadoId, "UX_Seguridad_Cuentas_Empleado_ID")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
 
         _ = builder.Ignore(x => x.EsAdmin);
 

@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
@@ -10,6 +11,11 @@ public class CargaMasivaPacientesCommandHandler(IApplicationDbContext context)
 {
     public async Task<Result<int>> Handle(CargaMasivaPacientesCommand request, CancellationToken cancellationToken)
     {
+        // Keys already taken in the database or by an earlier row of the file are skipped like any other invalid row
+        var tomados = new HashSet<string>(
+            await context.Pacientes.Where(x => !x.IsDeleted).Select(x => x.DocIdentidadGub).ToListAsync(cancellationToken),
+            StringComparer.OrdinalIgnoreCase);
+
         var saved = 0;
         foreach (var row in request.Rows)
         {
@@ -19,7 +25,7 @@ public class CargaMasivaPacientesCommandHandler(IApplicationDbContext context)
             }
 
             var result = PacienteCliente.Create(row.DocIdentidadGub, row.NombreApellidos, fecha, row.ContactoPrimario);
-            if (result.IsSuccess)
+            if (result.IsSuccess && tomados.Add(result.Value.DocIdentidadGub))
             {
                 _ = context.Pacientes.Add(result.Value);
                 saved++;

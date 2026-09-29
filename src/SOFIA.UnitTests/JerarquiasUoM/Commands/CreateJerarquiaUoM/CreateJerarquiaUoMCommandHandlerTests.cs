@@ -88,4 +88,16 @@ public class CreateJerarquiaUoMCommandHandlerTests
 
         _ = result.IsSuccess.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Handle_ShouldReturnConflictAndNotSave_WhenTheSameConversionAlreadyExists()
+    {
+        SeedExisting(_caja, _blister, 4m);
+
+        var result = await _handler.Handle(new CreateJerarquiaUoMCommand(_productoId, _caja, _blister, 4m), CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("JerarquiaUoM.Duplicada");
+        _ = result.StatusCode.Should().Be(409);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

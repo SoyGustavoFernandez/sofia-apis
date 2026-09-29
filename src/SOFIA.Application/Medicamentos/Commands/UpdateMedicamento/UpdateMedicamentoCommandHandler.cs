@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
@@ -16,6 +17,13 @@ public class UpdateMedicamentoCommandHandler(IApplicationDbContext context) : IR
         if (entity == null)
         {
             return Result.Failure(Error.NotFound("Medicamento.NotFound", $"Medicamento with ID {request.Id} was not found."), 404);
+        }
+
+        var duplicado = await context.Medicamentos
+            .AnyAsync(m => m.Id != entity.Id && m.CodigoNacional == request.CodigoNacional && !m.IsDeleted, cancellationToken);
+        if (duplicado)
+        {
+            return Result.Failure(Error.Conflict("Medicamento.CodigoNacional.Duplicado", "Another product already uses this national code."), 409);
         }
 
         var result = entity.Update(

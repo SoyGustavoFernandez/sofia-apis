@@ -90,5 +90,7 @@ public class PosSesionCajaConfiguration : IEntityTypeConfiguration<PosSesionCaja
             .HasFilter("[Estado_Sesion] = 'Abierta' AND [IsDeleted] = 0");
 
         // Soft delete query filter
+
+        _ = builder.ToTable(t => t.HasCheckConstraint("CHK_POS_Sesiones_Caja_Montos", "[Monto_Apertura_Efectivo] >= 0 AND [Monto_Cierre_Calculado] >= 0 AND [Monto_Cierre_Declarado] >= 0"));
     }
 }

@@ -33,5 +33,9 @@ public class AseguradoraMedicaConfiguration : IEntityTypeConfiguration<Asegurado
         _ = builder.Property(x => x.IsDeleted).HasColumnName("IsDeleted");
         _ = builder.Property(x => x.DeletedAt).HasColumnName("DeletedAt");
         _ = builder.Property(x => x.DeletedBy).HasColumnName("DeletedBy");
+
+        _ = builder.HasIndex(x => new { x.TenantId, x.CodigoIdentificadorNacional }, "UX_Aseguradoras_Medicas_Tenant_Codigo_Identificador_Nacional")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
     }
 }

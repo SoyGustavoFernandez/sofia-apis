@@ -49,7 +49,11 @@ public class ProveedorDistribuidorConfiguration : IEntityTypeConfiguration<Prove
         _ = builder.Property(x => x.DeletedBy).HasColumnName("DeletedBy");
 
         // Indexes
-        _ = builder.HasIndex(x => new { x.TenantId, x.TaxId })
+        _ = builder.HasIndex(x => new { x.TenantId, x.TaxId }, "UX_Proveedores_Dist_Tenant_Tax_ID")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        _ = builder.HasIndex(x => new { x.TenantId, x.RazonSocial }, "UX_Proveedores_Dist_Tenant_Razon_Social")
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
 

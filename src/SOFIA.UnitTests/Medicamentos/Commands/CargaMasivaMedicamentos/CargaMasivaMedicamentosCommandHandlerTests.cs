@@ -119,4 +119,18 @@ public class CargaMasivaMedicamentosCommandHandlerTests
 
         _ = result.Value.Should().Be(2);
     }
+
+    [Fact]
+    public async Task Handle_ShouldSkipRows_WhoseCodigoExistsInTheDatabaseOrEarlierInTheFile()
+    {
+        var existente = Medicamento.Create("COD-001", "Existente", _lab.Id, _unidad.Id, SOFIA.Domain.Enums.CondicionVenta.VentaLibreOTC).Value!;
+        var eliminado = Medicamento.Create("COD-009", "Eliminado", _lab.Id, _unidad.Id, SOFIA.Domain.Enums.CondicionVenta.VentaLibreOTC).Value!;
+        eliminado.IsDeleted = true;
+        _ = _dbContextMock.Setup(c => c.Medicamentos).Returns(new List<Medicamento> { existente, eliminado }.BuildMockDbSet().Object);
+        var command = new CargaMasivaMedicamentosCommand([Row("cod-001"), Row("COD-002"), Row("cod-002"), Row("COD-009")]);
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        _ = result.Value.Should().Be(2, because: "COD-001 exists and the second COD-002 repeats the file, while COD-009 was deleted");
+    }
 }

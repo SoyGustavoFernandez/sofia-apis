@@ -48,5 +48,15 @@ public class PresentacionVentaConfiguration : IEntityTypeConfiguration<Presentac
             .WithMany()
             .HasForeignKey(x => x.UnidadVentaId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.HasIndex(x => new { x.ProductoId, x.UnidadVentaId }, "UX_Presentaciones_Venta_Producto_UnidadVenta")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        _ = builder.ToTable(t =>
+        {
+            _ = t.HasCheckConstraint("CHK_Presentaciones_Venta_Cantidad_Unidades_Base", "[Cantidad_Unidades_Base] > 0");
+            _ = t.HasCheckConstraint("CHK_Presentaciones_Venta_Precio_Venta", "[Precio_Venta] >= 0");
+        });
     }
 }

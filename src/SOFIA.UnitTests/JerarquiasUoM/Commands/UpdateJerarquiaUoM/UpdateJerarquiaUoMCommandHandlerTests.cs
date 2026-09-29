@@ -92,4 +92,27 @@ public class UpdateJerarquiaUoMCommandHandlerTests
         _ = result.StatusCode.Should().Be(409);
         _ = entity.Multiplicador.Should().Be(999m);
     }
+
+    [Fact]
+    public async Task Handle_ShouldReturnConflict_WhenAnotherRowAlreadyHasTheSameConversion()
+    {
+        _ = Seed(_caja, _blister, 4m);
+        var otra = Seed(_blister, _unidad, 10m);
+
+        var result = await _handler.Handle(new UpdateJerarquiaUoMCommand(otra.Id, _productoId, _caja, _blister, 4m), CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("JerarquiaUoM.Duplicada");
+        _ = result.StatusCode.Should().Be(409);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSave_WhenKeepingItsOwnConversion()
+    {
+        var propia = Seed(_caja, _blister, 4m);
+
+        var result = await _handler.Handle(new UpdateJerarquiaUoMCommand(propia.Id, _productoId, _caja, _blister, 5m), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+    }
 }

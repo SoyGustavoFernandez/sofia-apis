@@ -108,4 +108,30 @@ public class CreateFormulacionClinicaCommandHandlerTests
         _formulacionesMock.Verify(m => m.Add(It.IsAny<FormulacionClinica>()), Times.Never);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_ShouldReturnConflictAndNotSave_WhenTheProductAlreadyListsTheIngredient()
+    {
+        var existente = FormulacionClinica.Create(_medicamento.Id, _ingrediente.Id, 50m, _unidadMedida.Id, null).Value!;
+        _ = _dbContextMock.Setup(c => c.FormulacionesClinicas).Returns(new List<FormulacionClinica> { existente }.BuildMockDbSet().Object);
+
+        var result = await _handler.Handle(ValidCommand(), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Formulacion.Ingrediente.Duplicado");
+        _ = result.StatusCode.Should().Be(409);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreate_WhenTheSameIngredientOnlyBelongsToADeletedFormulacion()
+    {
+        var eliminada = FormulacionClinica.Create(_medicamento.Id, _ingrediente.Id, 50m, _unidadMedida.Id, null).Value!;
+        eliminada.IsDeleted = true;
+        _ = _dbContextMock.Setup(c => c.FormulacionesClinicas).Returns(new List<FormulacionClinica> { eliminada }.BuildMockDbSet().Object);
+
+        var result = await _handler.Handle(ValidCommand(), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+    }
 }

@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
@@ -15,6 +16,13 @@ public class UpdateIngredienteActivoCommandHandler(IApplicationDbContext context
         if (entity == null)
         {
             return Result.Failure(Error.NotFound("IngredienteActivo.NotFound", $"Ingrediente Activo with ID {request.Id} was not found."), 404);
+        }
+
+        var duplicado = await context.IngredientesActivos
+            .AnyAsync(i => i.Id != entity.Id && i.DenominacionDci == request.DenominacionDci && !i.IsDeleted, cancellationToken);
+        if (duplicado)
+        {
+            return Result.Failure(Error.Conflict("IngredienteActivo.DenominacionDci.Duplicado", "Another active ingredient already uses this INN."), 409);
         }
 
         var result = entity.Update(request.DenominacionDci, request.CodigoAtc);

@@ -47,5 +47,11 @@ public class JerarquiaUoMConfiguration : IEntityTypeConfiguration<JerarquiaUoM>
             .WithMany()
             .HasForeignKey(x => x.UnidadMenorId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.HasIndex(x => new { x.ProductoId, x.UnidadMayorId, x.UnidadMenorId }, "UX_Jerarquia_UoM_Producto_Mayor_Menor")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        _ = builder.ToTable(t => t.HasCheckConstraint("CHK_Jerarquia_UoM_Multiplicador", "[Multiplicador] > 0"));
     }
 }

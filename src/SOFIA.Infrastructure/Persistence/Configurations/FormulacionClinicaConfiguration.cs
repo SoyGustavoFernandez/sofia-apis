@@ -61,5 +61,9 @@ public class FormulacionClinicaConfiguration : IEntityTypeConfiguration<Formulac
         _ = builder.Property(x => x.IsDeleted).HasColumnName("IsDeleted");
         _ = builder.Property(x => x.DeletedAt).HasColumnName("DeletedAt");
         _ = builder.Property(x => x.DeletedBy).HasColumnName("DeletedBy");
+
+        _ = builder.HasIndex(x => new { x.ProductoId, x.IngredienteId }, "UX_Formulacion_Clinica_Producto_Ingrediente")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
     }
 }

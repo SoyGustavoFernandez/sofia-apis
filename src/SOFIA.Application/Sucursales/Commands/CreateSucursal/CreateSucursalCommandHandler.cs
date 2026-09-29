@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
@@ -26,6 +27,13 @@ public class CreateSucursalCommandHandler(IApplicationDbContext context, ICurren
         if (!result.IsSuccess)
         {
             return Result.Failure<Guid>(result.Error);
+        }
+
+        var duplicado = await context.Sucursales
+            .AnyAsync(s => s.Numero_Licencia == request.NumeroLicencia && !s.IsDeleted, cancellationToken);
+        if (duplicado)
+        {
+            return Result.Failure<Guid>(Error.Conflict("Sucursal.NumeroLicencia.Duplicado", "Another branch already uses this license number."), 409);
         }
 
         _ = context.Sucursales.Add(result.Value);

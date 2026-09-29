@@ -89,5 +89,7 @@ public class DevolucionCabeceraConfiguration : IEntityTypeConfiguration<Devoluci
             .WithOne(d => d.Devolucion)
             .HasForeignKey(d => d.DevolucionId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        _ = builder.ToTable(t => t.HasCheckConstraint("CHK_Devoluciones_Cabecera_Monto_Reembolsado", "[Monto_Reembolsado] >= 0"));
     }
 }

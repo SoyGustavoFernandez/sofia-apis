@@ -122,6 +122,7 @@ public static class DependencyInjection
             });
 
         _ = services.AddMemoryCache();
+        _ = services.AddSingleton<IPermissionCache, MemoryPermissionCache>();
         _ = services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
         _ = services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
         _ = services.AddHostedService<OutboxProcessor>();

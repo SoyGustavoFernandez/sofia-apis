@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using SOFIA.Application.Common.Interfaces;
 
 namespace SOFIA.Infrastructure.Authentication;
@@ -12,7 +11,7 @@ namespace SOFIA.Infrastructure.Authentication;
 /// </summary>
 public sealed class PermissionAuthorizationHandler(
     IServiceScopeFactory serviceScopeFactory,
-    IMemoryCache memoryCache)
+    IPermissionCache permissionCache)
     : AuthorizationHandler<PermissionRequirement>
 {
     protected override async Task HandleRequirementAsync(
@@ -37,8 +36,7 @@ public sealed class PermissionAuthorizationHandler(
         }
 
         // Role names repeat across tenants, so the cache must be partitioned by company
-        var empresaId = context.User.FindFirstValue("empresaId");
-        if (string.IsNullOrEmpty(empresaId))
+        if (!Guid.TryParse(context.User.FindFirstValue("empresaId"), out var empresaId))
         {
             return;
         }
@@ -57,13 +55,11 @@ public sealed class PermissionAuthorizationHandler(
         }
     }
 
-    private async Task<HashSet<(string Modulo, string Accion)>> GetPermissionsForRoleAsync(string empresaId, string roleName)
+    private async Task<IReadOnlySet<(string Modulo, string Accion)>> GetPermissionsForRoleAsync(Guid empresaId, string roleName)
     {
-        var cacheKey = $"permissions-{empresaId}-{roleName}";
-
-        if (memoryCache.TryGetValue(cacheKey, out HashSet<(string Modulo, string Accion)>? permissions) && permissions is not null)
+        if (permissionCache.TryGet(empresaId, roleName, out var cached) && cached is not null)
         {
-            return permissions;
+            return cached;
         }
 
         using var scope = serviceScopeFactory.CreateScope();
@@ -75,10 +71,9 @@ public sealed class PermissionAuthorizationHandler(
             .Select(p => new { p.ModuloSistema, p.Accion })
             .ToListAsync();
 
-        permissions = [.. permissionsFromDb.Select(p => (p.ModuloSistema.Trim(), p.Accion.Trim()))];
+        HashSet<(string Modulo, string Accion)> permissions = [.. permissionsFromDb.Select(p => (p.ModuloSistema.Trim(), p.Accion.Trim()))];
 
-        // Cache permissions for 30 minutes to reduce database roundtrips
-        _ = memoryCache.Set(cacheKey, permissions, TimeSpan.FromMinutes(30));
+        permissionCache.Set(empresaId, roleName, permissions);
 
         return permissions;
     }

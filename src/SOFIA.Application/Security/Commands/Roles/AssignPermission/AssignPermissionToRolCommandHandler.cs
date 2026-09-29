@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
@@ -7,7 +8,7 @@ using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Security.Commands.Roles.AssignPermission;
 
-public class AssignPermissionToRolCommandHandler(IApplicationDbContext context, ICurrentUser currentUser) : IRequestHandler<AssignPermissionToRolCommand, Result<Guid>>
+public class AssignPermissionToRolCommandHandler(IApplicationDbContext context, ICurrentUser currentUser, IPermissionCache permissionCache) : IRequestHandler<AssignPermissionToRolCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(AssignPermissionToRolCommand request, CancellationToken cancellationToken)
     {
@@ -46,6 +47,7 @@ public class AssignPermissionToRolCommandHandler(IApplicationDbContext context, 
             existing.DeletedAt = null;
             existing.DeletedBy = null;
             _ = await context.SaveChangesAsync(cancellationToken);
+            permissionCache.InvalidateForCurrentEmpresa(currentUser, nombreRol);
             return Result.Success(existing.Id);
         }
 
@@ -57,6 +59,7 @@ public class AssignPermissionToRolCommandHandler(IApplicationDbContext context, 
 
         _ = context.PermisosRol.Add(result.Value!);
         _ = await context.SaveChangesAsync(cancellationToken);
+        permissionCache.InvalidateForCurrentEmpresa(currentUser, nombreRol);
 
         return Result.Success(result.Value!.Id);
     }

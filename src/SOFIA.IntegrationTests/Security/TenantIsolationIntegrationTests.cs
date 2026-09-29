@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using SOFIA.Application.Common.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using SOFIA.Application.Empleados.Commands.UpdateEmpleado;
 using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
@@ -152,7 +152,7 @@ public class TenantIsolationIntegrationTests(SofiaWebAppFactory factory) : BaseI
 
         var handler = new PermissionAuthorizationHandler(
             Factory.Services.GetRequiredService<IServiceScopeFactory>(),
-            Factory.Services.GetRequiredService<IMemoryCache>());
+            Factory.Services.GetRequiredService<IPermissionCache>());
 
         // Act: company A warms the cache first, then company B asks with the same role name
         CurrentUser.Empresa = EmpresaA;

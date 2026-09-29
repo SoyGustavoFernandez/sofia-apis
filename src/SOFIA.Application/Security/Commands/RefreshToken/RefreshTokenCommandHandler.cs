@@ -67,6 +67,13 @@ public class RefreshTokenCommandHandler(
             return InvalidToken();
         }
 
+        // Rejected without revoking: a revoked cookie replayed after reactivation would look like token theft
+        if (!await context.EmpresaEstaVigenteAsync(cuenta.TenantId, cancellationToken))
+        {
+            logger.LogWarning("Rejected refresh for account {CuentaId}: company {EmpresaId} has no active subscription.", cuenta.Id, cuenta.TenantId);
+            return InvalidToken();
+        }
+
         // Rotate: revoke old token and issue a new pair
         stored.Revoke();
 

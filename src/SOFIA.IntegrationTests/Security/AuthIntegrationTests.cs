@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -17,10 +19,10 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
     [Fact]
     public async Task Login_ShouldReturnJwt_WhenCredencialesCorrectas()
     {
-        // Arrange — seed de empleado + cuenta
-        var (_, username, password) = await SeedCuentaAsync();
+        // Arrange — login requires a real company with an active subscription
+        var (username, _) = await RegistrarEmpresaAnonimaAsync();
 
-        var command = new LoginCommand(username, password);
+        var command = new LoginCommand(username, "TestPassword123!");
 
         // Act
         var result = await Sender.Send(command);
@@ -161,9 +163,46 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
         _ = sesionLegitima.StatusCode.Should().Be(401);
     }
 
+    [Fact]
+    public async Task SuspendedCompany_ShouldBlockLoginRefreshAndLiveAccessTokens()
+    {
+        // Arrange — the company is suspended after its session was issued
+        var (usuario, refreshToken, accessToken) = await RegistrarEmpresaAnonimaConTokensAsync();
+        var cuenta = await DbContext.Cuentas.IgnoreQueryFilters().AsNoTracking().SingleAsync(c => c.NombreUsuario == usuario);
+        var empresa = await DbContext.Empresas.IgnoreQueryFilters().SingleAsync(e => e.Id == cuenta.TenantId);
+        empresa.Suspender();
+        _ = await DbContext.SaveChangesAsync();
+
+        var client = Factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        // Act
+        var login = await Sender.Send(new LoginCommand(usuario, "TestPassword123!"));
+        var refresh = await Sender.Send(new RefreshTokenCommand(refreshToken));
+        var request = await client.GetAsync("/api/v1/auth/me");
+
+        // Assert
+        _ = login.StatusCode.Should().Be(403);
+        _ = login.Error.Code.Should().Be("Auth.EmpresaNoVigente");
+        _ = refresh.StatusCode.Should().Be(401);
+        _ = request.StatusCode.Should().Be(HttpStatusCode.Unauthorized, because: "an access token of a suspended company must stop working");
+    }
+
+    [Fact]
+    public async Task ActiveCompany_ShouldAcceptLiveAccessToken()
+    {
+        var (_, _, accessToken) = await RegistrarEmpresaAnonimaConTokensAsync();
+        var client = Factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var request = await client.GetAsync("/api/v1/auth/me");
+
+        _ = request.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────────
 
-    private async Task<(string usuario, string refreshToken)> RegistrarEmpresaAnonimaAsync()
+    private async Task<(string usuario, string refreshToken, string accessToken)> RegistrarEmpresaAnonimaConTokensAsync()
     {
         CurrentUser.Empresa = null;
         var usuario = $"reuse_{Guid.NewGuid():N}"[..20];
@@ -175,7 +214,13 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
         });
         _ = registro.IsSuccess.Should().BeTrue();
 
-        return (usuario, registro.Value!.RefreshToken);
+        return (usuario, registro.Value!.RefreshToken, registro.Value.AccessToken);
+    }
+
+    private async Task<(string usuario, string refreshToken)> RegistrarEmpresaAnonimaAsync()
+    {
+        var (usuario, refreshToken, _) = await RegistrarEmpresaAnonimaConTokensAsync();
+        return (usuario, refreshToken);
     }
 
     private async Task<(Guid empleadoId, string username, string password)> SeedCuentaAsync()

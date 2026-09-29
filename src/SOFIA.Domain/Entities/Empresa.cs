@@ -21,9 +21,13 @@ public sealed class Empresa : BaseEntity
     public DateTimeOffset FechaInicioTrial { get; private set; }
     public DateTimeOffset FechaVencimiento { get; private set; }
 
-    public bool EstaVigente =>
-        Estado == EstadoEmpresa.Activo ||
-        (Estado == EstadoEmpresa.TrialActivo && FechaVencimiento > DateTimeOffset.UtcNow);
+    public bool EstaVigente => EstaVigenteEn(DateTimeOffset.UtcNow);
+
+    // Single subscription rule shared by the DTOs, login, token refresh and every authenticated request
+    public bool EstaVigenteEn(DateTimeOffset ahora) =>
+        !IsDeleted &&
+        (Estado == EstadoEmpresa.Activo ||
+         (Estado == EstadoEmpresa.TrialActivo && FechaVencimiento > ahora));
 
     public ICollection<Sucursal> Sucursales { get; private set; } = [];
 

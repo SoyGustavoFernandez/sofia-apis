@@ -63,6 +63,13 @@ public class LoginCommandHandler(
             return Result.Failure<LoginResult>(Error.Unauthorized("Auth.InvalidCredentials", "Invalid username or password."), 401);
         }
 
+        // Only checked after a valid password, so the specific code never reveals anything to a guesser
+        if (!await context.EmpresaEstaVigenteAsync(cuenta.TenantId, cancellationToken))
+        {
+            logger.LogWarning("Rejected login for username {Username} from IP {IpAddress}: company {EmpresaId} has no active subscription.", request.NombreUsuario, ip, cuenta.TenantId);
+            return Result.Failure<LoginResult>(EmpresaVigencia.NoVigenteError, 403);
+        }
+
         cuenta.ResetFailedAttempts();
 
         var accessToken = jwtProvider.Generate(cuenta);

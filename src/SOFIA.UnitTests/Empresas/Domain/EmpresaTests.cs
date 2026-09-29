@@ -117,6 +117,46 @@ public class EmpresaTests
         _ = empresa.EstaVigente.Should().BeFalse();
     }
 
+    [Fact]
+    public void EstaVigenteEn_ShouldBeFalse_WhenTrialExpired()
+    {
+        var empresa = Empresa.Create("Farmacia").Value!;
+
+        _ = empresa.EstaVigenteEn(empresa.FechaVencimiento.AddSeconds(-1)).Should().BeTrue();
+        _ = empresa.EstaVigenteEn(empresa.FechaVencimiento).Should().BeFalse();
+        _ = empresa.EstaVigenteEn(empresa.FechaVencimiento.AddDays(1)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void EstaVigenteEn_ShouldBeFalse_WhenSuspendidoOrCanceladoWithinPeriod()
+    {
+        var suspendida = Empresa.Create("Farmacia").Value!;
+        suspendida.ActivarSuscripcion();
+        suspendida.Suspender();
+        var cancelada = Empresa.Create("Farmacia").Value!;
+        cancelada.Cancelar();
+
+        _ = suspendida.EstaVigenteEn(DateTimeOffset.UtcNow).Should().BeFalse();
+        _ = cancelada.EstaVigenteEn(DateTimeOffset.UtcNow).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EstaVigente_ShouldBeFalse_WhenSoftDeleted(bool activa)
+    {
+        var empresa = Empresa.Create("Farmacia").Value!;
+        if (activa)
+        {
+            empresa.ActivarSuscripcion();
+        }
+
+        empresa.IsDeleted = true;
+
+        _ = empresa.EstaVigente.Should().BeFalse();
+        _ = empresa.EstaVigenteEn(DateTimeOffset.UtcNow).Should().BeFalse();
+    }
+
     // ── ActivarSuscripcion ────────────────────────────────────────────────────
 
     [Fact]

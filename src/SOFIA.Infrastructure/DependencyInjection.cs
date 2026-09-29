@@ -4,11 +4,13 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SOFIA.Application.Common.Excel;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
+using SOFIA.Application.Security;
 using SOFIA.Infrastructure.Authentication;
 using SOFIA.Infrastructure.Excel;
 using SOFIA.Infrastructure.Persistence;
@@ -18,6 +20,8 @@ namespace SOFIA.Infrastructure;
 
 public static class DependencyInjection
 {
+    private static readonly TimeSpan EmpresaVigenciaCacheTtl = TimeSpan.FromMinutes(1);
+
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         _ = services.AddDbContext<ApplicationDbContext>(options =>
@@ -92,6 +96,26 @@ public static class DependencyInjection
                         if (!securityStampValid)
                         {
                             context.Fail("Unauthorized: Security stamp is invalid or account is inactive.");
+                            return;
+                        }
+
+                        if (!Guid.TryParse(context.Principal?.FindFirstValue("empresaId"), out var empresaId))
+                        {
+                            context.Fail("Unauthorized: Missing or invalid company claim.");
+                            return;
+                        }
+
+                        // Cached per company so suspending or expiring it cuts live access tokens within this TTL
+                        var cache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
+                        var empresaVigente = await cache.GetOrCreateAsync($"empresa-vigente:{empresaId}", entry =>
+                        {
+                            entry.AbsoluteExpirationRelativeToNow = EmpresaVigenciaCacheTtl;
+                            return dbContext.EmpresaEstaVigenteAsync(empresaId, context.HttpContext.RequestAborted);
+                        });
+
+                        if (!empresaVigente)
+                        {
+                            context.Fail("Unauthorized: The company's subscription is not active.");
                         }
                     }
                 };

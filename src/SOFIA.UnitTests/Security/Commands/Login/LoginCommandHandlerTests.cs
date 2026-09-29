@@ -17,11 +17,13 @@ public class LoginCommandHandlerTests
     private readonly Mock<ICurrentUser> _currentUserMock = new();
     private static readonly Guid TenantId = Guid.NewGuid();
     private readonly Cuenta _cuenta = CuentaFactory.WithBaseBranch(TenantId, TenantId, passwordHash: "real_hash");
+    private readonly Empresa _empresa = EmpresaFactory.WithId(TenantId);
     private readonly LoginCommandHandler _handler;
 
     public LoginCommandHandlerTests()
     {
         _ = _dbContextMock.Setup(c => c.Cuentas).Returns(new List<Cuenta> { _cuenta }.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.Empresas).Returns(new List<Empresa> { _empresa }.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.RefreshTokens).Returns(new List<DomainRefreshToken>().BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         _ = _passwordHasherMock.Setup(p => p.Hash(It.IsAny<string>())).Returns("dummy_hash");
@@ -88,5 +90,57 @@ public class LoginCommandHandlerTests
 
         _ = result.IsFailure.Should().BeTrue();
         _passwordHasherMock.Verify(p => p.Verify("Clave123", It.IsAny<string>()), Times.Once, "skipping BCrypt would leak account existence through timing");
+    }
+
+    [Fact]
+    public async Task Handle_CompanyNotVigenteAndValidPassword_ReturnsForbiddenAndIssuesNoToken()
+    {
+        _empresa.Suspender();
+        _ = _passwordHasherMock.Setup(p => p.Verify("Clave123", "real_hash")).Returns(true);
+
+        var result = await _handler.Handle(new LoginCommand("usuario", "Clave123"), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.StatusCode.Should().Be(403);
+        _ = result.Error.Code.Should().Be("Auth.EmpresaNoVigente");
+        _jwtProviderMock.Verify(j => j.Generate(It.IsAny<Cuenta>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_CompanyNotVigenteAndWrongPassword_ReturnsGenericInvalidCredentials()
+    {
+        _empresa.Cancelar();
+        _ = _passwordHasherMock.Setup(p => p.Verify("Incorrecta1", "real_hash")).Returns(false);
+
+        var result = await _handler.Handle(new LoginCommand("usuario", "Incorrecta1"), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.StatusCode.Should().Be(401);
+        _ = result.Error.Code.Should().Be("Auth.InvalidCredentials", because: "the subscription state must only be revealed to someone who knows the password");
+    }
+
+    [Fact]
+    public async Task Handle_CompanyDeleted_ReturnsForbidden()
+    {
+        _empresa.IsDeleted = true;
+        _ = _passwordHasherMock.Setup(p => p.Verify("Clave123", "real_hash")).Returns(true);
+
+        var result = await _handler.Handle(new LoginCommand("usuario", "Clave123"), CancellationToken.None);
+
+        _ = result.StatusCode.Should().Be(403);
+        _ = result.Error.Code.Should().Be("Auth.EmpresaNoVigente");
+    }
+
+    [Fact]
+    public async Task Handle_CompanyMissing_ReturnsForbidden()
+    {
+        _ = _dbContextMock.Setup(c => c.Empresas).Returns(new List<Empresa>().BuildMockDbSet().Object);
+        _ = _passwordHasherMock.Setup(p => p.Verify("Clave123", "real_hash")).Returns(true);
+
+        var result = await _handler.Handle(new LoginCommand("usuario", "Clave123"), CancellationToken.None);
+
+        _ = result.StatusCode.Should().Be(403, because: "an account without a company row must fail closed");
+        _ = result.Error.Code.Should().Be("Auth.EmpresaNoVigente");
     }
 }

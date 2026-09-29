@@ -20,6 +20,7 @@ public class RefreshTokenCommandHandlerTests
     private readonly Mock<IJwtProvider> _jwtProviderMock = new();
     private static readonly Guid TenantId = Guid.NewGuid();
     private Cuenta _cuenta = CuentaFactory.WithBaseBranch(TenantId, TenantId);
+    private readonly Empresa _empresa = EmpresaFactory.WithId(TenantId);
     private readonly List<DomainRefreshToken> _tokens = [];
     private readonly RefreshTokenCommandHandler _handler;
 
@@ -46,6 +47,8 @@ public class RefreshTokenCommandHandlerTests
 
         var cuentasDbSet = new List<Cuenta> { _cuenta }.BuildMockDbSet();
         _ = _dbContextMock.Setup(c => c.Cuentas).Returns(cuentasDbSet.Object);
+
+        _ = _dbContextMock.Setup(c => c.Empresas).Returns(new List<Empresa> { _empresa }.BuildMockDbSet().Object);
     }
 
     private DomainRefreshToken AddToken(string rawToken, DateTimeOffset? expiresAt = null)
@@ -90,6 +93,35 @@ public class RefreshTokenCommandHandlerTests
         _ = result.StatusCode.Should().Be(401);
         _ = result.Error.Code.Should().Be("Auth.InvalidRefreshToken", because: "the rejection reason must not leak");
         _ = stored.IsRevoked.Should().BeFalse();
+        _jwtProviderMock.Verify(j => j.Generate(It.IsAny<Cuenta>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnUnauthorizedWithoutRevokingAndIssueNoToken_WhenCompanyIsNotVigente()
+    {
+        _empresa.Suspender();
+        var stored = AddToken(RawToken);
+        SetupContext();
+
+        var result = await _handler.Handle(new RefreshTokenCommand(RawToken), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.StatusCode.Should().Be(401);
+        _ = result.Error.Code.Should().Be("Auth.InvalidRefreshToken");
+        _ = stored.IsRevoked.Should().BeFalse(because: "a revoked cookie replayed after reactivation would be treated as theft");
+        _jwtProviderMock.Verify(j => j.Generate(It.IsAny<Cuenta>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnUnauthorized_WhenCompanyIsDeleted()
+    {
+        _empresa.IsDeleted = true;
+        _ = AddToken(RawToken);
+        SetupContext();
+
+        var result = await _handler.Handle(new RefreshTokenCommand(RawToken), CancellationToken.None);
+
+        _ = result.StatusCode.Should().Be(401);
         _jwtProviderMock.Verify(j => j.Generate(It.IsAny<Cuenta>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
     }
 

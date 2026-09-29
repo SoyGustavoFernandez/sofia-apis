@@ -113,8 +113,9 @@ var app = builder.Build();
 // --- HTTP Request Pipeline ---
 // First, so logging, rate limiting and auditing all see the real client IP
 _ = app.UseForwardedHeaders();
-_ = app.UseExceptionHandler();
+// Outside the exception handler so request logs record the final status, not a 500 for handled exceptions
 _ = app.UseSerilogRequestLogging();
+_ = app.UseExceptionHandler();
 _ = app.UseMiddleware<SecurityHeadersMiddleware>();
 
 if (!app.Environment.IsDevelopment())

@@ -93,7 +93,7 @@ public class RefreshTokenCommandHandler(
             return InvalidToken();
         }
 
-        return Result.Success(new LoginResult(accessToken, rawToken, expiry));
+        return Result.Success(new LoginResult(accessToken, rawToken, expiry, cuenta.RequiereCambioClave));
     }
 
     // A replayed rotated token means the cookie was copied: end every session of the account, including live access tokens

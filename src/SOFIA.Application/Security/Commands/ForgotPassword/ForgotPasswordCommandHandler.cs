@@ -14,11 +14,13 @@ public class ForgotPasswordCommandHandler(IApplicationDbContext context) : IRequ
             .IgnoreQueryFilters([QueryFilters.Tenant])
             .FirstOrDefaultAsync(c => c.NombreUsuario == request.NombreUsuario && !c.IsDeleted, cancellationToken);
 
-        if (cuenta is not null)
+        // Inactive accounts get no token, but the same response as any other request
+        if (cuenta is { CuentaActiva: true })
         {
-            cuenta.GenerateRecoveryToken();
+            var (_, tokenHash) = TokenHasher.GenerateRecoveryToken();
+            cuenta.GenerateRecoveryToken(tokenHash);
             _ = await context.SaveChangesAsync(cancellationToken);
-            // TODO: Integrate with IEmailService to send recovery token to user's registered contact.
+            // TODO: Integrate with IEmailService to send the raw recovery token (discarded above) to the user's registered contact.
         }
 
         // Always succeed â€” never reveal whether the account exists (prevents user enumeration).

@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.RateLimiting;
+using SOFIA.API.Infrastructure;
+using SOFIA.Application.Security.Commands.ChangePassword;
 using SOFIA.Application.Security.Commands.ForgotPassword;
 using SOFIA.Application.Security.Commands.Login;
 using SOFIA.Application.Security.Commands.Logout;
@@ -26,7 +28,7 @@ public class AuthController(ISender sender) : ControllerBase
         }
 
         Response.AppendRefreshTokenCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiry);
-        return Ok(new { result.Value.AccessToken });
+        return Ok(new { result.Value.AccessToken, result.Value.RequiereCambioClave });
     }
 
     [HttpPost("refresh")]
@@ -46,10 +48,11 @@ public class AuthController(ISender sender) : ControllerBase
         }
 
         Response.AppendRefreshTokenCookie(result.Value.RefreshToken, result.Value.RefreshTokenExpiry);
-        return Ok(new { result.Value.AccessToken });
+        return Ok(new { result.Value.AccessToken, result.Value.RequiereCambioClave });
     }
 
     [Authorize]
+    [AllowDuringPasswordChange]
     [HttpGet("me")]
     public async Task<IActionResult> GetProfile()
     {
@@ -76,6 +79,27 @@ public class AuthController(ISender sender) : ControllerBase
         return result.ToActionResult();
     }
 
+    // Ends every session of the account: the client logs in again with the new password
+    [HttpPost("change-password")]
+    [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
+    [Authorize]
+    [AllowDuringPasswordChange]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var cuentaId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await sender.Send(new ChangePasswordCommand(cuentaId, request.CurrentPassword, request.NewPassword));
+        if (result.IsSuccess)
+        {
+            Response.DeleteRefreshTokenCookie();
+        }
+
+        return result.ToActionResult();
+    }
+
     [HttpPost("forgot-password")]
     [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
     [AllowAnonymous]
@@ -94,3 +118,5 @@ public class AuthController(ISender sender) : ControllerBase
         return result.ToActionResult();
     }
 }
+
+public record ChangePasswordRequest(string CurrentPassword, string NewPassword);

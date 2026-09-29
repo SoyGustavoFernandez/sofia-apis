@@ -1,3 +1,3 @@
 namespace SOFIA.Application.Security.Commands.Login;
 
-public record LoginResult(string AccessToken, string RefreshToken, DateTimeOffset RefreshTokenExpiry);
+public record LoginResult(string AccessToken, string RefreshToken, DateTimeOffset RefreshTokenExpiry, bool RequiereCambioClave = false);

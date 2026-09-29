@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Domain.Entities;
@@ -68,10 +70,18 @@ public sealed class Cuenta : BaseEntity
         PasswordHash = newPasswordHash;
         SecurityStamp = Guid.NewGuid();
         RequiereCambioClave = false;
+        RecoveryToken = null;
+        RecoveryTokenExpiry = null;
     }
 
     public void RegisterFailedAttempt()
     {
+        // An expired lock starts a fresh count, otherwise one failure every 15 minutes keeps a known username locked
+        if (BloqueadoHasta <= DateTimeOffset.UtcNow)
+        {
+            ResetFailedAttempts();
+        }
+
         IntentosFallidos++;
         if (IntentosFallidos >= 5)
         {
@@ -91,21 +101,25 @@ public sealed class Cuenta : BaseEntity
 
     public void ForcePasswordChange() => RequiereCambioClave = true;
 
-    public void GenerateRecoveryToken()
+    // Only the token's hash is stored, so a database leak does not expose usable recovery tokens
+    public void GenerateRecoveryToken(string tokenHash)
     {
-        RecoveryToken = Guid.NewGuid().ToString("N");
+        RecoveryToken = tokenHash;
         RecoveryTokenExpiry = DateTimeOffset.UtcNow.AddHours(1);
     }
 
-    public Result ResetPassword(string token, string newPasswordHash)
+    public Result ResetPassword(string tokenHash, string newPasswordHash)
     {
-        if (RecoveryToken != token || RecoveryTokenExpiry < DateTimeOffset.UtcNow)
+        if (RecoveryToken is null ||
+            !(RecoveryTokenExpiry >= DateTimeOffset.UtcNow) ||
+            !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(RecoveryToken), Encoding.UTF8.GetBytes(tokenHash)))
         {
             return Result.Failure(InvalidRecoveryTokenError);
         }
 
         PasswordHash = newPasswordHash;
         SecurityStamp = Guid.NewGuid();
+        RequiereCambioClave = false;
         RecoveryToken = null;
         RecoveryTokenExpiry = null;
         IntentosFallidos = 0;

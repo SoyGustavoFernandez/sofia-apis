@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 using SOFIA.Application.Security.Commands.ForgotPassword;
@@ -120,15 +122,18 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
         // Arrange — the whole recovery flow is anonymous, like sign-up
         var (usuario, refreshToken) = await RegistrarEmpresaAnonimaAsync();
         _ = await Sender.Send(new ForgotPasswordCommand(usuario));
-        var recoveryToken = await DbContext.Cuentas
+
+        // Only the hash is stored and the raw token is not delivered yet, so plant a known one
+        const string recoveryToken = "known-recovery-token";
+        var recoveryHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(recoveryToken)));
+        _ = await DbContext.Cuentas
             .IgnoreQueryFilters()
-            .AsNoTracking()
             .Where(c => c.NombreUsuario == usuario)
-            .Select(c => c.RecoveryToken)
-            .SingleAsync();
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.RecoveryToken, recoveryHash));
+        DbContext.ChangeTracker.Clear();
 
         // Act
-        var reset = await Sender.Send(new ResetPasswordCommand(usuario, recoveryToken!, "NuevaClave123!"));
+        var reset = await Sender.Send(new ResetPasswordCommand(usuario, recoveryToken, "NuevaClave123!"));
         var refresh = await Sender.Send(new RefreshTokenCommand(refreshToken));
 
         // Assert
@@ -200,7 +205,66 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
         _ = request.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task ForcedPasswordChange_ShouldOnlyAllowChangePasswordUntilDone()
+    {
+        // Arrange — an admin forces the change while the user already holds a live access token
+        var (usuario, _, liveAccessToken) = await RegistrarEmpresaAnonimaConTokensAsync();
+        _ = await DbContext.Cuentas
+            .IgnoreQueryFilters()
+            .Where(c => c.NombreUsuario == usuario)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.RequiereCambioClave, true));
+        DbContext.ChangeTracker.Clear();
+
+        var liveClient = CreateClient(liveAccessToken);
+        var liveRequest = await liveClient.GetAsync("/api/v1/laboratorios/plantilla");
+
+        var (flaggedToken, flaggedLogin) = await LoginAsync(usuario, "TestPassword123!");
+        var client = CreateClient(flaggedToken);
+
+        // Act
+        var blocked = await client.GetAsync("/api/v1/laboratorios/plantilla");
+        var profile = await client.GetAsync("/api/v1/auth/me");
+        var change = await client.PostAsJsonAsync("/api/v1/auth/change-password", new { currentPassword = "TestPassword123!", newPassword = "NuevaClave123!" });
+        _ = change.StatusCode.Should().Be(HttpStatusCode.NoContent, await change.Content.ReadAsStringAsync());
+        var oldTokenAfterChange = await client.GetAsync("/api/v1/auth/me");
+
+        var (newToken, newLogin) = await LoginAsync(usuario, "NuevaClave123!");
+        var unblocked = await CreateClient(newToken).GetAsync("/api/v1/laboratorios/plantilla");
+
+        // Assert
+        _ = liveRequest.StatusCode.Should().Be(HttpStatusCode.Forbidden, because: "the database flag also applies to tokens issued before it was set");
+        _ = flaggedLogin.GetProperty("requiereCambioClave").GetBoolean().Should().BeTrue();
+        _ = blocked.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        using (var body = JsonDocument.Parse(await blocked.Content.ReadAsStringAsync()))
+        {
+            _ = body.RootElement.GetProperty("code").GetString().Should().Be("Auth.CambioClaveRequerido");
+        }
+
+        _ = profile.StatusCode.Should().NotBe(HttpStatusCode.Forbidden, because: "the profile stays reachable during a forced change");
+        _ = profile.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
+        _ = oldTokenAfterChange.StatusCode.Should().Be(HttpStatusCode.Unauthorized, because: "changing the password ends every session");
+        _ = newLogin.GetProperty("requiereCambioClave").GetBoolean().Should().BeFalse();
+        _ = unblocked.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────────
+
+    private HttpClient CreateClient(string accessToken)
+    {
+        var client = Factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        return client;
+    }
+
+    private async Task<(string accessToken, JsonElement body)> LoginAsync(string usuario, string password)
+    {
+        var client = Factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { nombreUsuario = usuario, password });
+        _ = response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement.Clone();
+        return (body.GetProperty("accessToken").GetString()!, body);
+    }
 
     private async Task<(string usuario, string refreshToken, string accessToken)> RegistrarEmpresaAnonimaConTokensAsync()
     {

@@ -86,18 +86,22 @@ public static class DependencyInjection
                         }
 
                         // HttpContext.User is not populated yet at this point, so the tenant filter cannot apply
-                        var securityStampValid = await dbContext.Cuentas
+                        var requiereCambioClave = await dbContext.Cuentas
                             .IgnoreQueryFilters([QueryFilters.Tenant])
-                            .AnyAsync(c => c.Id == userId &&
-                                           c.SecurityStamp == securityStamp &&
-                                           c.CuentaActiva &&
-                                           !c.IsDeleted);
+                            .Where(c => c.Id == userId &&
+                                        c.SecurityStamp == securityStamp &&
+                                        c.CuentaActiva &&
+                                        !c.IsDeleted)
+                            .Select(c => (bool?)c.RequiereCambioClave)
+                            .FirstOrDefaultAsync();
 
-                        if (!securityStampValid)
+                        if (requiereCambioClave is null)
                         {
                             context.Fail("Unauthorized: Security stamp is invalid or account is inactive.");
                             return;
                         }
+
+                        SyncPasswordChangeClaim(context.Principal, requiereCambioClave.Value);
 
                         if (!Guid.TryParse(context.Principal?.FindFirstValue("empresaId"), out var empresaId))
                         {
@@ -142,5 +146,24 @@ public static class DependencyInjection
             .Build());
 
         return services;
+    }
+
+    // The database flag wins over the token, so a change forced by an admin also applies to live access tokens
+    private static void SyncPasswordChangeClaim(ClaimsPrincipal? principal, bool requiereCambioClave)
+    {
+        if (principal?.Identity is not ClaimsIdentity identity)
+        {
+            return;
+        }
+
+        foreach (var claim in identity.FindAll(PasswordChangePolicy.ClaimType).ToList())
+        {
+            identity.RemoveClaim(claim);
+        }
+
+        if (requiereCambioClave)
+        {
+            identity.AddClaim(new Claim(PasswordChangePolicy.ClaimType, "true"));
+        }
     }
 }

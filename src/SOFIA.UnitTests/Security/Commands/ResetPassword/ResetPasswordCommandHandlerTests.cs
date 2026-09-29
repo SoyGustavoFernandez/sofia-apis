@@ -1,3 +1,6 @@
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using FluentAssertions;
 using MockQueryable.Moq;
 using Moq;
@@ -10,6 +13,8 @@ namespace SOFIA.UnitTests.Security.Commands.ResetPassword;
 
 public class ResetPasswordCommandHandlerTests
 {
+    private const string RawRecoveryToken = "raw-recovery-token";
+
     private readonly Mock<IApplicationDbContext> _dbContextMock = new();
     private readonly Mock<IPasswordHasher> _passwordHasherMock = new();
     private readonly Cuenta _cuenta = Cuenta.Create(Guid.NewGuid(), "usuario", "old_hash").Value!;
@@ -18,7 +23,7 @@ public class ResetPasswordCommandHandlerTests
 
     public ResetPasswordCommandHandlerTests()
     {
-        _cuenta.GenerateRecoveryToken();
+        _cuenta.GenerateRecoveryToken(Hash(RawRecoveryToken));
         _activeToken = DomainRefreshToken.Create(_cuenta.Id, "hash", DateTimeOffset.UtcNow.AddDays(7));
 
         _ = _dbContextMock.Setup(c => c.Cuentas).Returns(new List<Cuenta> { _cuenta }.BuildMockDbSet().Object);
@@ -29,16 +34,55 @@ public class ResetPasswordCommandHandlerTests
         _handler = new ResetPasswordCommandHandler(_dbContextMock.Object, _passwordHasherMock.Object);
     }
 
+    private static string Hash(string rawToken) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
+
     [Fact]
     public async Task Handle_ShouldRevokeRefreshTokens_WhenResetSucceeds()
     {
-        var command = new ResetPasswordCommand("usuario", _cuenta.RecoveryToken!, "NuevaClave123");
+        var command = new ResetPasswordCommand("usuario", RawRecoveryToken, "NuevaClave123");
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
         _ = result.IsSuccess.Should().BeTrue();
         _ = _cuenta.PasswordHash.Should().Be("new_hash");
         _ = _activeToken.IsRevoked.Should().BeTrue(because: "a stolen refresh token must not survive a password reset");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenStoredHashIsPresentedAsToken()
+    {
+        var command = new ResetPasswordCommand("usuario", _cuenta.RecoveryToken!, "NuevaClave123");
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue(because: "a leaked database value must not work as a recovery token");
+        _ = _cuenta.PasswordHash.Should().Be("old_hash");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenRecoveryTokenIsReused()
+    {
+        var command = new ResetPasswordCommand("usuario", RawRecoveryToken, "NuevaClave123");
+        _ = await _handler.Handle(command, CancellationToken.None);
+
+        var reuse = await _handler.Handle(command with { NewPassword = "OtraClave123" }, CancellationToken.None);
+
+        _ = reuse.IsFailure.Should().BeTrue(because: "a recovery token is single use");
+        _ = reuse.Error.Should().Be(Cuenta.InvalidRecoveryTokenError);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenRecoveryTokenExpired()
+    {
+        typeof(Cuenta).GetField("<RecoveryTokenExpiry>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(_cuenta, DateTimeOffset.UtcNow.AddMinutes(-1));
+
+        var result = await _handler.Handle(new ResetPasswordCommand("usuario", RawRecoveryToken, "NuevaClave123"), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = _cuenta.PasswordHash.Should().Be("old_hash");
+        _ = _activeToken.IsRevoked.Should().BeFalse();
     }
 
     [Fact]

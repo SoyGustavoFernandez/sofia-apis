@@ -81,6 +81,6 @@ public class LoginCommandHandler(
         _ = await context.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Successful login for username {Username} from IP {IpAddress}.", request.NombreUsuario, ip);
-        return Result.Success(new LoginResult(accessToken, rawToken, expiry));
+        return Result.Success(new LoginResult(accessToken, rawToken, expiry, cuenta.RequiereCambioClave));
     }
 }

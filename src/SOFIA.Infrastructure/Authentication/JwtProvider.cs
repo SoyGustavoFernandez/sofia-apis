@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Security;
 using SOFIA.Domain.Entities;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -32,6 +33,11 @@ public class JwtProvider(IOptions<JwtOptions> options) : IJwtProvider
         if (resolvedEmpresaId.HasValue)
         {
             claims.Add(new("empresaId", resolvedEmpresaId.Value.ToString()));
+        }
+
+        if (cuenta.RequiereCambioClave)
+        {
+            claims.Add(new(PasswordChangePolicy.ClaimType, "true"));
         }
 
         // Add roles as claims

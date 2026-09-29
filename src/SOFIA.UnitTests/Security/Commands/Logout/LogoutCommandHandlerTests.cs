@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using MockQueryable.Moq;
 using Moq;
 using SOFIA.Application.Common.Interfaces;
@@ -119,6 +120,46 @@ public class LogoutCommandHandlerTests
         _ = result.IsSuccess.Should().BeTrue();
         _ = current.IsRevoked.Should().BeTrue(because: "a refresh that landed before the logout must not keep the session alive");
         _ = _cuenta.SecurityStamp.Should().NotBe(stamp);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRetryAndRevokeTokenIssuedMeanwhile_WhenRefreshRacesLogout()
+    {
+        var presented = AddToken(RawToken);
+        SetupContext();
+        DomainRefreshToken? issuedByRacingRefresh = null;
+
+        _ = _dbContextMock
+            .SetupSequence(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                // The racing refresh rotated the presented token and issued a new one before this save
+                issuedByRacingRefresh = AddToken("issued-by-refresh");
+                return Task.FromException<int>(new DbUpdateConcurrencyException("Concurrent refresh"));
+            })
+            .ReturnsAsync(1);
+
+        var result = await _handler.Handle(new LogoutCommand(RefreshToken: RawToken), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue(because: "logout must never surface a concurrency conflict");
+        _ = presented.IsRevoked.Should().BeTrue();
+        _ = issuedByRacingRefresh!.IsRevoked.Should().BeTrue(because: "the token issued by the racing refresh must not survive the logout");
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task Handle_ShouldGiveUp_AfterThreeConcurrencyConflicts()
+    {
+        _ = AddToken(RawToken);
+        SetupContext();
+        _ = _dbContextMock
+            .Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DbUpdateConcurrencyException("Concurrent refresh"));
+
+        var act = () => _handler.Handle(new LogoutCommand(RefreshToken: RawToken), CancellationToken.None);
+
+        _ = await act.Should().ThrowAsync<DbUpdateConcurrencyException>();
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(3));
     }
 
     [Fact]

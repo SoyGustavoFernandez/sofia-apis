@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -8,6 +9,13 @@ internal static class TokenHasher
     internal static (string RawToken, string TokenHash) GenerateRefreshToken()
     {
         var raw = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        return (raw, HashToken(raw));
+    }
+
+    // URL-safe so the raw token can travel in a recovery link
+    internal static (string RawToken, string TokenHash) GenerateRecoveryToken()
+    {
+        var raw = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
         return (raw, HashToken(raw));
     }
 

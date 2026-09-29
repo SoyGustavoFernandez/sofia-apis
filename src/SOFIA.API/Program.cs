@@ -127,6 +127,7 @@ _ = app.UseHttpsRedirection();
 _ = app.UseCors("SofiaCorsPolicy");
 
 _ = app.UseAuthentication();
+_ = app.UseMiddleware<PasswordChangeRequiredMiddleware>();
 _ = app.UseAuthorization();
 _ = app.UseRateLimiter();
 

@@ -25,7 +25,7 @@ public class ResetPasswordCommandHandler(
             return Result.Failure(Cuenta.InvalidRecoveryTokenError);
         }
 
-        var result = cuenta.ResetPassword(request.Token, passwordHash);
+        var result = cuenta.ResetPassword(TokenHasher.HashToken(request.Token), passwordHash);
 
         if (result.IsFailure)
         {

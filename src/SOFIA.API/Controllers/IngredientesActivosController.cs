@@ -104,6 +104,8 @@ public class IngredientesActivosController(ISender sender, IExcelReaderService e
 
     [HasPermission("IngredientesActivos", "Crear")]
     [HttpPost("previsualizar")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)
@@ -113,13 +115,14 @@ public class IngredientesActivosController(ISender sender, IExcelReaderService e
 
         var columns = new[] { "DenominacionDci", "CodigoAtc" };
         using var stream = file.OpenReadStream();
-        var rows = excelReader.ReadRows(stream, columns);
+        var rows = excelReader.ReadRows(stream, columns, file.FileName);
         var result = await sender.Send(new PreviewImportIngredientesActivosQuery(rows), cancellationToken);
         return Ok(result);
     }
 
     [HasPermission("IngredientesActivos", "Crear")]
     [HttpPost("carga-masiva")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> CargaMasiva([FromBody] List<IngredienteActivoImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaIngredientesActivosCommand(rows), cancellationToken);

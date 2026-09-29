@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SOFIA.API.Infrastructure;
+using SOFIA.Application.Common.Excel;
+using SOFIA.Domain.Common;
 
 namespace SOFIA.IntegrationTests.Api;
 
@@ -23,6 +25,34 @@ public class GlobalExceptionHandlerTests
         _ = body.RootElement.GetProperty("code").GetString().Should().Be("Concurrency.Conflict", because: "the SPA maps error.code to an i18n key");
         _ = body.RootElement.GetProperty("status").GetInt32().Should().Be(409);
         _ = body.RootElement.TryGetProperty("traceId", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task TryHandleAsync_ShouldReturnBadRequestWithCode_WhenExcelUploadIsRejected()
+    {
+        var context = NewContext();
+        var exception = new ExcelImportException(Error.Validation(ExcelImportException.FilasExcedidas, "too many rows"));
+
+        var handled = await _handler.TryHandleAsync(context, exception, CancellationToken.None);
+
+        _ = handled.Should().BeTrue();
+        _ = context.Response.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+        using var body = await ReadBodyAsync(context);
+        _ = body.RootElement.GetProperty("code").GetString().Should().Be(ExcelImportException.FilasExcedidas);
+    }
+
+    [Fact]
+    public async Task TryHandleAsync_ShouldReturnPayloadTooLargeWithCode_WhenBodyExceedsLimit()
+    {
+        var context = NewContext();
+        var exception = new BadHttpRequestException("Request body too large.", StatusCodes.Status413PayloadTooLarge);
+
+        var handled = await _handler.TryHandleAsync(context, exception, CancellationToken.None);
+
+        _ = handled.Should().BeTrue();
+        _ = context.Response.StatusCode.Should().Be(StatusCodes.Status413PayloadTooLarge);
+        using var body = await ReadBodyAsync(context);
+        _ = body.RootElement.GetProperty("code").GetString().Should().Be(GlobalExceptionHandler.RequestTooLargeCode);
     }
 
     [Fact]

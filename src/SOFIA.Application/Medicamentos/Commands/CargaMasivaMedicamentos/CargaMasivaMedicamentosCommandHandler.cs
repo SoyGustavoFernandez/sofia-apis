@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Excel;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
@@ -11,20 +12,23 @@ public class CargaMasivaMedicamentosCommandHandler(IApplicationDbContext context
 {
     public async Task<Result<int>> Handle(CargaMasivaMedicamentosCommand request, CancellationToken cancellationToken)
     {
-        var laboratorios = await context.Laboratorios
-            .ToDictionaryAsync(l => l.NombreCompania.ToLower(), l => l.Id, cancellationToken);
-        var unidades = await context.UnidadesMedida
-            .ToDictionaryAsync(u => u.Descripcion.ToLower(), u => u.Id, cancellationToken);
+        var laboratorios = new ImportNameLookup((await context.Laboratorios
+            .Select(l => new { l.NombreCompania, l.Id })
+            .ToListAsync(cancellationToken)).Select(l => (l.NombreCompania, l.Id)));
+        var unidades = new ImportNameLookup((await context.UnidadesMedida
+            .Select(u => new { u.Descripcion, u.Id })
+            .ToListAsync(cancellationToken)).Select(u => (u.Descripcion, u.Id)));
 
         var saved = 0;
         foreach (var row in request.Rows)
         {
-            if (!laboratorios.TryGetValue((row.Laboratorio ?? string.Empty).ToLower(), out var laboratorioId))
+            // Unknown or ambiguous names are skipped; the preview already reported them as row errors
+            if (!laboratorios.TryGetUnique(row.Laboratorio, out var laboratorioId))
             {
                 continue;
             }
 
-            if (!unidades.TryGetValue((row.UnidadBase ?? string.Empty).ToLower(), out var unidadBaseId))
+            if (!unidades.TryGetUnique(row.UnidadBase, out var unidadBaseId))
             {
                 continue;
             }

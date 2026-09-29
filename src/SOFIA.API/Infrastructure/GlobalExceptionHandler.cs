@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Common.Excel;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.API.Infrastructure;
@@ -7,6 +8,8 @@ namespace SOFIA.API.Infrastructure;
 public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
     public const string ConcurrencyConflictCode = "Concurrency.Conflict";
+    public const string RequestTooLargeCode = "Request.TooLarge";
+    public const string RequestInvalidCode = "Request.Invalid";
 
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
@@ -19,6 +22,21 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         if (exception is DbUpdateConcurrencyException)
         {
             return await WriteConcurrencyConflictAsync(httpContext, traceId, cancellationToken);
+        }
+
+        if (exception is ExcelImportException excelImport)
+        {
+            return await WriteErrorAsync(httpContext, excelImport.Error, StatusCodes.Status400BadRequest, traceId, cancellationToken);
+        }
+
+        // Kestrel raises this when a body exceeds RequestSizeLimit or cannot be read; it is a client error, not a 500
+        if (exception is BadHttpRequestException badRequest)
+        {
+            logger.LogWarning("Rejected request body on {Method} {Path} with {StatusCode}. [TraceId: {TraceId}]", httpContext.Request.Method, httpContext.Request.Path, badRequest.StatusCode, traceId);
+            var error = badRequest.StatusCode == StatusCodes.Status413PayloadTooLarge
+                ? Error.Validation(RequestTooLargeCode, "The request body exceeds the allowed size.")
+                : Error.Validation(RequestInvalidCode, "The request body could not be read.");
+            return await WriteErrorAsync(httpContext, error, badRequest.StatusCode, traceId, cancellationToken);
         }
 
         // Log the error with the TraceId so it can be correlated in log search
@@ -53,10 +71,15 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         logger.LogWarning("Concurrency conflict on {Method} {Path}. [TraceId: {TraceId}]", httpContext.Request.Method, httpContext.Request.Path, traceId);
 
         var error = Error.Conflict(ConcurrencyConflictCode, "The record was changed by another operation. Reload it and try again.");
-        var problemDetails = (ProblemDetails)Result.Failure(error, StatusCodes.Status409Conflict).ToProblemResult().Value!;
+        return await WriteErrorAsync(httpContext, error, StatusCodes.Status409Conflict, traceId, cancellationToken);
+    }
+
+    private static async Task<bool> WriteErrorAsync(HttpContext httpContext, Error error, int statusCode, string traceId, CancellationToken cancellationToken)
+    {
+        var problemDetails = (ProblemDetails)Result.Failure(error, statusCode).ToProblemResult().Value!;
         problemDetails.Extensions["traceId"] = traceId;
 
-        httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+        httpContext.Response.StatusCode = statusCode;
 
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 

@@ -104,6 +104,8 @@ public class LaboratoriosController(ISender sender, IExcelReaderService excelRea
 
     [HasPermission("Laboratorios", "Crear")]
     [HttpPost("previsualizar")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)
@@ -113,13 +115,14 @@ public class LaboratoriosController(ISender sender, IExcelReaderService excelRea
 
         var columns = new[] { "NombreCompania", "CodigoIdentificador" };
         using var stream = file.OpenReadStream();
-        var rows = excelReader.ReadRows(stream, columns);
+        var rows = excelReader.ReadRows(stream, columns, file.FileName);
         var result = await sender.Send(new PreviewImportLaboratoriosQuery(rows), cancellationToken);
         return Ok(result);
     }
 
     [HasPermission("Laboratorios", "Crear")]
     [HttpPost("carga-masiva")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> CargaMasiva([FromBody] List<LaboratorioImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaLaboratoriosCommand(rows), cancellationToken);

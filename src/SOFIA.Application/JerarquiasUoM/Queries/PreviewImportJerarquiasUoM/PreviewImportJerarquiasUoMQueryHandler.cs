@@ -11,13 +11,13 @@ public class PreviewImportJerarquiasUoMQueryHandler(IApplicationDbContext contex
 {
     public async Task<PreviewResult> Handle(PreviewImportJerarquiasUoMQuery request, CancellationToken cancellationToken)
     {
-        var productos = new HashSet<string>(await context.Medicamentos
+        var productos = new ImportNameLookup((await context.Medicamentos
             .Where(m => !m.IsDeleted)
-            .Select(m => m.NombreComercial.ToLower())
-            .ToListAsync(cancellationToken));
-        var unidades = new HashSet<string>(await context.UnidadesMedida
-            .Select(u => u.Descripcion.ToLower())
-            .ToListAsync(cancellationToken));
+            .Select(m => new { m.NombreComercial, m.Id })
+            .ToListAsync(cancellationToken)).Select(m => (m.NombreComercial, m.Id)));
+        var unidades = new ImportNameLookup((await context.UnidadesMedida
+            .Select(u => new { u.Descripcion, u.Id })
+            .ToListAsync(cancellationToken)).Select(u => (u.Descripcion, u.Id)));
 
         return new PreviewResult
         {
@@ -30,7 +30,7 @@ public class PreviewImportJerarquiasUoMQueryHandler(IApplicationDbContext contex
         };
     }
 
-    private static List<ValidationError> ValidateRow(ExcelRow row, HashSet<string> productos, HashSet<string> unidades)
+    private static List<ValidationError> ValidateRow(ExcelRow row, ImportNameLookup productos, ImportNameLookup unidades)
     {
         var errors = new List<ValidationError>();
         var producto = row.Values.GetValueOrDefault("Producto");
@@ -52,15 +52,19 @@ public class PreviewImportJerarquiasUoMQueryHandler(IApplicationDbContext contex
         return errors;
     }
 
-    private static void ValidateReference(string? value, string field, HashSet<string> catalog, List<ValidationError> errors)
+    private static void ValidateReference(string? value, string field, ImportNameLookup catalog, List<ValidationError> errors)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
             errors.Add(new ValidationError("required", field));
         }
-        else if (!catalog.Contains(value.ToLower()))
+        else if (!catalog.Contains(value))
         {
             errors.Add(new ValidationError("not-found", field, new() { ["value"] = value }));
+        }
+        else if (catalog.IsAmbiguous(value))
+        {
+            errors.Add(new ValidationError("ambiguous", field, new() { ["value"] = value }));
         }
     }
 

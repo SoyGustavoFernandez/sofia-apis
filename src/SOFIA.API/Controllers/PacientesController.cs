@@ -102,6 +102,8 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
 
     [HasPermission("Pacientes", "Crear")]
     [HttpPost("previsualizar")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)
@@ -111,13 +113,14 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
 
         var columns = new[] { "DocIdentidadGub", "NombreApellidos", "FechaNacimiento", "ContactoPrimario" };
         using var stream = file.OpenReadStream();
-        var rows = excelReader.ReadRows(stream, columns);
+        var rows = excelReader.ReadRows(stream, columns, file.FileName);
         var result = await sender.Send(new PreviewImportPacientesQuery(rows), cancellationToken);
         return Ok(result);
     }
 
     [HasPermission("Pacientes", "Crear")]
     [HttpPost("carga-masiva")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> CargaMasiva([FromBody] List<PacienteImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaPacientesCommand(rows), cancellationToken);

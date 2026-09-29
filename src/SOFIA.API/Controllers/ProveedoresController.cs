@@ -108,6 +108,8 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
 
     [HasPermission("Proveedores", "Crear")]
     [HttpPost("previsualizar")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)
@@ -117,13 +119,14 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
 
         var columns = new[] { "RazonSocial", "TaxId", "TerminosFinancieros", "CalificacionEsg", "TasaCumplimiento" };
         using var stream = file.OpenReadStream();
-        var rows = excelReader.ReadRows(stream, columns);
+        var rows = excelReader.ReadRows(stream, columns, file.FileName);
         var result = await sender.Send(new PreviewImportProveedoresQuery(rows), cancellationToken);
         return Ok(result);
     }
 
     [HasPermission("Proveedores", "Crear")]
     [HttpPost("carga-masiva")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> CargaMasiva([FromBody] List<ProveedorImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaProveedoresCommand(rows), cancellationToken);

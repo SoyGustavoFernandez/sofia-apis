@@ -105,6 +105,8 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
 
     [HasPermission("DIGEMID", "Crear")]
     [HttpPost("catalogo/previsualizar")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)
@@ -114,13 +116,14 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
 
         var columns = new[] { "CodProd", "NomProd", "Concent", "FormaFarmaceutica", "Fraccion", "RegistroSanitario", "Titular", "Estado" };
         using var stream = file.OpenReadStream();
-        var rows = excelReader.ReadRows(stream, columns);
+        var rows = excelReader.ReadRows(stream, columns, file.FileName);
         var result = await sender.Send(new PreviewImportDigemidQuery(rows), cancellationToken);
         return Ok(result);
     }
 
     [HasPermission("DIGEMID", "Crear")]
     [HttpPost("catalogo/carga-masiva")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> CargaMasiva([FromBody] List<DigemidImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaDigemidCommand(rows), cancellationToken);

@@ -16,12 +16,12 @@ public class PreviewImportMedicamentosQueryHandler(IApplicationDbContext context
                 .Where(m => !m.IsDeleted)
                 .Select(m => m.CodigoNacional.ToLower())
                 .ToListAsync(cancellationToken)],
-            [.. await context.Laboratorios
-                .Select(l => l.NombreCompania.ToLower())
-                .ToListAsync(cancellationToken)],
-            [.. await context.UnidadesMedida
-                .Select(u => u.Descripcion.ToLower())
-                .ToListAsync(cancellationToken)],
+            new ImportNameLookup((await context.Laboratorios
+                .Select(l => new { l.NombreCompania, l.Id })
+                .ToListAsync(cancellationToken)).Select(l => (l.NombreCompania, l.Id))),
+            new ImportNameLookup((await context.UnidadesMedida
+                .Select(u => new { u.Descripcion, u.Id })
+                .ToListAsync(cancellationToken)).Select(u => (u.Descripcion, u.Id))),
             [.. Medicamento.CondicionesValidas.Select(c => c.ToLower())],
             BuildCodeOccurrences(request.Rows));
 
@@ -102,15 +102,19 @@ public class PreviewImportMedicamentosQueryHandler(IApplicationDbContext context
         }
     }
 
-    private static void ValidateReference(string? value, string field, HashSet<string> catalog, List<ValidationError> errors)
+    private static void ValidateReference(string? value, string field, ImportNameLookup catalog, List<ValidationError> errors)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
             errors.Add(new ValidationError("required", field));
         }
-        else if (!catalog.Contains(value.ToLower()))
+        else if (!catalog.Contains(value))
         {
             errors.Add(new ValidationError("not-found", field, new() { ["value"] = value }));
+        }
+        else if (catalog.IsAmbiguous(value))
+        {
+            errors.Add(new ValidationError("ambiguous", field, new() { ["value"] = value }));
         }
     }
 
@@ -128,8 +132,8 @@ public class PreviewImportMedicamentosQueryHandler(IApplicationDbContext context
 
     private sealed record ImportContext(
         HashSet<string> ExistingCodes,
-        HashSet<string> Laboratorios,
-        HashSet<string> Unidades,
+        ImportNameLookup Laboratorios,
+        ImportNameLookup Unidades,
         HashSet<string> Condiciones,
         Dictionary<string, int> CodeOccurrences);
 }

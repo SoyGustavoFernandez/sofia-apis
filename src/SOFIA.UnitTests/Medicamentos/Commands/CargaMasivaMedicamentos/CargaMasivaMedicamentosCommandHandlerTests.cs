@@ -87,6 +87,25 @@ public class CargaMasivaMedicamentosCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldSkipOnlyAmbiguousRows_WhenUnidadDescripcionIsRepeated()
+    {
+        var capsula = UnidadMedida.Create("CAP", "Capsula").Value!;
+        _ = _dbContextMock.Setup(c => c.UnidadesMedida).Returns(new List<UnidadMedida>
+        {
+            _unidad,
+            UnidadMedida.Create("TAB2", "TABLETA").Value!,
+            capsula,
+        }.BuildMockDbSet().Object);
+        var command = new CargaMasivaMedicamentosCommand([Row("COD-001", unidad: "Tableta"), Row("COD-002", unidad: "Capsula")]);
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value.Should().Be(1);
+        _medicamentosMock.Verify(m => m.Add(It.Is<Medicamento>(x => x.CodigoNacional == "COD-002" && x.UnidadBaseId == capsula.Id)), Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_ShouldSaveOnlyValidRows_WhenMixed()
     {
         var command = new CargaMasivaMedicamentosCommand(

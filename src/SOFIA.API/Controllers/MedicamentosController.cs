@@ -118,6 +118,8 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
 
     [HasPermission("Medicamentos", "Crear")]
     [HttpPost("previsualizar")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)
@@ -126,13 +128,14 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
         }
 
         using var stream = file.OpenReadStream();
-        var rows = excelReader.ReadRows(stream, ImportColumns);
+        var rows = excelReader.ReadRows(stream, ImportColumns, file.FileName);
         var result = await sender.Send(new PreviewImportMedicamentosQuery(rows), cancellationToken);
         return Ok(result);
     }
 
     [HasPermission("Medicamentos", "Crear")]
     [HttpPost("carga-masiva")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> CargaMasiva([FromBody] List<MedicamentoImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaMedicamentosCommand(rows), cancellationToken);

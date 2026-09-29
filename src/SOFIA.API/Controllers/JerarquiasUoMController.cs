@@ -119,6 +119,8 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
 
     [HasPermission("JerarquiasUoM", "Crear")]
     [HttpPost("previsualizar")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> Previsualizar(IFormFile file, CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)
@@ -127,13 +129,14 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
         }
 
         using var stream = file.OpenReadStream();
-        var rows = excelReader.ReadRows(stream, ImportColumns);
+        var rows = excelReader.ReadRows(stream, ImportColumns, file.FileName);
         var result = await sender.Send(new PreviewImportJerarquiasUoMQuery(rows), cancellationToken);
         return Ok(result);
     }
 
     [HasPermission("JerarquiasUoM", "Crear")]
     [HttpPost("carga-masiva")]
+    [RequestSizeLimit(ImportLimits.MaxRequestBytes)]
     public async Task<IActionResult> CargaMasiva([FromBody] List<JerarquiaUoMImportRow> rows, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new CargaMasivaJerarquiasUoMCommand(rows), cancellationToken);

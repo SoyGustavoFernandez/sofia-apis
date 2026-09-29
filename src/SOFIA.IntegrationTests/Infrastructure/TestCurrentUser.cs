@@ -11,12 +11,16 @@ public sealed class TestCurrentUser : ICurrentUser
 
     public Guid? Empresa { get; set; } = DefaultEmpresaId;
 
-    public string? Id => null;
+    public Guid? Empleado { get; set; }
+
+    public bool Admin { get; set; }
+
+    public string? Id => Empleado?.ToString();
     public string? CuentaId => null;
     public string? Name => "integration-test";
     public string? SucursalId => null;
     public string? EmpresaId => Empresa?.ToString();
     public bool IsAuthenticated => Empresa is not null;
     public string? ClientIpAddress => "127.0.0.1";
-    public bool IsInRole(string roleName) => false;
+    public bool IsInRole(string roleName) => Admin && roleName == "Admin";
 }

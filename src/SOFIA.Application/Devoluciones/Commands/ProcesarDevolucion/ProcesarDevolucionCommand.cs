@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 using SOFIA.Domain.Enums;
@@ -16,4 +17,8 @@ public record ProcesarDevolucionCommand(
     string SustentoDescriptivo,
     List<DevolucionDetalleDto> Detalles,
     MetodoPago MetodoReembolso = MetodoPago.Efectivo
-) : ICommand<Guid>;
+) : ICommand<Guid>, IAuditableCommand
+{
+    public AuditEntry? GetAuditEntry(object? resultValue) =>
+        resultValue is Guid id ? new(AuditEventos.DevolucionProcesar, AuditTablas.Devoluciones, id, $"venta: {ComprobanteOrigenId}; items: {Detalles.Count}; reembolso: {MetodoReembolso}") : null;
+}

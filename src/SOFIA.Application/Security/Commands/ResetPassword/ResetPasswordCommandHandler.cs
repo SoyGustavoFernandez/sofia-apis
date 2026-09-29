@@ -9,7 +9,8 @@ namespace SOFIA.Application.Security.Commands.ResetPassword;
 
 public class ResetPasswordCommandHandler(
     IApplicationDbContext context,
-    IPasswordHasher passwordHasher) : IRequestHandler<ResetPasswordCommand, Result>
+    IPasswordHasher passwordHasher,
+    ICurrentUser currentUser) : IRequestHandler<ResetPasswordCommand, Result>
 {
     public async Task<Result> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
     {
@@ -34,6 +35,13 @@ public class ResetPasswordCommandHandler(
 
         // A stolen refresh token must not outlive the password it was obtained with
         await context.RevokeAllRefreshTokensAsync(cuenta.Id, cancellationToken);
+
+        // Anonymous flow bypasses AuditBehavior, so the account owner is recorded as the actor here
+        var evento = AuditoriaEventoSeguridad.Create(cuenta.EmpleadoId, AuditTablas.Cuentas, cuenta.Id, AuditEventos.ClaveRestablecer, null, null, currentUser.ClientIpAddress, tenantId: cuenta.TenantId);
+        if (evento.IsSuccess)
+        {
+            _ = context.AuditoriasEventosSeguridad.Add(evento.Value);
+        }
 
         _ = await context.SaveChangesAsync(cancellationToken);
 

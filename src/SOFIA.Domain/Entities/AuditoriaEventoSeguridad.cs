@@ -2,6 +2,7 @@ using SOFIA.Domain.Common;
 
 namespace SOFIA.Domain.Entities;
 
+// Append-only security audit trail: only a factory, no update or delete paths
 public sealed class AuditoriaEventoSeguridad : BaseEntity
 {
     private AuditoriaEventoSeguridad() { }
@@ -26,7 +27,8 @@ public sealed class AuditoriaEventoSeguridad : BaseEntity
         string? payloadAnterior,
         string? payloadNuevo,
         string? direccionIp,
-        DateTime? fechaHoraEvento = null)
+        DateTime? fechaHoraEvento = null,
+        Guid? tenantId = null)
     {
         if (empleadoId == Guid.Empty)
         {
@@ -72,62 +74,8 @@ public sealed class AuditoriaEventoSeguridad : BaseEntity
             PayloadAnterior = payloadAnterior,
             PayloadNuevo = payloadNuevo,
             FechaHoraEvento = fechaHoraEvento ?? DateTime.UtcNow,
-            DireccionIp = direccionIp
+            DireccionIp = direccionIp,
+            TenantId = tenantId
         });
-    }
-
-    public Result Update(
-        Guid empleadoId,
-        string tablaAfectada,
-        Guid registroIdAfectado,
-        string tipoAccion,
-        string? payloadAnterior,
-        string? payloadNuevo,
-        string? direccionIp)
-    {
-        if (empleadoId == Guid.Empty)
-        {
-            return Result.Failure(Error.Validation("AuditoriaEventoSeguridad.EmpleadoId", "Empleado ID is required."));
-        }
-
-        if (string.IsNullOrWhiteSpace(tablaAfectada))
-        {
-            return Result.Failure(Error.Validation("AuditoriaEventoSeguridad.TablaAfectada", "Tabla Afectada is required."));
-        }
-
-        if (tablaAfectada.Length > 50)
-        {
-            return Result.Failure(Error.Validation("AuditoriaEventoSeguridad.TablaAfectada", "Tabla Afectada must not exceed 50 characters."));
-        }
-
-        if (registroIdAfectado == Guid.Empty)
-        {
-            return Result.Failure(Error.Validation("AuditoriaEventoSeguridad.RegistroIdAfectado", "Registro ID Afectado is required."));
-        }
-
-        if (string.IsNullOrWhiteSpace(tipoAccion))
-        {
-            return Result.Failure(Error.Validation("AuditoriaEventoSeguridad.TipoAccion", "Tipo Acción is required."));
-        }
-
-        if (tipoAccion.Length > 20)
-        {
-            return Result.Failure(Error.Validation("AuditoriaEventoSeguridad.TipoAccion", "Tipo Acción must not exceed 20 characters."));
-        }
-
-        if (direccionIp != null && direccionIp.Length > 45)
-        {
-            return Result.Failure(Error.Validation("AuditoriaEventoSeguridad.DireccionIp", "Dirección IP must not exceed 45 characters."));
-        }
-
-        EmpleadoId = empleadoId;
-        TablaAfectada = tablaAfectada;
-        RegistroIdAfectado = registroIdAfectado;
-        TipoAccion = tipoAccion;
-        PayloadAnterior = payloadAnterior;
-        PayloadNuevo = payloadNuevo;
-        DireccionIp = direccionIp;
-
-        return Result.Success();
     }
 }

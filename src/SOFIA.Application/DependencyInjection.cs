@@ -16,6 +16,7 @@ public static class DependencyInjection
             _ = cfg.AddOpenBehavior(typeof(SanitizationBehavior<,>));
             _ = cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
             _ = cfg.AddOpenBehavior(typeof(TransactionBehavior<,>));
+            _ = cfg.AddOpenBehavior(typeof(AuditBehavior<,>));
         });
 
         _ = services.AddScoped<ISucursalAccess, SucursalAccess>();

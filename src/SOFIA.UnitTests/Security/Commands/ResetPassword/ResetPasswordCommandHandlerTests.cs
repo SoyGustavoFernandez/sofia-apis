@@ -5,6 +5,7 @@ using FluentAssertions;
 using MockQueryable.Moq;
 using Moq;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using SOFIA.Application.Security.Commands.ResetPassword;
 using SOFIA.Domain.Entities;
 using DomainRefreshToken = SOFIA.Domain.Entities.RefreshToken;
@@ -19,6 +20,7 @@ public class ResetPasswordCommandHandlerTests
     private readonly Mock<IPasswordHasher> _passwordHasherMock = new();
     private readonly Cuenta _cuenta = Cuenta.Create(Guid.NewGuid(), "usuario", "old_hash").Value!;
     private readonly DomainRefreshToken _activeToken;
+    private readonly Mock<Microsoft.EntityFrameworkCore.DbSet<AuditoriaEventoSeguridad>> _auditoriaMock = new List<AuditoriaEventoSeguridad>().BuildMockDbSet();
     private readonly ResetPasswordCommandHandler _handler;
 
     public ResetPasswordCommandHandlerTests()
@@ -28,10 +30,11 @@ public class ResetPasswordCommandHandlerTests
 
         _ = _dbContextMock.Setup(c => c.Cuentas).Returns(new List<Cuenta> { _cuenta }.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.RefreshTokens).Returns(new List<DomainRefreshToken> { _activeToken }.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.AuditoriasEventosSeguridad).Returns(_auditoriaMock.Object);
         _ = _dbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         _ = _passwordHasherMock.Setup(p => p.Hash(It.IsAny<string>())).Returns("new_hash");
 
-        _handler = new ResetPasswordCommandHandler(_dbContextMock.Object, _passwordHasherMock.Object);
+        _handler = new ResetPasswordCommandHandler(_dbContextMock.Object, _passwordHasherMock.Object, Mock.Of<ICurrentUser>());
     }
 
     private static string Hash(string rawToken) =>
@@ -47,6 +50,24 @@ public class ResetPasswordCommandHandlerTests
         _ = result.IsSuccess.Should().BeTrue();
         _ = _cuenta.PasswordHash.Should().Be("new_hash");
         _ = _activeToken.IsRevoked.Should().BeTrue(because: "a stolen refresh token must not survive a password reset");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRecordAuditEventForOwner_WhenResetSucceeds()
+    {
+        var result = await _handler.Handle(new ResetPasswordCommand("usuario", RawRecoveryToken, "NuevaClave123"), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _auditoriaMock.Verify(s => s.Add(It.Is<AuditoriaEventoSeguridad>(a =>
+            a.TipoAccion == AuditEventos.ClaveRestablecer && a.RegistroIdAfectado == _cuenta.Id && a.EmpleadoId == _cuenta.EmpleadoId && a.PayloadNuevo == null)), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotRecordAuditEvent_WhenRecoveryTokenIsInvalid()
+    {
+        _ = await _handler.Handle(new ResetPasswordCommand("usuario", "token-invalido", "NuevaClave123"), CancellationToken.None);
+
+        _auditoriaMock.Verify(s => s.Add(It.IsAny<AuditoriaEventoSeguridad>()), Times.Never);
     }
 
     [Fact]

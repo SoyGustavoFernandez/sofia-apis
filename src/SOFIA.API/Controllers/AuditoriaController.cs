@@ -13,6 +13,6 @@ public class AuditoriaController(ISender sender) : ControllerBase
     public async Task<IActionResult> AnonimizarDatos([FromBody] AnonimizarDatosCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.ToActionResult();
     }
 }

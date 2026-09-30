@@ -221,7 +221,8 @@ dotnet user-secrets set "<Clave>" "<valor>" --project src/SOFIA.API/SOFIA.API.cs
 | `PresidioApi:InternalKey` | Opcional: clave compartida con Presidio (`PRESIDIO_INTERNAL_KEY`) |
 | `GeminiApi:ApiKey` | API key de Google Gemini |
 | `GeminiApi:BaseUrl` | URL base de modelos de Gemini, terminada en `/v1beta/models/` (la API llama a `{BaseUrl}{OcrModel}:generateContent`) |
-| `GeminiApi:OcrModel` | Modelo de Gemini a usar (p. ej. `gemini-3.6-flash`) |
+| `GeminiApi:OcrModel` | Modelo de Gemini para el OCR de la receta (p. ej. `gemini-3.6-flash`) |
+| `GeminiApi:ReasoningModel` | Opcional: modelo de Gemini para interpretar el texto (p. ej. `gemini-2.5-pro`); si falta, se usa `OcrModel` |
 
 ### 3. Crear / migrar el esquema
 

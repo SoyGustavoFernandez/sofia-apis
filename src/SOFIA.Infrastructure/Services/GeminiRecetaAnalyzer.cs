@@ -18,6 +18,8 @@ public class GeminiRecetaAnalyzer(
     private readonly IPrivacyService _privacyService = privacyService;
     private readonly HttpClient _httpClient = httpClient;
 
+    private const string DefaultModel = "gemini-3.6-flash";
+
     public async Task<List<MedicamentoInterpretadoDto>> InterpretarRecetaAsync(Stream imagenStream, string? especialidadContexto, CancellationToken cancellationToken = default)
     {
         try
@@ -61,7 +63,7 @@ public class GeminiRecetaAnalyzer(
 
     private async Task<string> ExtractTextFromImageAsync(string base64Image, string apiKey, CancellationToken cancellationToken)
     {
-        var model = _configuration["GeminiApi:OcrModel"] ?? "gemini-3.6-flash";
+        var model = ResolveModel(_configuration["GeminiApi:OcrModel"]);
         var baseUrl = _configuration["GeminiApi:BaseUrl"] ?? throw new InvalidOperationException("GeminiApi:BaseUrl is missing.");
         var url = $"{baseUrl}{model}:generateContent";
 
@@ -101,7 +103,7 @@ public class GeminiRecetaAnalyzer(
 
     private async Task<List<MedicamentoInterpretadoDto>> AnalyzeTextWithGeminiAsync(string textoAnomizado, string? especialidadContexto, string apiKey, CancellationToken cancellationToken)
     {
-        var model = _configuration["GeminiApi:OcrModel"] ?? "gemini-3.6-flash";
+        var model = ResolveModel(_configuration["GeminiApi:ReasoningModel"], _configuration["GeminiApi:OcrModel"]);
         var baseUrl = _configuration["GeminiApi:BaseUrl"] ?? throw new InvalidOperationException("GeminiApi:BaseUrl is missing.");
         var url = $"{baseUrl}{model}:generateContent";
 
@@ -194,6 +196,10 @@ Texto OCR Sucio: {textoAnomizado}";
 
         return [];
     }
+
+    // Empty settings count as unset, so a missing reasoning model falls back to the OCR model
+    private static string ResolveModel(params string?[] candidates) =>
+        Array.Find(candidates, c => !string.IsNullOrWhiteSpace(c)) ?? DefaultModel;
 
     private async Task EnsureSuccessOrThrowAsync(HttpResponseMessage response, string context, CancellationToken cancellationToken)
     {

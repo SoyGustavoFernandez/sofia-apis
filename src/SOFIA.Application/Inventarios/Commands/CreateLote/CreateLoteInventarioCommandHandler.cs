@@ -16,7 +16,7 @@ public class CreateLoteInventarioHandler(IApplicationDbContext context)
         var productExists = await context.Medicamentos.AnyAsync(m => m.Id == request.ProductoId, cancellationToken);
         if (!productExists)
         {
-            return Result.Failure<Guid>(Error.NotFound("Medicamento.NotFound", "The specified product does not exist."));
+            return Result.Failure<Guid>(Error.NotFound("Medicamento.NotFound", "The specified product does not exist."), 404);
         }
 
         // Validate batch number uniqueness

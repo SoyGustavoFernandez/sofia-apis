@@ -21,7 +21,7 @@ public class GetRolByIdQueryHandler(IApplicationDbContext context) : IRequestHan
             .FirstOrDefaultAsync(cancellationToken);
 
         return rol is null
-            ? Result.Failure<RolResponse>(Error.NotFound("Rol.NotFound", "El rol especificado no existe."))
+            ? Result.Failure<RolResponse>(Error.NotFound("Rol.NotFound", "El rol especificado no existe."), 404)
             : Result.Success(rol);
     }
 }

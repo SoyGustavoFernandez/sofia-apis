@@ -13,7 +13,7 @@ public class UpdateDeliveryEstadoCommandHandler(IApplicationDbContext dbContext)
         var delivery = await dbContext.DespachosDelivery.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
         if (delivery == null)
         {
-            return Result.Failure<Guid>(Error.NotFound("Delivery", "Despacho no encontrado"));
+            return Result.Failure<Guid>(Error.NotFound("Delivery", "Despacho no encontrado"), 404);
         }
 
         var result = delivery.Update(delivery.PlataformaServicio, delivery.CodigoRastreo, request.NuevoEstado, delivery.DireccionEntrega, delivery.RepartidorNombre, delivery.EvidenciaFotograficaUrl);

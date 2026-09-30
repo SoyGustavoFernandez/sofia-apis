@@ -15,7 +15,7 @@ public class AssignSucursalToCuentaCommandHandler(IApplicationDbContext context)
 
         if (cuenta is null)
         {
-            return Result.Failure(Error.NotFound("Auth.CuentaNotFound", "La cuenta no existe."));
+            return Result.Failure(Error.NotFound("Auth.CuentaNotFound", "La cuenta no existe."), 404);
         }
 
         var sucursal = await context.Sucursales
@@ -23,7 +23,7 @@ public class AssignSucursalToCuentaCommandHandler(IApplicationDbContext context)
 
         if (sucursal is null)
         {
-            return Result.Failure(Error.NotFound("Sucursal.NotFound", "La sucursal no existe."));
+            return Result.Failure(Error.NotFound("Sucursal.NotFound", "La sucursal no existe."), 404);
         }
 
         cuenta.AddSucursal(sucursal);

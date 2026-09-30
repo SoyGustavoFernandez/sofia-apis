@@ -18,7 +18,7 @@ public class DeletePacienteCommandHandler(IApplicationDbContext context) : IRequ
 
         if (entity == null)
         {
-            return Result.Failure<Guid>(Error.NotFound("NotFound", "Record not found."));
+            return Result.Failure<Guid>(Error.NotFound("NotFound", "Record not found."), 404);
         }
 
         _ = context.Pacientes.Remove(entity);

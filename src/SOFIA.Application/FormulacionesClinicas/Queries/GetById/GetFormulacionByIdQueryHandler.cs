@@ -30,7 +30,7 @@ public class GetFormulacionByIdQueryHandler(IApplicationDbContext context) : IRe
             .FirstOrDefaultAsync(cancellationToken);
 
         return dto is null
-            ? Result.Failure<FormulacionClinicaDto>(Error.NotFound("Formulacion.NotFound", $"FormulaciÃ³n with ID {request.Id} not found."))
+            ? Result.Failure<FormulacionClinicaDto>(Error.NotFound("Formulacion.NotFound", $"FormulaciÃ³n with ID {request.Id} not found."), 404)
             : Result.Success(dto);
     }
 }

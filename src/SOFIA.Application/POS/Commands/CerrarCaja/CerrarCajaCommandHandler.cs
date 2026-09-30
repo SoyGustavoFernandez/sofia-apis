@@ -22,7 +22,7 @@ public class CerrarCajaCommandHandler(IApplicationDbContext dbContext, ICurrentU
         var sesion = await dbContext.POSSesionesCaja.FirstOrDefaultAsync(x => x.Id == request.SesionId, cancellationToken);
         if (sesion == null)
         {
-            return Result.Failure<Guid>(Error.NotFound("Caja", "Sesion no encontrada"));
+            return Result.Failure<Guid>(Error.NotFound("Caja", "Sesion no encontrada"), 404);
         }
 
         // Only the cashier who opened the drawer, or an Admin, can count and close it

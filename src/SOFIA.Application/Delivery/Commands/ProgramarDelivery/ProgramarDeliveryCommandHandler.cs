@@ -35,7 +35,7 @@ public class ProgramarDeliveryCommandHandler(IApplicationDbContext dbContext, IS
             return Result.Failure<Guid>(Error.Conflict("Delivery.Venta.YaProgramado", "This sale already has a delivery dispatch."), 409);
         }
 
-        var createResult = Domain.Entities.DespachoDelivery.Create(request.VentaId, request.PlataformaServicio, request.CodigoRastreo, request.EstadoDespacho, request.DireccionEntrega, request.RepartidorNombre, request.EvidenciaFotograficaUrl);
+        var createResult = Domain.Entities.DespachoDelivery.Create(request.VentaId, request.PlataformaServicio, request.CodigoRastreo, request.DireccionEntrega, request.RepartidorNombre, request.EvidenciaFotograficaUrl);
         if (createResult.IsFailure)
         {
             return Result.Failure<Guid>(createResult.Error);

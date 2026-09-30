@@ -23,7 +23,7 @@ public class CompletarOrdenMagistralCommandHandler(IApplicationDbContext dbConte
 
         if (orden == null)
         {
-            return Result.Failure<Guid>(Error.NotFound("Orden.NotFound", "Production order not found."));
+            return Result.Failure<Guid>(Error.NotFound("Orden.NotFound", "Production order not found."), 404);
         }
 
         if (orden.SucursalId != sucursalResult.Value)

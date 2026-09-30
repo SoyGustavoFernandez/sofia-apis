@@ -31,7 +31,7 @@ public class CompletarVentaCommandHandler(
 
         if (venta == null)
         {
-            return Result.Failure<VentaCreadaDto>(Error.NotFound("Venta.Completar", "Sale not found."));
+            return Result.Failure<VentaCreadaDto>(Error.NotFound("Venta.Completar", "Sale not found."), 404);
         }
 
         if (venta.SucursalId != sucursalId)

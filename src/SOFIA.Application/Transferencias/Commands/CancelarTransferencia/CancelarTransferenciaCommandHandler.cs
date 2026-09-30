@@ -20,7 +20,7 @@ public class CancelarTransferenciaCommandHandler(
 
         if (transferencia == null)
         {
-            return Result.Failure(Error.NotFound("Transferencia.NotFound", $"La transferencia con ID {request.Id} no existe."));
+            return Result.Failure(Error.NotFound("Transferencia.NotFound", $"La transferencia con ID {request.Id} no existe."), 404);
         }
 
         var sucursalResult = currentUser.GetSucursalId();

@@ -82,6 +82,7 @@ public class CompletarOrdenMagistralCommandHandlerTests
         // Assert
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Orden.NotFound");
+        _ = result.StatusCode.Should().Be(404);
 
         _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }

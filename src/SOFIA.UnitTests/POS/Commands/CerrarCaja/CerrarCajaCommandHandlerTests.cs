@@ -66,6 +66,7 @@ public class CerrarCajaCommandHandlerTests
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Caja");
+        _ = result.StatusCode.Should().Be(404);
     }
 
     [Fact]

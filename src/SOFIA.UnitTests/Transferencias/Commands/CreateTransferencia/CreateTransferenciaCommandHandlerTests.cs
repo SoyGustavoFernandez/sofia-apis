@@ -66,6 +66,7 @@ public class CreateTransferenciaCommandHandlerTests
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Transferencia.SucursalDestinoNotFound");
+        _ = result.StatusCode.Should().Be(404);
     }
 
     [Fact]
@@ -80,6 +81,7 @@ public class CreateTransferenciaCommandHandlerTests
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Transferencia.LoteNotFound");
+        _ = result.StatusCode.Should().Be(404);
     }
 
     [Fact]

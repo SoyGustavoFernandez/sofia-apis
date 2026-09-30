@@ -13,7 +13,7 @@ public class GetPermissionsByRolQueryHandler(IApplicationDbContext context) : IR
         var rolExists = await context.Roles.AnyAsync(r => r.Id == request.RolId && !r.IsDeleted, cancellationToken);
         if (!rolExists)
         {
-            return Result.Failure<IReadOnlyList<PermisoResponse>>(Error.NotFound("Rol.NotFound", "El rol especificado no existe."));
+            return Result.Failure<IReadOnlyList<PermisoResponse>>(Error.NotFound("Rol.NotFound", "El rol especificado no existe."), 404);
         }
 
         var permisos = await context.PermisosRol

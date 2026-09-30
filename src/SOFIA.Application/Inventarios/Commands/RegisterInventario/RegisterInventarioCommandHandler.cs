@@ -19,7 +19,7 @@ public class RegisterInventarioHandler(IApplicationDbContext context, ISucursalA
         var sucursalExists = await context.Sucursales.AnyAsync(s => s.Id == request.SucursalId, cancellationToken);
         if (!sucursalExists)
         {
-            return Result.Failure<Guid>(Error.NotFound("Sucursal.NotFound", "The specified branch does not exist."));
+            return Result.Failure<Guid>(Error.NotFound("Sucursal.NotFound", "The specified branch does not exist."), 404);
         }
 
         if (!await sucursalAccess.CanAccessAsync(request.SucursalId, cancellationToken))
@@ -31,7 +31,7 @@ public class RegisterInventarioHandler(IApplicationDbContext context, ISucursalA
         var loteExists = await context.LotesInventario.AnyAsync(l => l.Id == request.LoteId, cancellationToken);
         if (!loteExists)
         {
-            return Result.Failure<Guid>(Error.NotFound("LoteInventario.NotFound", "The specified batch does not exist."));
+            return Result.Failure<Guid>(Error.NotFound("LoteInventario.NotFound", "The specified batch does not exist."), 404);
         }
 
         // 3. Check if already exists in this branch

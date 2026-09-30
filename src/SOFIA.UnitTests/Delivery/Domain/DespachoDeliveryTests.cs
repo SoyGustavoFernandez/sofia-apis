@@ -6,8 +6,22 @@ namespace SOFIA.UnitTests.Delivery.Domain;
 
 public class DespachoDeliveryTests
 {
-    private static DespachoDelivery Despacho(EstadoDespacho estado) =>
-        DespachoDelivery.Create(Guid.NewGuid(), "Rappi", null, estado, "Av. Uno 123", null, null).Value!;
+    // Reaches the requested state only through allowed transitions, since every dispatch starts in Preparando
+    private static DespachoDelivery Despacho(EstadoDespacho estado)
+    {
+        var despacho = DespachoDelivery.Create(Guid.NewGuid(), "Rappi", null, "Av. Uno 123", null, null).Value!;
+        if (estado is EstadoDespacho.En_Camino or EstadoDespacho.Entregado)
+        {
+            _ = CambiarEstado(despacho, EstadoDespacho.En_Camino);
+        }
+
+        if (estado is EstadoDespacho.Entregado or EstadoDespacho.Devuelto)
+        {
+            _ = CambiarEstado(despacho, estado);
+        }
+
+        return despacho;
+    }
 
     private static SOFIA.Domain.Common.Result CambiarEstado(DespachoDelivery d, EstadoDespacho nuevo) =>
         d.Update(d.PlataformaServicio, d.CodigoRastreo, nuevo, d.DireccionEntrega, d.RepartidorNombre, d.EvidenciaFotograficaUrl);
@@ -53,5 +67,14 @@ public class DespachoDeliveryTests
 
         _ = result.IsSuccess.Should().BeTrue();
         _ = despacho.PlataformaServicio.Should().Be("Glovo");
+    }
+
+    [Fact]
+    public void Create_ShouldStartInPreparando()
+    {
+        var result = DespachoDelivery.Create(Guid.NewGuid(), "Rappi", null, "Av. Uno 123", null, null);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value!.EstadoDespacho.Should().Be(EstadoDespacho.Preparando);
     }
 }

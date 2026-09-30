@@ -66,7 +66,7 @@ public class IniciarOrdenMagistralCommandHandler(IApplicationDbContext dbContext
 
             if (inventario == null)
             {
-                return Result.Failure<Guid>(Error.NotFound("Inventario.NotFound", $"Inventario ID {dto.InventarioSucursalId} no encontrado."));
+                return Result.Failure<Guid>(Error.NotFound("Inventario.NotFound", $"Inventario ID {dto.InventarioSucursalId} no encontrado."), 404);
             }
 
             if (inventario.CantidadFisica < dto.CantidadConsumida)

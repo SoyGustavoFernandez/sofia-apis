@@ -40,7 +40,7 @@ public class CreateTransferenciaCommandHandler(
         var destinoExists = await context.Sucursales.AnyAsync(s => s.Id == request.SucursalDestinoId, cancellationToken);
         if (!destinoExists)
         {
-            return Result.Failure<Guid>(Error.NotFound("Transferencia.SucursalDestinoNotFound", "La sucursal de destino especificada no existe."));
+            return Result.Failure<Guid>(Error.NotFound("Transferencia.SucursalDestinoNotFound", "La sucursal de destino especificada no existe."), 404);
         }
 
         List<DetalleTransferencia> detallesTransferencia = [];
@@ -53,7 +53,7 @@ public class CreateTransferenciaCommandHandler(
 
             if (inventario == null)
             {
-                return Result.Failure<Guid>(Error.NotFound("Transferencia.LoteNotFound", $"El lote {detailDto.LoteId} no se encuentra registrado en la sucursal de origen."));
+                return Result.Failure<Guid>(Error.NotFound("Transferencia.LoteNotFound", $"El lote {detailDto.LoteId} no se encuentra registrado en la sucursal de origen."), 404);
             }
 
             if (inventario.CantidadFisica < detailDto.CantidadEnviada)

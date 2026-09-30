@@ -42,7 +42,7 @@ public class GetVentaByIdQueryHandler(
 
         if (venta == null)
         {
-            return Result.Failure<VentaConDetalleDto>(Error.NotFound("Venta.NotFound", $"No se encontró la venta con ID {request.Id}"));
+            return Result.Failure<VentaConDetalleDto>(Error.NotFound("Venta.NotFound", $"No se encontró la venta con ID {request.Id}"), 404);
         }
 
         if (venta.SucursalId != sucursalId)

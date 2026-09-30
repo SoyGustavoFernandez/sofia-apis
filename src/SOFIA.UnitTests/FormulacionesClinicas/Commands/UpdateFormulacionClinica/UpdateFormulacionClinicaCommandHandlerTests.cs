@@ -53,6 +53,7 @@ public class UpdateFormulacionClinicaCommandHandlerTests
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Formulacion.NotFound");
+        _ = result.StatusCode.Should().Be(404);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -82,6 +83,7 @@ public class UpdateFormulacionClinicaCommandHandlerTests
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("IngredienteActivo.NotFound");
+        _ = result.StatusCode.Should().Be(404);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -97,6 +99,7 @@ public class UpdateFormulacionClinicaCommandHandlerTests
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("UnidadMedida.NotFound");
+        _ = result.StatusCode.Should().Be(404);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 

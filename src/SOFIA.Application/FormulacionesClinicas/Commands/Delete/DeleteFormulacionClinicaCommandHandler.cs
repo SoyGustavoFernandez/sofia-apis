@@ -14,7 +14,7 @@ public class DeleteFormulacionClinicaCommandHandler(IApplicationDbContext contex
 
         if (formulacion is null)
         {
-            return Result.Failure(Error.NotFound("Formulacion.NotFound", $"FormulaciÃ³n with ID {request.Id} not found."));
+            return Result.Failure(Error.NotFound("Formulacion.NotFound", $"FormulaciÃ³n with ID {request.Id} not found."), 404);
         }
 
         _ = context.FormulacionesClinicas.Remove(formulacion);

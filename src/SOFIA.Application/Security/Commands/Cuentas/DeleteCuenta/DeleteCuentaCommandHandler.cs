@@ -17,7 +17,7 @@ public class DeleteCuentaCommandHandler(IApplicationDbContext context, ICurrentU
 
         if (cuenta is null)
         {
-            return Result.Failure(Error.NotFound("Cuenta.NotFound", "La cuenta especificada no existe."));
+            return Result.Failure(Error.NotFound("Cuenta.NotFound", "La cuenta especificada no existe."), 404);
         }
 
         if (cuenta.EsAdmin && !currentUser.IsInRole(Rol.AdminRoleName))

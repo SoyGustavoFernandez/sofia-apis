@@ -16,7 +16,7 @@ public class AssignRolToUserCommandHandler(IApplicationDbContext context, ICurre
 
         if (cuenta is null)
         {
-            return Result.Failure(Error.NotFound("Auth.CuentaNotFound", "La cuenta no existe."));
+            return Result.Failure(Error.NotFound("Auth.CuentaNotFound", "La cuenta no existe."), 404);
         }
 
         // Nobody can change their own roles, otherwise any role manager could promote themselves
@@ -30,7 +30,7 @@ public class AssignRolToUserCommandHandler(IApplicationDbContext context, ICurre
 
         if (rol is null)
         {
-            return Result.Failure(Error.NotFound("Rol.NotFound", "El rol no existe."));
+            return Result.Failure(Error.NotFound("Rol.NotFound", "El rol no existe."), 404);
         }
 
         if (rol.EsAdmin && !currentUser.IsInRole(Rol.AdminRoleName))

@@ -45,6 +45,7 @@ public class RevokePermissionFromRolCommandHandlerTests
         var result = await _handler.Handle(new RevokePermissionFromRolCommand(Guid.NewGuid()), CancellationToken.None);
 
         _ = result.Error.Code.Should().Be("Permiso.NotFound");
+        _ = result.StatusCode.Should().Be(404);
         _permissionCacheMock.Verify(c => c.Invalidate(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
     }
 }

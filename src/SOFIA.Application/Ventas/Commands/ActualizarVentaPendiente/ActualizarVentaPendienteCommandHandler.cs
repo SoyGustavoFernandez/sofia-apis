@@ -28,7 +28,7 @@ public class ActualizarVentaPendienteCommandHandler(
 
         if (venta == null)
         {
-            return Result.Failure(Error.NotFound("Venta.Actualizar", "Sale not found."));
+            return Result.Failure(Error.NotFound("Venta.Actualizar", "Sale not found."), 404);
         }
 
         if (venta.SucursalId != sucursalId)

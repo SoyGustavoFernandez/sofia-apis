@@ -14,7 +14,7 @@ public class UpdateRolCommandHandler(IApplicationDbContext context) : IRequestHa
 
         if (rol is null)
         {
-            return Result.Failure(Error.NotFound("Rol.NotFound", "El rol especificado no existe."));
+            return Result.Failure(Error.NotFound("Rol.NotFound", "El rol especificado no existe."), 404);
         }
 
         rol.Update(request.Descripcion, request.NivelJerarquia);

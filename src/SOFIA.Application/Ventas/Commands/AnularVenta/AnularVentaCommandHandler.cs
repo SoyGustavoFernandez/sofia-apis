@@ -20,7 +20,7 @@ public class AnularVentaCommandHandler(
 
         if (venta == null)
         {
-            return Result.Failure(Error.NotFound("Venta.Anular", "Sale not found."));
+            return Result.Failure(Error.NotFound("Venta.Anular", "Sale not found."), 404);
         }
 
         var sucursalResult = currentUser.GetSucursalId();

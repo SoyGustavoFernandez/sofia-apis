@@ -16,7 +16,7 @@ public class SetRolSucursalesCommandHandler(IApplicationDbContext context)
 
         if (!rolExists)
         {
-            return Result.Failure(Error.NotFound("Rol.NotFound", "El rol no existe."));
+            return Result.Failure(Error.NotFound("Rol.NotFound", "El rol no existe."), 404);
         }
 
         // RolSucursal has no tenant filter, so every branch must be checked against the tenant-filtered set

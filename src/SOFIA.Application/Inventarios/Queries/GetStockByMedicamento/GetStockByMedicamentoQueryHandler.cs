@@ -16,7 +16,7 @@ public class GetStockByMedicamentoQueryHandler(IApplicationDbContext context)
 
         if (medicamento == null)
         {
-            return Result.Failure<StockMedicamentoDto>(Error.NotFound("Medicamento.NotFound", "The specified medication does not exist."));
+            return Result.Failure<StockMedicamentoDto>(Error.NotFound("Medicamento.NotFound", "The specified medication does not exist."), 404);
         }
 
         var inventoryEntries = await context.LotesEnSucursal

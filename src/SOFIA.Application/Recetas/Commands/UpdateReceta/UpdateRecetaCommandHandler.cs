@@ -15,7 +15,7 @@ public class UpdateRecetaCommandHandler(IApplicationDbContext context) : IReques
 
         if (entity == null)
         {
-            return Result.Failure<Guid>(Error.NotFound("RecetaMedica.NotFound", "Receta médica not found."));
+            return Result.Failure<Guid>(Error.NotFound("RecetaMedica.NotFound", "Receta médica not found."), 404);
         }
 
         // Tenant-filtered lookups: an id from another company must not be stored as a reference

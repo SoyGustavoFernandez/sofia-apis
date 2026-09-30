@@ -71,6 +71,7 @@ public class IniciarOrdenMagistralCommandHandlerTests
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Inventario.NotFound");
+        _ = result.StatusCode.Should().Be(404);
         _ = inventarioAjeno.CantidadFisica.Should().Be(50m, because: "another branch's stock must never be consumed");
         _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -95,6 +96,7 @@ public class IniciarOrdenMagistralCommandHandlerTests
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Inventario.NotFound");
+        _ = result.StatusCode.Should().Be(404);
         _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 

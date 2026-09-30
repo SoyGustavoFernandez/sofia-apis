@@ -105,6 +105,7 @@ public class ActualizarVentaPendienteCommandHandlerTests
         // Assert
         _ = result.IsSuccess.Should().BeFalse();
         _ = result.Error.Code.Should().Be("Venta.Actualizar");
+        _ = result.StatusCode.Should().Be(404);
     }
 
     [Fact]

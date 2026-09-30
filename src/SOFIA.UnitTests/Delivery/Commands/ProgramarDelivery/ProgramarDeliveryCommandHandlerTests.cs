@@ -31,7 +31,7 @@ public class ProgramarDeliveryCommandHandlerTests
         Venta.Create(Guid.NewGuid(), Guid.NewGuid(), null, null, [DetalleVenta.Create(Guid.NewGuid(), 1m, 10m, 8m).Value!]).Value!;
 
     private static ProgramarDeliveryCommand Command(Guid ventaId) =>
-        new(ventaId, "Rappi", null, EstadoDespacho.Preparando, "Av. Uno 123", null, null);
+        new(ventaId, "Rappi", null, "Av. Uno 123", null, null);
 
     private void VerifyNothingSaved()
     {
@@ -47,6 +47,18 @@ public class ProgramarDeliveryCommandHandlerTests
         _ = result.IsSuccess.Should().BeTrue();
         _despachosMock.Verify(m => m.Add(It.IsAny<DespachoDelivery>()), Times.Once);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreateTheDispatchInPreparando()
+    {
+        DespachoDelivery? added = null;
+        _ = _despachosMock.Setup(m => m.Add(It.IsAny<DespachoDelivery>())).Callback<DespachoDelivery>(d => added = d);
+
+        var result = await _handler.Handle(Command(_venta.Id), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = added!.EstadoDespacho.Should().Be(EstadoDespacho.Preparando);
     }
 
     [Fact]
@@ -86,7 +98,7 @@ public class ProgramarDeliveryCommandHandlerTests
     [Fact]
     public async Task Handle_ShouldReturnConflictAndNotSave_WhenSaleAlreadyHasADispatch()
     {
-        _despachos.Add(DespachoDelivery.Create(_venta.Id, "Glovo", null, EstadoDespacho.Preparando, "Av. Uno 123", null, null).Value!);
+        _despachos.Add(DespachoDelivery.Create(_venta.Id, "Glovo", null, "Av. Uno 123", null, null).Value!);
 
         var result = await _handler.Handle(Command(_venta.Id), CancellationToken.None);
 

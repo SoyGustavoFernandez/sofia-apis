@@ -19,7 +19,7 @@ public class AssignPermissionToRolCommandHandler(IApplicationDbContext context, 
 
         if (nombreRol is null)
         {
-            return Result.Failure<Guid>(Error.NotFound("Rol.NotFound", "El rol especificado no existe."));
+            return Result.Failure<Guid>(Error.NotFound("Rol.NotFound", "El rol especificado no existe."), 404);
         }
 
         // Granting permissions to a role you hold is self-promotion; only an Admin may do it

@@ -16,7 +16,7 @@ public class RemoveRolFromUserCommandHandler(IApplicationDbContext context, ICur
 
         if (cuenta is null)
         {
-            return Result.Failure(Error.NotFound("Auth.CuentaNotFound", "La cuenta no existe."));
+            return Result.Failure(Error.NotFound("Auth.CuentaNotFound", "La cuenta no existe."), 404);
         }
 
         if (cuenta.EmpleadoId.ToString() == currentUser.Id)

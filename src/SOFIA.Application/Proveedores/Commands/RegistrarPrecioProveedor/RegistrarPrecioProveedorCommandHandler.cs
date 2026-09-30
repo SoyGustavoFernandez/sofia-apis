@@ -13,7 +13,7 @@ public class RegistrarPrecioProveedorCommandHandler(IApplicationDbContext dbCont
         var exists = await dbContext.Proveedores.AnyAsync(x => x.Id == request.ProveedorId, cancellationToken);
         if (!exists)
         {
-            return Result.Failure<Guid>(Error.NotFound("Proveedor", "Proveedor no encontrado"));
+            return Result.Failure<Guid>(Error.NotFound("Proveedor", "Proveedor no encontrado"), 404);
         }
 
         // This simulates saving a price list without creating a new table just for the test

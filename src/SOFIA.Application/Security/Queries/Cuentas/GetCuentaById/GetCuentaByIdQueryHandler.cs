@@ -20,7 +20,7 @@ public class GetCuentaByIdQueryHandler(IApplicationDbContext context)
 
         if (cuenta is null)
         {
-            return Result.Failure<CuentaDto>(Error.NotFound("Cuenta.NotFound", "La cuenta especificada no existe."));
+            return Result.Failure<CuentaDto>(Error.NotFound("Cuenta.NotFound", "La cuenta especificada no existe."), 404);
         }
 
         return Result.Success(new CuentaDto(

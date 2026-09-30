@@ -16,7 +16,7 @@ public class DeleteRolCommandHandler(IApplicationDbContext context, ICurrentUser
 
         if (rol is null)
         {
-            return Result.Failure(Error.NotFound("Rol.NotFound", "El rol especificado no existe."));
+            return Result.Failure(Error.NotFound("Rol.NotFound", "El rol especificado no existe."), 404);
         }
 
         if (rol.Cuentas.Any(c => !c.IsDeleted))

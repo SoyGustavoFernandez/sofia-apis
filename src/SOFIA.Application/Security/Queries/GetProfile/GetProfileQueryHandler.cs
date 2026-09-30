@@ -19,7 +19,7 @@ public sealed class GetProfileQueryHandler(IApplicationDbContext dbContext)
 
         if (cuenta is null)
         {
-            return Result.Failure<ProfileResponse>(Error.NotFound("Cuenta.NotFound", "Account not found."));
+            return Result.Failure<ProfileResponse>(Error.NotFound("Cuenta.NotFound", "Account not found."), 404);
         }
 
         var roles = cuenta.Roles.Select(r => r.NombreRol).ToList();

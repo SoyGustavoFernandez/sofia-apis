@@ -17,7 +17,7 @@ public class GetLoteByIdQueryHandler(IApplicationDbContext context)
 
         if (lote is null)
         {
-            return Result.Failure<LoteInventarioDto>(Error.NotFound("LoteInventario.NotFound", "The specified batch does not exist."));
+            return Result.Failure<LoteInventarioDto>(Error.NotFound("LoteInventario.NotFound", "The specified batch does not exist."), 404);
         }
 
         var nombreProducto = lote.Producto?.NombreComercial ?? "Unknown";

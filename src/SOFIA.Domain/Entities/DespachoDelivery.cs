@@ -22,7 +22,6 @@ public sealed class DespachoDelivery : BaseEntity
         Guid ventaId,
         string plataformaServicio,
         string? codigoRastreo,
-        Enums.EstadoDespacho estadoDespacho,
         string direccionEntrega,
         string? repartidorNombre,
         string? evidenciaFotograficaUrl)
@@ -72,7 +71,7 @@ public sealed class DespachoDelivery : BaseEntity
             VentaId = ventaId,
             PlataformaServicio = plataformaServicio,
             CodigoRastreo = codigoRastreo,
-            EstadoDespacho = estadoDespacho,
+            EstadoDespacho = Enums.EstadoDespacho.Preparando,
             DireccionEntrega = direccionEntrega,
             RepartidorNombre = repartidorNombre,
             EvidenciaFotograficaUrl = evidenciaFotograficaUrl

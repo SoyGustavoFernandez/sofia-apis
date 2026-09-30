@@ -41,6 +41,7 @@ public class DeleteRolCommandHandlerTests
         var result = await _handler.Handle(new DeleteRolCommand(Guid.NewGuid()), CancellationToken.None);
 
         _ = result.Error.Code.Should().Be("Rol.NotFound");
+        _ = result.StatusCode.Should().Be(404);
         _permissionCacheMock.Verify(c => c.Invalidate(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
     }
 }

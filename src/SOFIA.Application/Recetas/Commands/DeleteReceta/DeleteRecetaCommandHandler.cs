@@ -18,7 +18,7 @@ public class DeleteRecetaCommandHandler(IApplicationDbContext context) : IReques
 
         if (entity == null)
         {
-            return Result.Failure<Guid>(Error.NotFound("NotFound", "Record not found."));
+            return Result.Failure<Guid>(Error.NotFound("NotFound", "Record not found."), 404);
         }
 
         _ = context.Recetas.Remove(entity);

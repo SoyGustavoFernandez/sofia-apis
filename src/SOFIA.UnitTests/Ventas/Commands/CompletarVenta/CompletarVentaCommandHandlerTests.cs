@@ -101,6 +101,7 @@ public class CompletarVentaCommandHandlerTests
         // Assert
         _ = result.IsSuccess.Should().BeFalse();
         _ = result.Error.Code.Should().Be("Venta.Completar");
+        _ = result.StatusCode.Should().Be(404);
     }
 
     [Fact]

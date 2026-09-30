@@ -15,7 +15,7 @@ public class RevokePermissionFromRolCommandHandler(IApplicationDbContext context
 
         if (permiso is null)
         {
-            return Result.Failure(Error.NotFound("Permiso.NotFound", "El permiso especificado no existe."));
+            return Result.Failure(Error.NotFound("Permiso.NotFound", "El permiso especificado no existe."), 404);
         }
 
         var nombreRol = await context.Roles

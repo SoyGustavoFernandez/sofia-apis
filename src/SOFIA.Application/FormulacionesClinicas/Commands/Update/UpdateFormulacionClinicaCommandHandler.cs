@@ -15,7 +15,7 @@ public class UpdateFormulacionClinicaCommandHandler(IApplicationDbContext contex
 
         if (formulacion is null)
         {
-            return Result.Failure(Error.NotFound("Formulacion.NotFound", $"FormulaciÃ³n with ID {request.Id} not found."));
+            return Result.Failure(Error.NotFound("Formulacion.NotFound", $"FormulaciÃ³n with ID {request.Id} not found."), 404);
         }
 
         // Check that the ingredient exists (only if it changed)
@@ -26,7 +26,7 @@ public class UpdateFormulacionClinicaCommandHandler(IApplicationDbContext contex
 
             if (!ingredienteExists)
             {
-                return Result.Failure(Error.NotFound("IngredienteActivo.NotFound", $"Ingrediente Activo with ID {request.IngredienteId} not found."));
+                return Result.Failure(Error.NotFound("IngredienteActivo.NotFound", $"Ingrediente Activo with ID {request.IngredienteId} not found."), 404);
             }
 
             var duplicada = await context.FormulacionesClinicas
@@ -45,7 +45,7 @@ public class UpdateFormulacionClinicaCommandHandler(IApplicationDbContext contex
 
             if (!unidadMedidaExists)
             {
-                return Result.Failure(Error.NotFound("UnidadMedida.NotFound", $"Unidad de Medida with ID {request.UnidadMedidaId} not found."));
+                return Result.Failure(Error.NotFound("UnidadMedida.NotFound", $"Unidad de Medida with ID {request.UnidadMedidaId} not found."), 404);
             }
         }
 

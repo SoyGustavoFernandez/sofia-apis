@@ -70,6 +70,7 @@ public class RegisterInventarioCommandHandlerTests
         var result = await handler.Handle(new RegisterInventarioCommand(Guid.NewGuid(), _lote.Id, 5), CancellationToken.None);
 
         _ = result.Error.Code.Should().Be("Sucursal.NotFound");
+        _ = result.StatusCode.Should().Be(404);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

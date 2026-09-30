@@ -17,7 +17,7 @@ public class UpdateCuentaCommandHandler(IApplicationDbContext context, ICurrentU
 
         if (cuenta is null)
         {
-            return Result.Failure(Error.NotFound("Cuenta.NotFound", "La cuenta especificada no existe."));
+            return Result.Failure(Error.NotFound("Cuenta.NotFound", "La cuenta especificada no existe."), 404);
         }
 
         // Otherwise a non-admin could deactivate the owner's account and lock them out

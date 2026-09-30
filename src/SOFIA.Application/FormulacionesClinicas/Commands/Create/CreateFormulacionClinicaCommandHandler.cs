@@ -17,7 +17,7 @@ public class CreateFormulacionClinicaCommandHandler(IApplicationDbContext contex
 
         if (!productoExists)
         {
-            return Result.Failure<Guid>(Error.NotFound("Medicamento.NotFound", $"Medicamento with ID {request.ProductoId} not found."));
+            return Result.Failure<Guid>(Error.NotFound("Medicamento.NotFound", $"Medicamento with ID {request.ProductoId} not found."), 404);
         }
 
         // Check that the ingredient exists
@@ -26,7 +26,7 @@ public class CreateFormulacionClinicaCommandHandler(IApplicationDbContext contex
 
         if (!ingredienteExists)
         {
-            return Result.Failure<Guid>(Error.NotFound("IngredienteActivo.NotFound", $"Ingrediente Activo with ID {request.IngredienteId} not found."));
+            return Result.Failure<Guid>(Error.NotFound("IngredienteActivo.NotFound", $"Ingrediente Activo with ID {request.IngredienteId} not found."), 404);
         }
 
         // A product lists each active ingredient once; its concentration is edited on that row
@@ -43,7 +43,7 @@ public class CreateFormulacionClinicaCommandHandler(IApplicationDbContext contex
 
         if (!unidadMedidaExists)
         {
-            return Result.Failure<Guid>(Error.NotFound("UnidadMedida.NotFound", $"Unidad de Medida with ID {request.UnidadMedidaId} not found."));
+            return Result.Failure<Guid>(Error.NotFound("UnidadMedida.NotFound", $"Unidad de Medida with ID {request.UnidadMedidaId} not found."), 404);
         }
 
         var result = FormulacionClinica.Create(

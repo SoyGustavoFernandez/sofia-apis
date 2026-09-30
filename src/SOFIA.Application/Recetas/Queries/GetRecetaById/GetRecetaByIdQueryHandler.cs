@@ -28,7 +28,7 @@ public class GetRecetaByIdQueryHandler(IApplicationDbContext context) : IRequest
             .FirstOrDefaultAsync(cancellationToken);
 
         return dto == null
-            ? Result.Failure<RecetaDto>(Error.NotFound("RecetaMedica.NotFound", "Receta médica not found."))
+            ? Result.Failure<RecetaDto>(Error.NotFound("RecetaMedica.NotFound", "Receta médica not found."), 404)
             : Result.Success(dto);
     }
 }

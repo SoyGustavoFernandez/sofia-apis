@@ -49,6 +49,22 @@ public class ExportRequestValidationIntegrationTests(SofiaWebAppFactory factory)
         _ = (await manyResponse.Content.ReadAsStringAsync()).Should().Contain("Export.Headers.Invalid");
     }
 
+    [Fact]
+    public async Task Exportar_ShouldReturnBadRequest_WhenYesOrNoLabelIsTooLong()
+    {
+        var client = await CreateClientForNewCompanyAsync();
+        var tooLong = new string('x', ExportLabelAttribute.MaxLength + 1);
+
+        var validResponse = await client.PostAsJsonAsync("/api/v1/empresas/exportar", new { headers = new[] { "Nombre" }, yesLabel = "Si", noLabel = "No" });
+        var yesResponse = await client.PostAsJsonAsync("/api/v1/empresas/exportar", new { headers = new[] { "Nombre" }, yesLabel = tooLong, noLabel = "No" });
+        var noResponse = await client.PostAsJsonAsync("/api/v1/empresas/exportar", new { headers = new[] { "Nombre" }, yesLabel = "Si", noLabel = tooLong });
+
+        _ = validResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        _ = yesResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        _ = noResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        _ = (await yesResponse.Content.ReadAsStringAsync()).Should().Contain("Export.Label.Invalid");
+    }
+
     [Theory]
     [InlineData("dd/MM/yyyy", true)]
     [InlineData("MM/dd/yyyy", true)]

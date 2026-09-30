@@ -19,7 +19,7 @@ public class DespacharTransferenciaCommandHandler(
 
         if (transferencia == null)
         {
-            return Result.Failure(Error.NotFound("Transferencia.NotFound", $"Transfer with ID {request.Id} does not exist."));
+            return Result.Failure(Error.NotFound("Transferencia.NotFound", $"Transfer with ID {request.Id} does not exist."), 404);
         }
 
         var sucursalResult = currentUser.GetSucursalId();

@@ -32,7 +32,7 @@ public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext, I
 
         if (venta == null)
         {
-            return Result.Failure<Guid>(Error.NotFound("Venta.NotFound", "La venta original no fue encontrada."));
+            return Result.Failure<Guid>(Error.NotFound("Venta.NotFound", "La venta original no fue encontrada."), 404);
         }
 
         if (venta.SucursalId != sucursalResult.Value)

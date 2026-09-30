@@ -25,4 +25,10 @@
     <ProjectReference Include="..\SOFIA.SharedKernel\SOFIA.SharedKernel.csproj" />
   </ItemGroup>
 
+  <!-- Installs the Husky.Net git hooks on restore; skipped outside a git checkout (Docker) or with HUSKY=0 -->
+  <Target Name="husky" BeforeTargets="Restore;CollectPackageReferences" Condition="'$(HUSKY)' != 0 And Exists('$(MSBuildThisFileDirectory)../../.git')">
+    <Exec Command="dotnet tool restore" StandardOutputImportance="Low" StandardErrorImportance="High" WorkingDirectory="$(MSBuildThisFileDirectory)../../" />
+    <Exec Command="dotnet husky install" StandardOutputImportance="Low" StandardErrorImportance="High" WorkingDirectory="$(MSBuildThisFileDirectory)../../" />
+  </Target>
+
 </Project>

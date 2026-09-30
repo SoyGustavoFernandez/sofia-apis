@@ -33,6 +33,7 @@ public class AuthController(ISender sender) : ControllerBase
 
     [HttpPost("refresh")]
     [AllowAnonymous]
+    [RequireCsrfHeader]
     public async Task<IActionResult> Refresh()
     {
         var rawToken = Request.Cookies[RefreshTokenCookieExtensions.CookieName];
@@ -69,6 +70,7 @@ public class AuthController(ISender sender) : ControllerBase
     // Anonymous so an expired access token cannot leave the refresh cookie (and the session) alive on a shared PC
     [HttpPost("logout")]
     [AllowAnonymous]
+    [RequireCsrfHeader]
     public async Task<IActionResult> Logout()
     {
         Guid? cuentaId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;

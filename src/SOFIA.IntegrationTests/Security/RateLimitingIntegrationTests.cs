@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using SOFIA.API.Extensions;
+using SOFIA.API.Infrastructure;
 using SOFIA.IntegrationTests.Infrastructure;
 
 namespace SOFIA.IntegrationTests.Security;
@@ -45,6 +46,7 @@ public class RateLimitingIntegrationTests(SofiaWebAppFactory factory) : BaseInte
         await ExhaustLoginQuotaAsync(client, "10.0.0.4");
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/refresh");
         request.Headers.Add(ClientIpHeader, "10.0.0.4");
+        request.Headers.Add(RequireCsrfHeaderAttribute.HeaderName, "1");
         var response = await client.SendAsync(request);
 
         _ = response.StatusCode.Should().Be(HttpStatusCode.Unauthorized, because: "session refresh must not share the credential brute-force quota");

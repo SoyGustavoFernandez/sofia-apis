@@ -121,16 +121,7 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
     {
         // Arrange — the whole recovery flow is anonymous, like sign-up
         var (usuario, refreshToken) = await RegistrarEmpresaAnonimaAsync();
-        _ = await Sender.Send(new ForgotPasswordCommand(usuario));
-
-        // Only the hash is stored and the raw token is not delivered yet, so plant a known one
-        const string recoveryToken = "known-recovery-token";
-        var recoveryHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(recoveryToken)));
-        _ = await DbContext.Cuentas
-            .IgnoreQueryFilters()
-            .Where(c => c.NombreUsuario == usuario)
-            .ExecuteUpdateAsync(s => s.SetProperty(c => c.RecoveryToken, recoveryHash));
-        DbContext.ChangeTracker.Clear();
+        var (recoveryToken, _) = await SolicitarRecuperacionAsync(usuario);
 
         // Act
         var reset = await Sender.Send(new ResetPasswordCommand(usuario, recoveryToken, "NuevaClave123!"));
@@ -248,7 +239,61 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
         _ = unblocked.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    [Fact]
+    public async Task PasswordRecovery_ShouldEmailAFragmentLinkWhoseTokenResetsThePassword_AndTheNewPasswordLogsIn()
+    {
+        // Arrange
+        var (usuario, _) = await RegistrarEmpresaAnonimaAsync();
+
+        // Act — forgot → emailed link → reset → login, exactly as the SPA does it
+        var (token, link) = await SolicitarRecuperacionAsync(usuario);
+        var reset = await Sender.Send(new ResetPasswordCommand(usuario, token, "NuevaClave123!"));
+        var loginNueva = await Sender.Send(new LoginCommand(usuario, "NuevaClave123!"));
+        var loginVieja = await Sender.Send(new LoginCommand(usuario, "TestPassword123!"));
+        var reuso = await Sender.Send(new ResetPasswordCommand(usuario, token, "OtraClave123!"));
+
+        // Assert
+        _ = link.Should().StartWith($"{SofiaWebAppFactory.FrontendBaseUrl}/auth/reset-password#token=");
+        _ = new Uri(link).Query.Should().BeEmpty(because: "the token travels only in the fragment");
+        _ = reset.IsSuccess.Should().BeTrue();
+        _ = loginNueva.IsSuccess.Should().BeTrue();
+        _ = loginVieja.IsFailure.Should().BeTrue();
+        _ = reuso.Error.Code.Should().Be("Auth.InvalidToken", because: "a recovery token works only once");
+    }
+
+    [Fact]
+    public async Task ForgotPassword_ShouldSendNothing_WhenTheEmployeeHasNoEmail()
+    {
+        var (usuario, _) = await RegistrarEmpresaAnonimaAsync();
+        var antes = Factory.EmailSender.Messages.Count;
+
+        var result = await Sender.Send(new ForgotPasswordCommand(usuario));
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = Factory.EmailSender.Messages.Count.Should().Be(antes);
+        var cuenta = await DbContext.Cuentas.IgnoreQueryFilters().AsNoTracking().SingleAsync(c => c.NombreUsuario == usuario);
+        _ = cuenta.RecoveryToken.Should().BeNull();
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────────
+
+    // Gives the account's employee a unique email, requests a recovery and returns the token read from the captured email link
+    private async Task<(string token, string link)> SolicitarRecuperacionAsync(string usuario)
+    {
+        var email = $"qa.{Guid.NewGuid():N}@sofia.test";
+        var empleadoId = await DbContext.Cuentas.IgnoreQueryFilters().Where(c => c.NombreUsuario == usuario).Select(c => c.EmpleadoId).SingleAsync();
+        _ = await DbContext.Empleados.IgnoreQueryFilters().Where(e => e.Id == empleadoId).ExecuteUpdateAsync(s => s.SetProperty(e => e.Email, email));
+        DbContext.ChangeTracker.Clear();
+
+        var forgot = await Sender.Send(new ForgotPasswordCommand(usuario));
+        _ = forgot.IsSuccess.Should().BeTrue();
+
+        var message = Factory.EmailSender.Messages.Should().ContainSingle(m => m.To == email).Subject;
+        var link = message.TextBody.Split('\n').Select(l => l.Trim()).Single(l => l.StartsWith(SofiaWebAppFactory.FrontendBaseUrl, StringComparison.Ordinal));
+        var fragment = System.Web.HttpUtility.ParseQueryString(new Uri(link).Fragment.TrimStart('#'));
+        _ = fragment["usuario"].Should().Be(usuario);
+        return (fragment["token"]!, link);
+    }
 
     private HttpClient CreateClient(string accessToken)
     {

@@ -35,7 +35,7 @@ Toda la información pertenece a una empresa: un usuario solo ve y modifica dato
 | Bloqueo | **5 intentos fallidos** bloquean la cuenta **15 minutos**. La respuesta es la misma que con credenciales inválidas (no revela si la cuenta existe). |
 | Cambio de contraseña | `POST /auth/change-password` (contraseña actual + nueva). Cierra todas las sesiones de la cuenta. |
 | Cambio obligatorio | Las cuentas creadas por un administrador nacen con cambio de contraseña obligatorio: hasta cambiarla, la API solo atiende los endpoints necesarios para hacerlo. |
-| Recuperación | `forgot-password` genera un token de recuperación (válido 1 hora) y `reset-password` lo canjea. **El envío por correo aún no está implementado** (ver [Pendientes](#-pendientes--limitaciones-conocidas)). |
+| Recuperación | `forgot-password` (por nombre de usuario) envía al **correo del empleado** un enlace `{App:FrontendBaseUrl}/auth/reset-password#token=…&usuario=…` válido 1 hora y de un solo uso; el token va en el fragmento (`#`), que el navegador nunca envía al servidor. `reset-password` lo canjea. La respuesta es siempre la misma: no se envía nada si la cuenta no existe, está inactiva, la empresa no está vigente o el empleado no tiene correo (en ese caso un administrador fuerza el cambio de contraseña). El correo del empleado es opcional y único por empresa. |
 | Límite de peticiones | Login, cambio y recuperación de contraseña: 10/min por cliente. Autorregistro: 5/hora. Análisis de recetas con IA: 10/min por empresa. |
 
 ### Roles, permisos y sucursales
@@ -202,6 +202,7 @@ docker compose up -d sqlserver presidio-api
 |---|---|
 | SQL Server | `127.0.0.1,1434` (usuario `sa`) |
 | Presidio | `http://localhost:8001` |
+| Mailpit (opcional, `docker compose up -d mailpit`) | SMTP `127.0.0.1:1025`, bandeja web `http://localhost:8025` |
 
 > También puedes levantar todo el stack (`docker compose up -d`): incluye la API en `http://localhost:5000` y el contenedor `sofia-dbup`, que aplica las migraciones al arrancar. En ese caso completa además `JWT_SECRET_KEY` y las variables `GEMINI_*` del `.env`.
 
@@ -223,6 +224,18 @@ dotnet user-secrets set "<Clave>" "<valor>" --project src/SOFIA.API/SOFIA.API.cs
 | `GeminiApi:BaseUrl` | URL base de modelos de Gemini, terminada en `/v1beta/models/` (la API llama a `{BaseUrl}{OcrModel}:generateContent`) |
 | `GeminiApi:OcrModel` | Modelo de Gemini para el OCR de la receta (p. ej. `gemini-3.6-flash`) |
 | `GeminiApi:ReasoningModel` | Opcional: modelo de Gemini para interpretar el texto (p. ej. `gemini-2.5-pro`); si falta, se usa `OcrModel` |
+| `App:FrontendBaseUrl` | URL de la SPA para los enlaces de recuperación (local: `http://localhost:4200`; fuera de Development debe ser `https`) |
+| `Email:Provider` | `Smtp`, `AzureCommunication` o `None` (`None` solo se acepta en Development/Testing: los correos se descartan) |
+| `Email:FromAddress` / `Email:FromDisplayName` | Remitente de los correos |
+| `Email:Smtp:Host` / `Email:Smtp:Port` / `Email:Smtp:UseSsl` | Servidor SMTP (local con Mailpit: `localhost`, `1025`, `false`) |
+| `Email:Smtp:UserName` / `Email:Smtp:Password` | Opcionales, siempre juntos (Mailpit no usa autenticación) |
+| `Email:AzureCommunication:ConnectionString` | Cadena de conexión de Azure Communication Services (proveedor `AzureCommunication`) |
+
+La API **no arranca** si el proveedor elegido está incompleto o si falta `App:FrontendBaseUrl`.
+
+**Correo en local (Mailpit):** `docker compose up -d mailpit` levanta un buzón de pruebas: SMTP en `127.0.0.1:1025` y bandeja web en `http://localhost:8025`. Configura `Email:Provider=Smtp`, `Email:FromAddress=no-reply@sofia.local`, `Email:Smtp:Host=localhost`, `Email:Smtp:Port=1025`, `Email:Smtp:UseSsl=false` y `App:FrontendBaseUrl=http://localhost:4200`.
+
+**Correo en Azure (staging sin dominio propio):** crea un recurso *Communication Services* y un *Email Communication Service* con un **dominio administrado por Azure** (`<guid>.azurecomm.net`), conéctalos y define en el App Service `Email__Provider=AzureCommunication`, `Email__FromAddress=DoNotReply@<guid>.azurecomm.net`, `Email__AzureCommunication__ConnectionString` (como secreto, idealmente vía Key Vault) y `App__FrontendBaseUrl` con la URL `https` de la SPA. El nombre visible del remitente se configura en el dominio de ACS.
 
 ### 3. Crear / migrar el esquema
 
@@ -303,7 +316,6 @@ Ejemplo: `feat(api): agregar endpoint de sucursales con paginación`
 
 | Tema | Estado |
 |---|---|
-| Recuperación de contraseña | El token se genera, pero **no se envía por correo** (no hay servicio de email); en la práctica el usuario no lo recibe. |
 | Cifrado de datos personales en reposo | Los datos personales (pacientes, etc.) no se cifran a nivel de columna. |
 | Anonimización de la imagen de receta | La **imagen original se envía a Gemini** para el OCR; solo el texto extraído se anonimiza con Presidio antes del segundo paso. Decisión pendiente. |
 | Login SQL de mínimo privilegio | La API se conecta con `sa` (ver `docker-compose.yml`); falta un usuario de base de datos con permisos mínimos. |

@@ -8,10 +8,10 @@ internal static class CuentaFactory
     private const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
 
     // Builds an account whose Empleado.Sucursal_Base navigation is loaded, as login and refresh do
-    public static Cuenta WithBaseBranch(Guid? cuentaTenantId, Guid? sucursalTenantId, string usuario = "usuario", string passwordHash = "hash")
+    public static Cuenta WithBaseBranch(Guid? cuentaTenantId, Guid? sucursalTenantId, string usuario = "usuario", string passwordHash = "hash", string? email = null)
     {
         var sucursal = Sucursal.Create("Sede", "Av. Siempre Viva 123", "LIC-001", empresaId: sucursalTenantId).Value!;
-        var empleado = Empleado.Create(sucursal.Id, "Ana", "Pérez", "Gómez", tenantId: cuentaTenantId).Value!;
+        var empleado = Empleado.Create(sucursal.Id, "Ana", "Pérez", "Gómez", tenantId: cuentaTenantId, email: email).Value!;
         typeof(Empleado).GetField("<Sucursal_Base>k__BackingField", PrivateInstance)!.SetValue(empleado, sucursal);
 
         var cuenta = Cuenta.Create(empleado.Id, usuario, passwordHash, cuentaTenantId).Value!;

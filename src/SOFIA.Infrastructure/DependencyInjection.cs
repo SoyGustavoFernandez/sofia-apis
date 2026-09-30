@@ -1,17 +1,20 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Azure.Communication.Email;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using SOFIA.Application.Common.Excel;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
 using SOFIA.Application.Security;
 using SOFIA.Infrastructure.Authentication;
+using SOFIA.Infrastructure.Email;
 using SOFIA.Infrastructure.Excel;
 using SOFIA.Infrastructure.Persistence;
 using SOFIA.Infrastructure.Services;
@@ -22,7 +25,7 @@ public static class DependencyInjection
 {
     private static readonly TimeSpan EmpresaVigenciaCacheTtl = TimeSpan.FromMinutes(1);
 
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         _ = services.AddDbContext<ApplicationDbContext>(options =>
         {
@@ -140,12 +143,46 @@ public static class DependencyInjection
         _ = services.AddHttpClient<IRecetaAnalyzer, GeminiRecetaAnalyzer>();
         _ = services.AddScoped<IBuscadorService, BuscadorFuzzyService>();
 
+        AddEmail(services, configuration, environment);
+
         // Deny by default: endpoints without auth metadata require an authenticated user
         _ = services.AddAuthorization(options => options.FallbackPolicy = new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
             .Build());
 
         return services;
+    }
+
+    // Fails fast on incomplete settings; only Development/Testing may run without a provider (recovery emails are then discarded)
+    private static void AddEmail(IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+    {
+        var isDevelopment = environment.IsDevelopment() || environment.IsEnvironment("Testing");
+        var emailOptions = configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ?? new EmailOptions();
+        emailOptions.EnsureValid(allowDisabled: isDevelopment);
+
+        var appOptions = configuration.GetSection(AppOptions.SectionName).Get<AppOptions>() ?? new AppOptions();
+        if (!emailOptions.IsDisabled || !isDevelopment)
+        {
+            appOptions.EnsureValid(allowHttp: isDevelopment);
+        }
+
+        _ = services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        _ = services.Configure<AppOptions>(configuration.GetSection(AppOptions.SectionName));
+        _ = services.AddSingleton<IFrontendLinks, FrontendLinks>();
+
+        if (emailOptions.IsDisabled)
+        {
+            _ = services.AddSingleton<IEmailSender, DisabledEmailSender>();
+        }
+        else if (emailOptions.Provider.Equals(EmailOptions.ProviderSmtp, StringComparison.OrdinalIgnoreCase))
+        {
+            _ = services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        }
+        else
+        {
+            _ = services.AddSingleton(new EmailClient(emailOptions.AzureCommunication.ConnectionString));
+            _ = services.AddSingleton<IEmailSender, AzureCommunicationEmailSender>();
+        }
     }
 
     private static void ConfigurePresidioClient(HttpClient client, IConfiguration configuration)

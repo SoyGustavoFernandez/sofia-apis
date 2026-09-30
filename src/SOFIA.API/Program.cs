@@ -105,7 +105,7 @@ _ = builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 _ = builder.Services.AddSharedKernel();
 _ = builder.Services.AddDomain();
 _ = builder.Services.AddApplication();
-_ = builder.Services.AddInfrastructure(builder.Configuration);
+_ = builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 

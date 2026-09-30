@@ -26,6 +26,10 @@ public class SofiaWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     public TestCurrentUser CurrentUser { get; } = new();
 
+    public CapturingEmailSender EmailSender { get; } = new();
+
+    public const string FrontendBaseUrl = "https://app.sofia.test";
+
     private static string ResolveTestDbPassword()
     {
         // 1. Env var (CI/CD)
@@ -56,6 +60,10 @@ public class SofiaWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
     {
         _ = builder.UseEnvironment("Development");
 
+        // Local user-secrets may point Email at a real SMTP server; tests never send mail
+        _ = builder.UseSetting("Email:Provider", "None");
+        _ = builder.UseSetting("App:FrontendBaseUrl", FrontendBaseUrl);
+
         _ = builder.ConfigureServices(services =>
         {
             // Reemplaza el DbContext registrado con uno apuntando al contenedor de test
@@ -72,6 +80,9 @@ public class SofiaWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
             _ = services.RemoveAll<ICurrentUser>();
             _ = services.AddSingleton(CurrentUser);
             _ = services.AddSingleton<ICurrentUser>(CurrentUser);
+
+            _ = services.RemoveAll<IEmailSender>();
+            _ = services.AddSingleton<IEmailSender>(EmailSender);
 
             // Ejecuta las migraciones/schema contra la BD de test
             using var scope = services.BuildServiceProvider().CreateScope();

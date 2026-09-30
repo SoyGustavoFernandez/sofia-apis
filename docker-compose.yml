@@ -54,6 +54,16 @@ services:
       - GeminiApi__OcrModel=${GEMINI_OCR_MODEL:-gemini-3.6-flash}
       - GeminiApi__ReasoningModel=${GEMINI_REASONING_MODEL:-gemini-2.5-pro}
       - GeminiApi__ApiKey=${GEMINI_API_KEY:-}
+      - App__FrontendBaseUrl=${APP_FRONTEND_BASE_URL:-http://localhost:4200}
+      - Email__Provider=${EMAIL_PROVIDER:-Smtp}
+      - Email__FromAddress=${EMAIL_FROM_ADDRESS:-no-reply@sofia.local}
+      - Email__FromDisplayName=${EMAIL_FROM_DISPLAY_NAME:-SOFIA}
+      - Email__Smtp__Host=${EMAIL_SMTP_HOST:-mailpit}
+      - Email__Smtp__Port=${EMAIL_SMTP_PORT:-1025}
+      - Email__Smtp__UseSsl=${EMAIL_SMTP_USE_SSL:-false}
+      - Email__Smtp__UserName=${EMAIL_SMTP_USERNAME:-}
+      - Email__Smtp__Password=${EMAIL_SMTP_PASSWORD:-}
+      - Email__AzureCommunication__ConnectionString=${EMAIL_ACS_CONNECTION_STRING:-}
     volumes:
       - sofia_logs:/app/logs
     depends_on:
@@ -61,12 +71,22 @@ services:
         condition: service_healthy
       presidio-api:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 20s
       timeout: 10s
       retries: 3
       start_period: 20s
+
+  # Local mail catcher: SMTP on 127.0.0.1:1025, web UI and API on http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.31.3
+    container_name: sofia-mailpit
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
 
   sofia-dbup:
     build:

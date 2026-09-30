@@ -28,6 +28,8 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 # Directorio para logs rotativos de Serilog
-RUN mkdir -p /app/logs
+RUN mkdir -p /app/logs && chown $APP_UID /app/logs
+
+USER $APP_UID
 
 ENTRYPOINT ["dotnet", "SOFIA.API.dll"]

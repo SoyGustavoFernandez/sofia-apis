@@ -1,10 +1,24 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+import hmac
+import os
+from typing import Optional
+
+from fastapi import Depends, FastAPI, Header, HTTPException
+from pydantic import BaseModel, Field
 from presidio_analyzer import AnalyzerEngine, RecognizerRegistry, PatternRecognizer, Pattern
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 from presidio_anonymizer import AnonymizerEngine
 
-app = FastAPI(title="SOFIA Presidio API")
+MAX_TEXT_LENGTH = 20_000
+INTERNAL_KEY = os.environ.get("PRESIDIO_INTERNAL_KEY", "")
+
+# Internal service: no interactive docs or schema exposed
+app = FastAPI(title="SOFIA Presidio API", docs_url=None, redoc_url=None, openapi_url=None)
+
+
+def verify_internal_key(x_internal_key: Optional[str] = Header(default=None)):
+    # Shared-secret check is enforced only when PRESIDIO_INTERNAL_KEY is configured
+    if INTERNAL_KEY and not hmac.compare_digest((x_internal_key or "").encode(), INTERNAL_KEY.encode()):
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 # --- REGLAS DEL EXPERTO ---
 dni_regex = r"\b\d{8}\b"
@@ -80,13 +94,13 @@ analyzer = AnalyzerEngine(nlp_engine=nlp_engine, registry=registry, supported_la
 anonymizer = AnonymizerEngine()
 
 class TextoRequest(BaseModel):
-    texto: str
+    texto: str = Field(max_length=MAX_TEXT_LENGTH)
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "service": "presidio-api"}
 
-@app.post("/api/anonimizar")
+@app.post("/api/anonimizar", dependencies=[Depends(verify_internal_key)])
 def anonimizar_texto(request: TextoRequest):
     # Analizar el texto con los recognizers y la lista de permitidos
     resultados = analyzer.analyze(

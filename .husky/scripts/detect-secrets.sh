@@ -51,8 +51,10 @@ for FILE in $STAGED_FILES; do
 
   # Check if file is in the allowed list
   IS_ALLOWED=0
+  BASENAME="${FILE##*/}"
   for ALLOWED in "${ALLOWED_FILES[@]}"; do
-    if echo "$FILE" | grep -q "$ALLOWED"; then
+    # Literal match: exact basename, or suffix match for entries starting with "." (extensions)
+    if [ "$BASENAME" = "$ALLOWED" ] || { [ "${ALLOWED#.}" != "$ALLOWED" ] && [ "${BASENAME%"$ALLOWED"}" != "$BASENAME" ]; }; then
       IS_ALLOWED=1
       break
     fi

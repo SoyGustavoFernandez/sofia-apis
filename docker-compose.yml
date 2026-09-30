@@ -8,11 +8,11 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Developer"
     ports:
-      - "1434:1433"
+      - "127.0.0.1:1434:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"${SA_PASSWORD}\" -Q 'SELECT 1' -No"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$SA_PASSWORD\" -Q 'SELECT 1' -No"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -23,8 +23,10 @@ services:
       context: ./src/SOFIA.PresidioAPI
       dockerfile: Dockerfile
     container_name: sofia-presidio
+    environment:
+      - PRESIDIO_INTERNAL_KEY=${PRESIDIO_INTERNAL_KEY:-}
     ports:
-      - "8001:8000"
+      - "127.0.0.1:8001:8000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 20s
@@ -38,7 +40,7 @@ services:
       dockerfile: src/SOFIA.API/Dockerfile
     container_name: sofia-api
     ports:
-      - "5000:8080"
+      - "127.0.0.1:5000:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=SofiaDb;User Id=sa;Password=${SA_PASSWORD:?Falta SA_PASSWORD};TrustServerCertificate=True;
@@ -47,6 +49,7 @@ services:
       - Jwt__Audience=SOFIA.Clients
       - Jwt__ExpiryMinutes=60
       - PresidioApi__BaseUrl=http://presidio-api:8000
+      - PresidioApi__InternalKey=${PRESIDIO_INTERNAL_KEY:-}
       - GeminiApi__BaseUrl=${GEMINI_BASE_URL:-}
       - GeminiApi__OcrModel=${GEMINI_OCR_MODEL:-gemini-1.5-flash}
       - GeminiApi__ReasoningModel=${GEMINI_REASONING_MODEL:-gemini-1.5-pro}

@@ -137,11 +137,7 @@ public static class DependencyInjection
         _ = services.AddHostedService<OutboxProcessor>();
 
         // AI and Privacy Services
-        _ = services.AddHttpClient<IPrivacyService, PresidioPrivacyService>(client =>
-        {
-            var presidioUrl = configuration["PresidioApi:BaseUrl"] ?? throw new InvalidOperationException("CRITICAL: Presidio URL (PresidioApi:BaseUrl) is not configured.");
-            client.BaseAddress = new Uri(presidioUrl);
-        });
+        _ = services.AddHttpClient<IPrivacyService, PresidioPrivacyService>(client => ConfigurePresidioClient(client, configuration));
         _ = services.AddHttpClient<IRecetaAnalyzer, GeminiRecetaAnalyzer>();
         _ = services.AddScoped<IBuscadorService, BuscadorFuzzyService>();
 
@@ -151,6 +147,19 @@ public static class DependencyInjection
             .Build());
 
         return services;
+    }
+
+    private static void ConfigurePresidioClient(HttpClient client, IConfiguration configuration)
+    {
+        var presidioUrl = configuration["PresidioApi:BaseUrl"] ?? throw new InvalidOperationException("CRITICAL: Presidio URL (PresidioApi:BaseUrl) is not configured.");
+        client.BaseAddress = new Uri(presidioUrl);
+
+        // Optional shared secret checked by Presidio when PRESIDIO_INTERNAL_KEY is set on its side
+        var presidioKey = configuration["PresidioApi:InternalKey"];
+        if (!string.IsNullOrWhiteSpace(presidioKey))
+        {
+            client.DefaultRequestHeaders.Add("X-Internal-Key", presidioKey);
+        }
     }
 
     // The database flag wins over the token, so a change forced by an admin also applies to live access tokens

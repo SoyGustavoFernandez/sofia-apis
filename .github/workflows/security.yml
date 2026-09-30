@@ -9,6 +9,10 @@ on:
     # Runs every Monday at 08:00 UTC to catch newly published CVEs
     - cron: '0 8 * * 1'
 
+# Least privilege by default; jobs opt in to extra scopes
+permissions:
+  contents: read
+
 jobs:
   # ──────────────────────────────────────────────────────────────
   # Job 1: Build + SonarAnalyzer (build errors = CI failure)
@@ -18,10 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
           dotnet-version: '10.x'
 
@@ -43,7 +47,7 @@ jobs:
             --no-build --configuration Release
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: test-results
@@ -55,12 +59,16 @@ jobs:
   owasp-dependency-check:
     name: OWASP Dependency Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
           dotnet-version: '10.x'
 
@@ -68,7 +76,7 @@ jobs:
         run: dotnet restore SOFIA.Solution.slnx
 
       - name: Run OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@main
+        uses: dependency-check/Dependency-Check_Action@1e54355a8b4c8abaa8cc7d0b70aa655a3bb15a6c # main (2026-09-29); release 1.1.0 is outdated and lacks the args input
         with:
           project: 'SOFIA'
           path: 'src'
@@ -82,15 +90,33 @@ jobs:
           # NVD_API_KEY: ${{ secrets.NVD_API_KEY }}  # Optional but speeds up the scan
 
       - name: Upload OWASP report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: owasp-dependency-check-report
           path: reports/
 
       - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3.38.2
         if: always()
         with:
           sarif_file: reports/dependency-check-report.sarif
         continue-on-error: true  # requires GitHub Advanced Security to be enabled
+
+  # ──────────────────────────────────────────────────────────────
+  # Job 3: Gitleaks — hardcoded secrets in the full git history
+  # ──────────────────────────────────────────────────────────────
+  secret-scan:
+    name: Secret Scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo" \
+            ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
+            git /repo --redact --verbose --exit-code 1

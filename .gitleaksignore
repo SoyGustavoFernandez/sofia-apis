@@ -1,0 +1,2 @@
+# Test fixture: fake SHA-256 token hash in a unit test, not a secret
+7fa67b0b1db41ced7389a20f2981b375274bfab1:src/SOFIA.UnitTests/Security/Domain/CuentaPasswordTests.cs:generic-api-key:9

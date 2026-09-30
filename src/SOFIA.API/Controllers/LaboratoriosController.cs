@@ -130,4 +130,4 @@ public class LaboratoriosController(ISender sender, IExcelReaderService excelRea
     }
 }
 
-public record LaboratorioExportRequest(string[] Headers, string? NombreCompania, string? CodigoIdentificador);
+public record LaboratorioExportRequest([ExportHeaders] string[] Headers, string? NombreCompania, string? CodigoIdentificador);

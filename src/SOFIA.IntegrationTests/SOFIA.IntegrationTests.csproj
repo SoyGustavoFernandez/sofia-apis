@@ -26,6 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\SOFIA.API\SOFIA.API.csproj" />
     <ProjectReference Include="..\SOFIA.Application\SOFIA.Application.csproj" />
     <ProjectReference Include="..\SOFIA.Domain\SOFIA.Domain.csproj" />

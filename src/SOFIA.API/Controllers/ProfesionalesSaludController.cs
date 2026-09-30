@@ -126,6 +126,6 @@ public class ProfesionalesSaludController(ISender sender, IExcelReaderService ex
 }
 
 public record ProfesionalSaludExportRequest(
-    string[] Headers,
+    [ExportHeaders] string[] Headers,
     string? NumeroRegistro,
     string? NombrePrescriptor);

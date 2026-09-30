@@ -122,6 +122,11 @@ public sealed class DespachoDelivery : BaseEntity
             return Result.Failure(Error.Validation("DespachoDelivery.EvidenciaFotograficaUrl", "Evidencia fotográfica URL must not exceed 500 characters."));
         }
 
+        if (estadoDespacho != EstadoDespacho && !PuedeTransicionar(EstadoDespacho, estadoDespacho))
+        {
+            return Result.Failure(Error.Validation("Delivery.Estado.TransicionInvalida", $"A dispatch cannot move from {EstadoDespacho} to {estadoDespacho}."));
+        }
+
         PlataformaServicio = plataformaServicio;
         CodigoRastreo = codigoRastreo;
         EstadoDespacho = estadoDespacho;
@@ -131,4 +136,14 @@ public sealed class DespachoDelivery : BaseEntity
 
         return Result.Success();
     }
+
+    // Preparando -> En_Camino -> Entregado; Devuelto is only reachable before delivery; Entregado and Devuelto are final
+    public static bool PuedeTransicionar(Enums.EstadoDespacho actual, Enums.EstadoDespacho nuevo) => (actual, nuevo) switch
+    {
+        (Enums.EstadoDespacho.Preparando, Enums.EstadoDespacho.En_Camino) => true,
+        (Enums.EstadoDespacho.Preparando, Enums.EstadoDespacho.Devuelto) => true,
+        (Enums.EstadoDespacho.En_Camino, Enums.EstadoDespacho.Entregado) => true,
+        (Enums.EstadoDespacho.En_Camino, Enums.EstadoDespacho.Devuelto) => true,
+        _ => false,
+    };
 }

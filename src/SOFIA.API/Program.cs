@@ -1,6 +1,5 @@
 using SOFIA.API.Services;
 using SOFIA.Application.Common.Interfaces;
-using SOFIA.API.Infrastructure;
 using SOFIA.Application;
 using SOFIA.Infrastructure;
 using SOFIA.Domain;
@@ -134,19 +133,11 @@ _ = app.UseRateLimiter();
 
 _ = app.MapControllers();
 
-// Health Check Endpoint
-var version = (System.Reflection.AssemblyInformationalVersionAttribute?)
-    Attribute.GetCustomAttribute(
-        typeof(Program).Assembly,
-        typeof(System.Reflection.AssemblyInformationalVersionAttribute))
-    is { } attr ? attr.InformationalVersion : "unknown";
-
+// Health Check Endpoint (anonymous, so it exposes no version or environment details)
 _ = app.MapGet("/health", () => Results.Ok(new
 {
     Status = "Healthy",
-    Version = version,
     Timestamp = DateTimeOffset.UtcNow,
-    Environment = app.Environment.EnvironmentName
 }))
 .WithName("GetHealth")
 .AllowAnonymous();

@@ -90,6 +90,6 @@ public class PresentacionesVentaController(ISender sender) : ControllerBase
 }
 
 public record PresentacionVentaExportRequest(
-    string[] Headers,
+    [ExportHeaders] string[] Headers,
     string? ProductoNombre,
     string? Descripcion);

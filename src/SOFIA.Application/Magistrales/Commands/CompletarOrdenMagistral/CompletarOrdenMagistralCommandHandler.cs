@@ -31,9 +31,9 @@ public class CompletarOrdenMagistralCommandHandler(IApplicationDbContext dbConte
             return Result.Failure<Guid>(Error.Forbidden("OrdenMagistral.OtraSucursal", "Only orders of your own branch can be completed."), 403);
         }
 
-        if (orden.EstadoProduccion == "Completada")
+        if (orden.EstadoProduccion != MagistralOrdenProduccion.EstadoIniciada)
         {
-            return Result.Failure<Guid>(Error.Validation("Orden.Estado", "La orden ya ha sido completada anteriormente."));
+            return Result.Failure<Guid>(Error.Validation("Orden.Estado", "Only orders in progress can be completed."));
         }
 
         if (!orden.CantidadProducida.HasValue || orden.CantidadProducida.Value <= 0)
@@ -79,7 +79,7 @@ public class CompletarOrdenMagistralCommandHandler(IApplicationDbContext dbConte
             nuevoLote!.Id,
             orden.CantidadProducida,
             orden.QuimicoPreparadorId,
-            "Completada"
+            MagistralOrdenProduccion.EstadoCompletada
         );
 
         _ = dbContext.MagistralesOrdenesProduccion.Update(orden);

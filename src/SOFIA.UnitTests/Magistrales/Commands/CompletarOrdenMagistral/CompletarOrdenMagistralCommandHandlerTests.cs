@@ -155,6 +155,19 @@ public class CompletarOrdenMagistralCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_OrderNotInProgress_ShouldReturnFailure()
+    {
+        var orden = MagistralOrdenProduccion.Create(_sucursalId, null, Guid.NewGuid(), null, 50m, Guid.NewGuid(), "Anulada", DateTime.UtcNow).Value!;
+        _ = _dbContextMock.Setup(db => db.MagistralesOrdenesProduccion).Returns(new List<MagistralOrdenProduccion> { orden }.BuildMockDbSet().Object);
+
+        var result = await _handler.Handle(new CompletarOrdenMagistralCommand(orden.Id, "LOTE-MFR-001", DateTimeOffset.UtcNow.AddMonths(6)), CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Orden.Estado");
+        _ = orden.EstadoProduccion.Should().Be("Anulada");
+        _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_OrderOfAnotherBranch_ShouldReturnForbidden()
     {
         // Arrange

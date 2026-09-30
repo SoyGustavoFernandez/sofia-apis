@@ -144,7 +144,7 @@ public class MedicamentosController(ISender sender, IExcelReaderService excelRea
 }
 
 public record MedicamentoExportRequest(
-    string[] Headers,
+    [ExportHeaders] string[] Headers,
     string? CodigoNacional,
     string? NombreComercial,
     string? LaboratorioNombre,

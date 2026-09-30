@@ -6,6 +6,9 @@ public sealed class MagistralOrdenProduccion : BaseEntity
 {
     private readonly List<MagistralConsumoInsumo> _consumos = [];
 
+    public const string EstadoIniciada = "Iniciada";
+    public const string EstadoCompletada = "Completada";
+
     private MagistralOrdenProduccion() { }
 
     public Guid SucursalId { get; private set; }

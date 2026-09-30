@@ -107,5 +107,5 @@ public class EmpresasController(ISender sender) : ControllerBase
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "empresas.xlsx");
     }
 
-    public record EmpresaExportRequest(string[] Headers, string YesLabel, string NoLabel, string? Nombre, EstadoEmpresa? Estado, DateTimeOffset? FechaVencimientoDesde, DateTimeOffset? FechaVencimientoHasta);
+    public record EmpresaExportRequest([ExportHeaders] string[] Headers, string YesLabel, string NoLabel, string? Nombre, EstadoEmpresa? Estado, DateTimeOffset? FechaVencimientoDesde, DateTimeOffset? FechaVencimientoHasta);
 }

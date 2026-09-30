@@ -22,7 +22,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
     public async Task<IActionResult> AislarLoteCuarentena([FromBody] AislarLoteCuarentenaCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HasPermission("DIGEMID", "GenerarActaDestruccion")]
@@ -30,7 +30,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
     public async Task<IActionResult> GenerarActaDestruccion([FromBody] GenerarActaDestruccionCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HasPermission("DIGEMID", "Leer")]
@@ -39,7 +39,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
     {
         var query = new Application.DIGEMID.Queries.GetCuarentena.GetCuarentenaQuery(sucursalId, estadoResolucion, fechaInicio, fechaFin, pageNumber, pageSize);
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HasPermission("DIGEMID", "Leer")]
@@ -48,7 +48,7 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
     {
         var query = new Application.DIGEMID.Queries.GetActas.GetActasQuery(fechaInicio, fechaFin, pageNumber, pageSize);
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HasPermission("DIGEMID", "Leer")]
@@ -163,6 +163,6 @@ public class DigemidController(ISender sender, IExcelReaderService excelReader) 
 }
 
 public record DigemidCatalogoExportRequest(
-    string[] Headers,
+    [ExportHeaders] string[] Headers,
     string? CodProd,
     string? NomProd);

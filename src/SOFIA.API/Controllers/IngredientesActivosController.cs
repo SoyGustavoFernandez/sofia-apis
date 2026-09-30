@@ -130,4 +130,4 @@ public class IngredientesActivosController(ISender sender, IExcelReaderService e
     }
 }
 
-public record IngredienteActivoExportRequest(string[] Headers, string? DenominacionDci, string? CodigoAtc);
+public record IngredienteActivoExportRequest([ExportHeaders] string[] Headers, string? DenominacionDci, string? CodigoAtc);

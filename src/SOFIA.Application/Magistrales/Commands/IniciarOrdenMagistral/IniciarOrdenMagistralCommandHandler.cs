@@ -45,7 +45,7 @@ public class IniciarOrdenMagistralCommandHandler(IApplicationDbContext dbContext
             null, // LoteGeneradoId is null until completed
             request.CantidadProducida,
             empleadoResult.Value,
-            "Iniciada",
+            MagistralOrdenProduccion.EstadoIniciada,
             DateTime.UtcNow
         );
 

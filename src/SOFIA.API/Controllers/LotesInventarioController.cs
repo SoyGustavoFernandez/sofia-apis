@@ -130,8 +130,8 @@ public class LotesInventarioController(ISender sender) : ControllerBase
 }
 
 public record LoteExportRequest(
-    string[] Headers,
-    string DateFormat,
+    [ExportHeaders] string[] Headers,
+    [ExportDateFormat] string DateFormat,
     string? ProductoNombre,
     string? NumeroLote,
     DateTimeOffset? CaducidadDesde,

@@ -94,8 +94,8 @@ public class SeriesFiscalesController(ISender sender) : ControllerBase
 }
 
 public record SerieFiscalExportRequest(
-    string[] Headers,
-    string DateFormat,
+    [ExportHeaders] string[] Headers,
+    [ExportDateFormat] string DateFormat,
     Dictionary<string, string> TipoLabels,
     Dictionary<string, string> EstadoLabels,
     Guid? SucursalId,

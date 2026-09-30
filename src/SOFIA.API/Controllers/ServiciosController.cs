@@ -20,14 +20,14 @@ public class ServiciosController(ISender sender) : ControllerBase
     public async Task<IActionResult> AgendarServicio([FromBody] AgendarServicioCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
     [HasPermission("Servicios", "RegistrarInmunizacion")]
     [HttpPost("inmunizacion")]
     public async Task<IActionResult> RegistrarInmunizacion([FromBody] RegistrarInmunizacionCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HasPermission("Servicios", "Leer")]
@@ -36,7 +36,7 @@ public class ServiciosController(ISender sender) : ControllerBase
     {
         var query = new Application.Servicios.Queries.GetServicios.GetServiciosQuery(estadoCita, fechaInicio, fechaFin, pageNumber, pageSize);
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HasPermission("Servicios", "Leer")]
@@ -45,7 +45,7 @@ public class ServiciosController(ISender sender) : ControllerBase
     {
         var query = new Application.Servicios.Queries.GetInmunizaciones.GetInmunizacionesQuery(clienteId, fechaInicio, fechaFin, pageNumber, pageSize);
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HttpGet("servicio/{id}")]
@@ -53,7 +53,7 @@ public class ServiciosController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetServicioById(Guid id)
     {
         var result = await sender.Send(new GetServicioByIdQuery(id));
-        return !result.IsSuccess ? NotFound(result) : Ok(result);
+        return !result.IsSuccess ? result.ToProblemResult() : Ok(result);
     }
 
     [HttpPut("servicio/{id}")]
@@ -66,7 +66,7 @@ public class ServiciosController(ISender sender) : ControllerBase
         }
 
         var result = await sender.Send(command);
-        return !result.IsSuccess ? BadRequest(result) : Ok(result);
+        return !result.IsSuccess ? result.ToProblemResult() : Ok(result);
     }
 
     [HttpDelete("servicio/{id}")]
@@ -74,7 +74,7 @@ public class ServiciosController(ISender sender) : ControllerBase
     public async Task<IActionResult> DeleteServicio(Guid id)
     {
         var result = await sender.Send(new DeleteServicioCommand(id));
-        return !result.IsSuccess ? BadRequest(result) : Ok(result);
+        return !result.IsSuccess ? result.ToProblemResult() : Ok(result);
     }
 
     [HttpGet("inmunizacion/{id}")]
@@ -82,7 +82,7 @@ public class ServiciosController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetInmunizacionById(Guid id)
     {
         var result = await sender.Send(new GetInmunizacionByIdQuery(id));
-        return !result.IsSuccess ? NotFound(result) : Ok(result);
+        return !result.IsSuccess ? result.ToProblemResult() : Ok(result);
     }
 
     [HttpPut("inmunizacion/{id}")]
@@ -95,7 +95,7 @@ public class ServiciosController(ISender sender) : ControllerBase
         }
 
         var result = await sender.Send(command);
-        return !result.IsSuccess ? BadRequest(result) : Ok(result);
+        return !result.IsSuccess ? result.ToProblemResult() : Ok(result);
     }
 
     [HttpDelete("inmunizacion/{id}")]
@@ -103,7 +103,7 @@ public class ServiciosController(ISender sender) : ControllerBase
     public async Task<IActionResult> DeleteInmunizacion(Guid id)
     {
         var result = await sender.Send(new DeleteInmunizacionCommand(id));
-        return !result.IsSuccess ? BadRequest(result) : Ok(result);
+        return !result.IsSuccess ? result.ToProblemResult() : Ok(result);
     }
 
 }

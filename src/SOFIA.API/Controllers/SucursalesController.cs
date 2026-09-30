@@ -145,7 +145,7 @@ public class SucursalesController(ISender sender, IExcelReaderService excelReade
 }
 
 public record SucursalExportRequest(
-    string[] Headers,
+    [ExportHeaders] string[] Headers,
     string? Nombre,
     string? NumeroLicencia,
     string? DireccionFisica);

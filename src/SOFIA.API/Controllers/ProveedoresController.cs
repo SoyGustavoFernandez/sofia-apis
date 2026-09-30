@@ -134,4 +134,4 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
     }
 }
 
-public record ProveedorExportRequest(string[] Headers, string? RazonSocial, string? TaxId, decimal? TasaCumplimientoDesde, decimal? TasaCumplimientoHasta);
+public record ProveedorExportRequest([ExportHeaders] string[] Headers, string? RazonSocial, string? TaxId, decimal? TasaCumplimientoDesde, decimal? TasaCumplimientoHasta);

@@ -129,8 +129,8 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
 }
 
 public record PacienteExportRequest(
-    string[] Headers,
-    string DateFormat,
+    [ExportHeaders] string[] Headers,
+    [ExportDateFormat] string DateFormat,
     string? DocIdentidadGub,
     string? NombreApellidos,
     DateOnly? FechaNacimientoDesde,

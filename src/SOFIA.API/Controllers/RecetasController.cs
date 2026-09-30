@@ -33,7 +33,7 @@ public class RecetasController(ISender sender) : ControllerBase
     {
         var query = new Application.Recetas.Queries.GetRecetas.GetRecetasQuery(clienteId, medicoId, fechaInicio, fechaFin, pageNumber, pageSize);
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HttpGet("{id}")]
@@ -60,7 +60,7 @@ public class RecetasController(ISender sender) : ControllerBase
         var query = new AnalizarRecetaQuery(stream, especialidadContexto);
         var result = await sender.Send(query);
 
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HttpPut("{id}")]
@@ -111,8 +111,8 @@ public class RecetasController(ISender sender) : ControllerBase
 }
 
 public record RecetaExportRequest(
-    string[] Headers,
-    string DateFormat,
+    [ExportHeaders] string[] Headers,
+    [ExportDateFormat] string DateFormat,
     Guid? ClienteId,
     Guid? MedicoId,
     DateTime? FechaInicio,

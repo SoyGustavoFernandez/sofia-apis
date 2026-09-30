@@ -68,7 +68,7 @@ public class GetMedicamentosQueryHandler(IApplicationDbContext context, ICurrent
                 .GroupBy(d => d.Lote!.ProductoId)
                 .OrderByDescending(g => g.Sum(d => d.CantidadVendida))
                 .Select(g => g.Key)
-                .Take(request.PageSize)
+                .Take(PaginationLimits.NormalizePageSize(request.PageSize))
                 .ToListAsync(cancellationToken);
 
             var porId = await query

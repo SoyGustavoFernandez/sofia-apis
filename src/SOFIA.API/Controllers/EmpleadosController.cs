@@ -98,7 +98,7 @@ public class EmpleadosController(ISender sender) : ControllerBase
 }
 
 public record EmpleadoExportRequest(
-    string[] Headers,
+    [ExportHeaders] string[] Headers,
     string? Nombres,
     string? ApellidoPaterno,
     string? ApellidoMaterno,

@@ -145,7 +145,7 @@ public class JerarquiasUoMController(ISender sender, IExcelReaderService excelRe
 }
 
 public record JerarquiaUoMExportRequest(
-    string[] Headers,
+    [ExportHeaders] string[] Headers,
     string? ProductoNombre,
     string? UnidadMayorNombre,
     string? UnidadMenorNombre,

@@ -230,4 +230,4 @@ public class RolesController(ISender sender, IExcelReaderService excelReader) : 
 public record UpdateRolRequest(string? Descripcion, [property: System.Text.Json.Serialization.JsonRequired] int NivelJerarquia);
 public record SetRolSucursalesRequest(List<Guid> SucursalIds);
 
-public record RolExportRequest(string[] Headers, string? NombreRol, string? Descripcion, int? NivelJerarquiaDesde, int? NivelJerarquiaHasta);
+public record RolExportRequest([ExportHeaders] string[] Headers, string? NombreRol, string? Descripcion, int? NivelJerarquiaDesde, int? NivelJerarquiaHasta);

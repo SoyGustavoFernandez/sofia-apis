@@ -108,8 +108,8 @@ public class VentasController(ISender sender) : ControllerBase
 }
 
 public record VentaExportRequest(
-    string[] Headers,
-    string DateFormat,
+    [ExportHeaders] string[] Headers,
+    [ExportDateFormat] string DateFormat,
     DateTime? FechaInicio,
     DateTime? FechaFin,
     EstadoVenta? Estado,

@@ -12,6 +12,9 @@ public class AnalizarRecetaQueryHandler(
     ICurrentUser currentUser)
     : IRequestHandler<AnalizarRecetaQuery, Result<List<ItemSugeridoDto>>>
 {
+    public const int MaxMedicamentos = 20;
+    public const int MaxSugerenciasPorMedicamento = 3;
+
     private Guid? _sucursalId;
 
     public async Task<Result<List<ItemSugeridoDto>>> Handle(AnalizarRecetaQuery request, CancellationToken cancellationToken)
@@ -24,7 +27,8 @@ public class AnalizarRecetaQueryHandler(
             cancellationToken);
 
         var resultados = new List<ItemSugeridoDto>();
-        foreach (var item in medicamentosInterpretados)
+        // Bounds the per-item DB lookups whatever the AI returns
+        foreach (var item in medicamentosInterpretados.Take(MaxMedicamentos))
         {
             await ProcessMedicamentoAsync(item, resultados, cancellationToken);
         }
@@ -99,7 +103,7 @@ public class AnalizarRecetaQueryHandler(
             return;
         }
 
-        foreach (var sugerencia in itemIA.Sugerencias)
+        foreach (var sugerencia in itemIA.Sugerencias.Take(MaxSugerenciasPorMedicamento))
         {
             var producto = await buscadorService.BuscarMejorCoincidenciaAsync(sugerencia, ct);
             if (producto == null)

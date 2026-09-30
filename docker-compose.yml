@@ -47,7 +47,7 @@ services:
       - Jwt__SecretKey=${JWT_SECRET_KEY:?Falta JWT_SECRET_KEY — mínimo 32 caracteres}
       - Jwt__Issuer=SOFIA.API
       - Jwt__Audience=SOFIA.Clients
-      - Jwt__ExpiryMinutes=60
+      - Jwt__ExpiryMinutes=15
       - PresidioApi__BaseUrl=http://presidio-api:8000
       - PresidioApi__InternalKey=${PRESIDIO_INTERNAL_KEY:-}
       - GeminiApi__BaseUrl=${GEMINI_BASE_URL:-}

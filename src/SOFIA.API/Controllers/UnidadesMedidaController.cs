@@ -130,6 +130,6 @@ public class UnidadesMedidaController(ISender sender, IExcelReaderService excelR
 }
 
 public record UnidadMedidaExportRequest(
-    string[] Headers,
+    [ExportHeaders] string[] Headers,
     string? Codigo,
     string? Descripcion);

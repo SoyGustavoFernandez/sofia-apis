@@ -51,10 +51,7 @@ public static class DependencyInjection
         var jwtOptions = configuration.GetSection("Jwt").Get<JwtOptions>()
             ?? throw new InvalidOperationException("JWT configuration is missing.");
 
-        if (string.IsNullOrEmpty(jwtOptions.SecretKey))
-        {
-            throw new InvalidOperationException("CRITICAL: JWT SecretKey is not configured. Provide Jwt:SecretKey via environment secrets.");
-        }
+        jwtOptions.EnsureValid();
 
         _ = services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -67,7 +64,9 @@ public static class DependencyInjection
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = jwtOptions.Issuer,
                     ValidAudience = jwtOptions.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
+                    ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
+                    ClockSkew = TimeSpan.FromSeconds(30),
                 };
 
                 options.Events = new JwtBearerEvents

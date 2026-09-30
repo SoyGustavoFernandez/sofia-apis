@@ -7,7 +7,7 @@ public class IniciarOrdenMagistralCommandValidator : AbstractValidator<IniciarOr
     public IniciarOrdenMagistralCommandValidator()
     {
         _ = RuleFor(x => x.ProductoResultanteId).NotEmpty();
-        _ = RuleFor(x => x.CantidadProducida).GreaterThan(0).When(x => x.CantidadProducida.HasValue);
+        _ = RuleFor(x => x.CantidadProducida).NotNull().GreaterThan(0);
         _ = RuleFor(x => x.Consumos).NotEmpty().WithMessage("Order must have at least one ingredient.");
         _ = RuleForEach(x => x.Consumos).ChildRules(insumo =>
         {

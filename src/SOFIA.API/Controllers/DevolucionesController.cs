@@ -22,7 +22,7 @@ public class DevolucionesController(ISender sender) : ControllerBase
     {
         var query = new Application.Devoluciones.Queries.GetDevoluciones.GetDevolucionesQuery(empleadoAutorizaId, fechaInicio, fechaFin, pageNumber, pageSize);
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HttpGet("{id}")]

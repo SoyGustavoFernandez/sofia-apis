@@ -14,14 +14,14 @@ public class MagistralesController(ISender sender) : ControllerBase
     public async Task<IActionResult> IniciarOrdenMagistral([FromBody] IniciarOrdenMagistralCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
     [HasPermission("Magistrales", "CompletarOrdenMagistral")]
     [HttpPost("completar")]
     public async Task<IActionResult> CompletarOrdenMagistral([FromBody] CompletarOrdenMagistralCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HasPermission("Magistrales", "Leer")]
@@ -30,7 +30,7 @@ public class MagistralesController(ISender sender) : ControllerBase
     {
         var query = new Application.Magistrales.Queries.GetOrdenes.GetOrdenesQuery(sucursalId, estadoProduccion, fechaInicio, fechaFin, pageNumber, pageSize);
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HttpGet("{id}")]

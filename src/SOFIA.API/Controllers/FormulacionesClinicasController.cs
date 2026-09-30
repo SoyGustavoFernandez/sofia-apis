@@ -102,4 +102,4 @@ public class FormulacionesClinicasController(ISender sender) : ControllerBase
     }
 }
 
-public record FormulacionClinicaExportRequest(string[] Headers, string? ProductoNombre, string? IngredienteNombre);
+public record FormulacionClinicaExportRequest([ExportHeaders] string[] Headers, string? ProductoNombre, string? IngredienteNombre);

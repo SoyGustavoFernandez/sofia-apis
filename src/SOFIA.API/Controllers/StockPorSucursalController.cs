@@ -79,8 +79,8 @@ public class StockPorSucursalController(ISender sender) : ControllerBase
 public record AdjustStockRequest(decimal NuevaCantidad);
 
 public record StockPorSucursalExportRequest(
-    string[] Headers,
-    string DateFormat,
+    [ExportHeaders] string[] Headers,
+    [ExportDateFormat] string DateFormat,
     string? SucursalNombre,
     string? ProductoNombre,
     string? NumeroLote,

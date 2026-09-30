@@ -24,7 +24,7 @@ public class DeliveryController(ISender sender) : ControllerBase
     public async Task<IActionResult> UpdateDeliveryEstado([FromBody] UpdateDeliveryEstadoCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HasPermission("Delivery", "Leer")]
@@ -33,7 +33,7 @@ public class DeliveryController(ISender sender) : ControllerBase
     {
         var query = new Application.Delivery.Queries.GetDespachos.GetDespachosQuery(estadoDespacho, fechaInicio, fechaFin, pageNumber, pageSize);
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HttpGet("{id}")]
@@ -55,7 +55,7 @@ public class DeliveryController(ISender sender) : ControllerBase
         }
 
         var result = await sender.Send(command);
-        return !result.IsSuccess ? BadRequest(result) : Ok(result);
+        return !result.IsSuccess ? result.ToProblemResult() : Ok(result);
     }
 
     [HttpDelete("{id}")]
@@ -63,7 +63,7 @@ public class DeliveryController(ISender sender) : ControllerBase
     public async Task<IActionResult> DeleteDespachoDelivery(Guid id)
     {
         var result = await sender.Send(new DeleteDespachoDeliveryCommand(id));
-        return !result.IsSuccess ? BadRequest(result) : Ok(result);
+        return !result.IsSuccess ? result.ToProblemResult() : Ok(result);
     }
 
 }

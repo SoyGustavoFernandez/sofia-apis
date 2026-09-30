@@ -22,7 +22,7 @@ public class PosController(ISender sender) : ControllerBase
     public async Task<IActionResult> CerrarCaja([FromBody] CerrarCajaCommand request)
     {
         var result = await sender.Send(request);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HasPermission("POS", "Leer")]
@@ -31,7 +31,7 @@ public class PosController(ISender sender) : ControllerBase
     {
         var query = new Application.POS.Queries.GetSesiones.GetSesionesQuery(sucursalId, estadoSesion, fechaInicio, fechaFin, pageNumber, pageSize, empleadoId);
         var result = await sender.Send(query);
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemResult();
     }
 
     [HttpGet("{id}")]
@@ -78,8 +78,8 @@ public class PosController(ISender sender) : ControllerBase
 }
 
 public record SesionCajaExportRequest(
-    string[] Headers,
-    string DateFormat,
+    [ExportHeaders] string[] Headers,
+    [ExportDateFormat] string DateFormat,
     Guid? SucursalId,
     Domain.Enums.EstadoSesion? EstadoSesion,
     DateTime? FechaInicio,

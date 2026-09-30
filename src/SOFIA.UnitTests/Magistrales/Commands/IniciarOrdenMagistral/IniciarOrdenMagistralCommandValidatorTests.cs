@@ -36,6 +36,18 @@ public class IniciarOrdenMagistralCommandValidatorTests
         _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(IniciarOrdenMagistralCommand.Consumos));
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData(0)]
+    [InlineData(-3)]
+    public void MissingOrNonPositiveCantidadProducida_ShouldHaveValidationError(int? cantidad)
+    {
+        var result = _validator.Validate(ValidCommand() with { CantidadProducida = cantidad });
+
+        _ = result.IsValid.Should().BeFalse();
+        _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(IniciarOrdenMagistralCommand.CantidadProducida));
+    }
+
     [Fact]
     public void NegativeCantidadConsumida_ShouldHaveValidationError()
     {

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.RateLimiting;
-using SOFIA.API.Infrastructure;
 using SOFIA.Application.Security.Commands.ChangePassword;
 using SOFIA.Application.Security.Commands.ForgotPassword;
 using SOFIA.Application.Security.Commands.Login;

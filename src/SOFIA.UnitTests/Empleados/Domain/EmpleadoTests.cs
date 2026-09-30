@@ -74,7 +74,7 @@ public class EmpleadoTests
         var empleado = Empleado.Create(SucursalId, "Ana", "Pérez", "Gómez").Value!;
         var newSucursal = Guid.NewGuid();
 
-        var result = empleado.Update(newSucursal, "Ana María", "Pereira", "González", "LIC-2", null);
+        var result = empleado.Update(newSucursal, "Ana María", "Pereira", "González", "LIC-2", null, null);
 
         _ = result.IsSuccess.Should().BeTrue();
         _ = empleado.Nombres.Should().Be("Ana María");
@@ -89,9 +89,76 @@ public class EmpleadoTests
     {
         var empleado = Empleado.Create(SucursalId, "Ana", "Pérez", "Gómez").Value!;
 
-        var result = empleado.Update(SucursalId, "", "Pérez", "Gómez", null, null);
+        var result = empleado.Update(SucursalId, "", "Pérez", "Gómez", null, null, null);
 
         _ = result.IsFailure.Should().BeTrue();
         _ = empleado.Nombres.Should().Be("Ana");
+    }
+
+    [Fact]
+    public void Create_ShouldStoreTrimmedLowerCaseEmail_WhenEmailProvided()
+    {
+        var result = Empleado.Create(SucursalId, "Ana", "Pérez", "Gómez", email: "  Ana.Perez@Farmacia.PE ");
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value!.Email.Should().Be("ana.perez@farmacia.pe");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Create_ShouldLeaveEmailEmpty_WhenEmailIsBlank(string? email)
+    {
+        var result = Empleado.Create(SucursalId, "Ana", "Pérez", "Gómez", email: email);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value!.Email.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("ana")]
+    [InlineData("ana@farmacia")]
+    [InlineData("ana perez@farmacia.pe")]
+    [InlineData("ana@@farmacia.pe")]
+    public void Create_ShouldFail_WhenEmailIsMalformed(string email)
+    {
+        var result = Empleado.Create(SucursalId, "Ana", "Pérez", "Gómez", email: email);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Empleado.Email.Invalido");
+    }
+
+    [Fact]
+    public void Create_ShouldFail_WhenEmailExceedsMaxLength()
+    {
+        var email = new string('a', Empleado.EmailMaxLength - "@farmacia.pe".Length + 1) + "@farmacia.pe";
+
+        var result = Empleado.Create(SucursalId, "Ana", "Pérez", "Gómez", email: email);
+
+        _ = result.Error.Code.Should().Be("Empleado.Email.Invalido");
+    }
+
+    [Fact]
+    public void Update_ShouldReplaceAndClearEmail()
+    {
+        var empleado = Empleado.Create(SucursalId, "Ana", "Pérez", "Gómez", email: "ana@farmacia.pe").Value!;
+
+        _ = empleado.Update(SucursalId, "Ana", "Pérez", "Gómez", null, null, "Nueva@Farmacia.pe").IsSuccess.Should().BeTrue();
+        _ = empleado.Email.Should().Be("nueva@farmacia.pe");
+
+        _ = empleado.Update(SucursalId, "Ana", "Pérez", "Gómez", null, null, " ").IsSuccess.Should().BeTrue();
+        _ = empleado.Email.Should().BeNull();
+    }
+
+    [Fact]
+    public void Update_ShouldFail_AndKeepEmail_WhenEmailIsMalformed()
+    {
+        var empleado = Empleado.Create(SucursalId, "Ana", "Pérez", "Gómez", email: "ana@farmacia.pe").Value!;
+
+        var result = empleado.Update(SucursalId, "Ana", "Pérez", "Gómez", null, null, "no-es-correo");
+
+        _ = result.Error.Code.Should().Be("Empleado.Email.Invalido");
+        _ = empleado.Email.Should().Be("ana@farmacia.pe");
     }
 }

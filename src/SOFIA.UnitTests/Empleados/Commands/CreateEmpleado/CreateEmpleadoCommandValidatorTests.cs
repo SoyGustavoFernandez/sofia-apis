@@ -22,6 +22,28 @@ public class CreateEmpleadoCommandValidatorTests
     [Fact]
     public void Validate_ShouldPass_WhenLicenciaNull() => _ = _validator.Validate(ValidCommand() with { Licencia_Prof = null }).IsValid.Should().BeTrue();
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("ana@farmacia.pe")]
+    public void Validate_ShouldPass_WhenEmailEmptyOrValid(string? email) => _ = _validator.Validate(ValidCommand() with { Email = email }).IsValid.Should().BeTrue();
+
+    [Fact]
+    public void Validate_ShouldFail_WhenEmailMalformed()
+    {
+        var result = _validator.Validate(ValidCommand() with { Email = "no-es-correo" });
+
+        _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateEmpleadoCommand.Email));
+    }
+
+    [Fact]
+    public void Validate_ShouldFail_WhenEmailTooLong()
+    {
+        var result = _validator.Validate(ValidCommand() with { Email = new string('a', 250) + "@farmacia.pe" });
+
+        _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateEmpleadoCommand.Email));
+    }
+
     [Fact]
     public void Validate_ShouldFail_WhenSucursalEmpty()
     {

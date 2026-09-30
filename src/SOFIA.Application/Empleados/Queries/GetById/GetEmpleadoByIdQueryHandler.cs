@@ -28,6 +28,7 @@ public class GetEmpleadoByIdQueryHandler(IApplicationDbContext context) : IReque
             Apellido_Materno = entity.Apellido_Materno,
             Nombre_Completo = entity.Nombre_Completo,
             Licencia_Prof = entity.Licencia_Prof,
+            Email = entity.Email,
             SucursalNombre = entity.Sucursal_Base?.Nombre
         };
 

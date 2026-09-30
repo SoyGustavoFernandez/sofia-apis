@@ -186,4 +186,35 @@ public class UpdateEmpleadoCommandHandlerTests
 
         _ = result.IsSuccess.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Handle_ShouldReturnConflictAndNotSave_WhenEmailBelongsToAnotherEmpleado()
+    {
+        var empleado = Empleado.Create(_sucursalActual.Id, "Ana", "Pérez", "Gómez", email: "ana@farmacia.pe").Value!;
+        var otro = Empleado.Create(_sucursalActual.Id, "Luis", "Rios", "Paz", email: "luis@farmacia.pe").Value!;
+        var setMock = new List<Empleado> { empleado, otro }.BuildMockDbSet();
+        _ = setMock.Setup(m => m.FindAsync(It.IsAny<object[]>(), It.IsAny<CancellationToken>())).Returns(ValueTask.FromResult<Empleado?>(empleado));
+        _ = _dbContextMock.Setup(c => c.Empleados).Returns(setMock.Object);
+
+        var result = await _handler.Handle(Command(empleado.Id, _sucursalActual.Id) with { Email = "Luis@Farmacia.pe" }, CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Empleado.Email.Duplicado");
+        _ = result.StatusCode.Should().Be(409);
+        _ = empleado.Email.Should().Be("ana@farmacia.pe");
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSaveNormalizedEmail_WhenKeepingItsOwnEmail()
+    {
+        var empleado = Empleado.Create(_sucursalActual.Id, "Ana", "Pérez", "Gómez", email: "ana@farmacia.pe").Value!;
+        var setMock = new List<Empleado> { empleado }.BuildMockDbSet();
+        _ = setMock.Setup(m => m.FindAsync(It.IsAny<object[]>(), It.IsAny<CancellationToken>())).Returns(ValueTask.FromResult<Empleado?>(empleado));
+        _ = _dbContextMock.Setup(c => c.Empleados).Returns(setMock.Object);
+
+        var result = await _handler.Handle(Command(empleado.Id, _sucursalActual.Id) with { Email = " ANA@farmacia.pe " }, CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = empleado.Email.Should().Be("ana@farmacia.pe");
+    }
 }

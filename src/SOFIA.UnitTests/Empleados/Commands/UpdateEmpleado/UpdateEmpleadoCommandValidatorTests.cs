@@ -19,6 +19,23 @@ public class UpdateEmpleadoCommandValidatorTests
     [Fact]
     public void Validate_ShouldPass_WhenCommandValid() => _ = _validator.Validate(ValidCommand()).IsValid.Should().BeTrue();
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("ana@farmacia.pe")]
+    public void Validate_ShouldPass_WhenEmailEmptyOrValid(string? email) => _ = _validator.Validate(ValidCommand() with { Email = email }).IsValid.Should().BeTrue();
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Validate_ShouldFail_WhenEmailMalformedOrTooLong(bool tooLong)
+    {
+        var email = tooLong ? new string('a', 250) + "@farmacia.pe" : "no-es-correo";
+
+        var result = _validator.Validate(ValidCommand() with { Email = email });
+
+        _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(UpdateEmpleadoCommand.Email));
+    }
+
     [Fact]
     public void Validate_ShouldFail_WhenIdEmpty()
     {

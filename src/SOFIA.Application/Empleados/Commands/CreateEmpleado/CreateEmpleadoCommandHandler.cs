@@ -27,7 +27,8 @@ public class CreateEmpleadoCommandHandler(IApplicationDbContext context, ICurren
             request.Apellido_Materno,
             request.Licencia_Prof,
             request.Huella_Biometrica,
-            tenantId);
+            tenantId,
+            request.Email);
 
         if (!result.IsSuccess)
         {
@@ -38,6 +39,14 @@ public class CreateEmpleadoCommandHandler(IApplicationDbContext context, ICurren
             && await context.Empleados.AnyAsync(e => e.Licencia_Prof == request.Licencia_Prof && !e.IsDeleted, cancellationToken))
         {
             return Result.Failure<Guid>(Error.Conflict("Empleado.LicenciaProf.Duplicado", "Another employee already uses this professional license."), 409);
+        }
+
+        // Tenant-filtered: the same email may exist in another company
+        var email = result.Value.Email;
+        if (email is not null
+            && await context.Empleados.AnyAsync(e => e.Email == email && !e.IsDeleted, cancellationToken))
+        {
+            return Result.Failure<Guid>(Error.Conflict("Empleado.Email.Duplicado", "Another employee already uses this email."), 409);
         }
 
         _ = context.Empleados.Add(result.Value);

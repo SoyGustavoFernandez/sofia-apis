@@ -13,5 +13,6 @@ public record CreateEmpleadoCommand : ICommand<Guid>
     public string Apellido_Paterno { get; init; } = string.Empty;
     public string Apellido_Materno { get; init; } = string.Empty;
     public string? Licencia_Prof { get; init; }
+    public string? Email { get; init; }
     public byte[]? Huella_Biometrica { get; init; }
 }

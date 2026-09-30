@@ -9,5 +9,6 @@ public record EmpleadoDto
     public string Apellido_Materno { get; init; } = string.Empty;
     public string Nombre_Completo { get; init; } = string.Empty;
     public string? Licencia_Prof { get; init; }
+    public string? Email { get; init; }
     public string? SucursalNombre { get; init; }
 }

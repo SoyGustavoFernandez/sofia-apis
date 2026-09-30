@@ -89,6 +89,7 @@ public class EmpleadosController(ISender sender) : ControllerBase
             e.Apellido_Paterno,
             e.Apellido_Materno,
             e.Licencia_Prof,
+            e.Email,
             e.SucursalNombre,
         });
 

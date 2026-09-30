@@ -76,6 +76,24 @@ public class DatabaseConstraintIntegrationTests(SofiaWebAppFactory factory) : Ba
     }
 
     [Fact]
+    public async Task SaveChanges_ShouldRejectASecondLiveEmpleadoWithTheSameEmail_WhileEmpleadosWithoutEmailNeverCollide()
+    {
+        var sucursal = Sucursal.Create($"Suc{Guid.NewGuid():N}"[..20], "Av. Test 123", $"LIC{Guid.NewGuid():N}"[..10]).Value!;
+        _ = DbContext.Sucursales.Add(sucursal);
+        var email = $"qa.{Guid.NewGuid():N}@sofia.test";
+        _ = DbContext.Empleados.Add(Empleado.Create(sucursal.Id, "Ana", "Perez", "Gomez", email: email).Value!);
+        _ = DbContext.Empleados.Add(Empleado.Create(sucursal.Id, "Sin", "Correo", "Uno").Value!);
+        _ = DbContext.Empleados.Add(Empleado.Create(sucursal.Id, "Sin", "Correo", "Dos").Value!);
+        _ = await DbContext.SaveChangesAsync();
+
+        _ = DbContext.Empleados.Add(Empleado.Create(sucursal.Id, "Luis", "Rios", "Paz", email: email).Value!);
+        var act = () => DbContext.SaveChangesAsync();
+
+        var thrown = await act.Should().ThrowAsync<DbUpdateException>();
+        _ = thrown.Which.InnerException!.Message.Should().Contain("UX_Empleados_Tenant_Email");
+    }
+
+    [Fact]
     public async Task TryHandleAsync_ShouldReturnConflictWithoutLoggingTheKey_WhenAUniqueIndexIsViolated()
     {
         var dni = $"{Random.Shared.Next(10_000_000, 99_999_999)}";

@@ -66,6 +66,7 @@ public class GetEmpleadosWithPaginationQueryHandler(IApplicationDbContext contex
                 Apellido_Materno = e.Apellido_Materno,
                 Nombre_Completo = e.Nombres + " " + e.Apellido_Paterno + " " + e.Apellido_Materno,
                 Licencia_Prof = e.Licencia_Prof,
+                Email = e.Email,
                 SucursalNombre = e.Sucursal_Base!.Nombre
             })
             .PaginatedListAsync(request.PageNumber, request.PageSize);

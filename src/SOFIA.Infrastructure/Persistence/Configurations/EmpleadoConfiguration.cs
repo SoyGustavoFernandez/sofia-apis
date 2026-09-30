@@ -37,6 +37,11 @@ public class EmpleadoConfiguration : IEntityTypeConfiguration<Empleado>
             .HasColumnName("Licencia_Prof")
             .HasMaxLength(50);
 
+        _ = builder.Property(x => x.Email)
+            .HasColumnName("Email")
+            .HasMaxLength(Empleado.EmailMaxLength)
+            .IsUnicode(false);
+
         _ = builder.Property(x => x.Huella_Biometrica)
             .HasColumnName("Huella_Biometrica");
 
@@ -50,5 +55,9 @@ public class EmpleadoConfiguration : IEntityTypeConfiguration<Empleado>
         _ = builder.HasIndex(x => new { x.TenantId, x.Licencia_Prof }, "UX_Empleados_Tenant_Licencia_Prof")
             .IsUnique()
             .HasFilter("[Licencia_Prof] IS NOT NULL AND [IsDeleted] = 0");
+
+        _ = builder.HasIndex(x => new { x.TenantId, x.Email }, "UX_Empleados_Tenant_Email")
+            .IsUnique()
+            .HasFilter("[Email] IS NOT NULL AND [IsDeleted] = 0");
     }
 }

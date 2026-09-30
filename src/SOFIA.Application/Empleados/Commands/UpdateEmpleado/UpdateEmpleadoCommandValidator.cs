@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Empleados.Commands.UpdateEmpleado;
 
@@ -29,5 +30,10 @@ public class UpdateEmpleadoCommandValidator : AbstractValidator<UpdateEmpleadoCo
 
         _ = RuleFor(v => v.Licencia_Prof)
             .MaximumLength(50).WithMessage("Licencia Prof must not exceed 50 characters.");
+
+        _ = RuleFor(v => v.Email)
+            .MaximumLength(Empleado.EmailMaxLength).WithMessage("Email must not exceed 254 characters.")
+            .EmailAddress().WithMessage("Email is not a valid address.")
+            .When(v => !string.IsNullOrWhiteSpace(v.Email));
     }
 }

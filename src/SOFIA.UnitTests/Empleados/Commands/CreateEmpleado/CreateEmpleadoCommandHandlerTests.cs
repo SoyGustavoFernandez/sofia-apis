@@ -90,4 +90,31 @@ public class CreateEmpleadoCommandHandlerTests
 
         _ = result.IsSuccess.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Handle_ShouldReturnConflictAndNotSave_WhenEmailIsTakenIgnoringCase()
+    {
+        var otro = Empleado.Create(_sucursal.Id, "Luis", "Rios", "Paz", email: "luis@farmacia.pe").Value!;
+        _ = _dbContextMock.Setup(c => c.Empleados).Returns(new List<Empleado> { otro }.BuildMockDbSet().Object);
+
+        var result = await _handler.Handle(Command() with { Email = " LUIS@farmacia.pe" }, CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Empleado.Email.Duplicado");
+        _ = result.StatusCode.Should().Be(409);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreateWithNormalizedEmail_WhenEmailOnlyBelongsToADeletedEmpleado()
+    {
+        var eliminado = Empleado.Create(_sucursal.Id, "Luis", "Rios", "Paz", email: "luis@farmacia.pe").Value!;
+        eliminado.IsDeleted = true;
+        var empleadosMock = new List<Empleado> { eliminado }.BuildMockDbSet();
+        _ = _dbContextMock.Setup(c => c.Empleados).Returns(empleadosMock.Object);
+
+        var result = await _handler.Handle(Command() with { Email = "Luis@Farmacia.pe" }, CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        empleadosMock.Verify(m => m.Add(It.Is<Empleado>(e => e.Email == "luis@farmacia.pe")), Times.Once);
+    }
 }

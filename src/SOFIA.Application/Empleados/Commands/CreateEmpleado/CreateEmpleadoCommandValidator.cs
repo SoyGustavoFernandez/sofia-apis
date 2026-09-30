@@ -27,5 +27,10 @@ public class CreateEmpleadoCommandValidator : AbstractValidator<CreateEmpleadoCo
 
         _ = RuleFor(v => v.Licencia_Prof)
             .MaximumLength(50).WithMessage("Licencia Prof must not exceed 50 characters.");
+
+        _ = RuleFor(v => v.Email)
+            .MaximumLength(Empleado.EmailMaxLength).WithMessage("Email must not exceed 254 characters.")
+            .EmailAddress().WithMessage("Email is not a valid address.")
+            .When(v => !string.IsNullOrWhiteSpace(v.Email));
     }
 }

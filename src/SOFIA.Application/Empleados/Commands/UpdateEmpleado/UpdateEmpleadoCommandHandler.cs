@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Empleados.Commands.UpdateEmpleado;
 
@@ -42,13 +43,19 @@ public class UpdateEmpleadoCommandHandler(IApplicationDbContext context, ICurren
             return Result.Failure(Error.Conflict("Empleado.LicenciaProf.Duplicado", "Another employee already uses this professional license."), 409);
         }
 
+        if (await EmailEnUsoAsync(empleado.Id, request.Email, cancellationToken))
+        {
+            return Result.Failure(Error.Conflict("Empleado.Email.Duplicado", "Another employee already uses this email."), 409);
+        }
+
         var result = empleado.Update(
             request.Sucursal_Base_ID,
             request.Nombres,
             request.Apellido_Paterno,
             request.Apellido_Materno,
             request.Licencia_Prof,
-            request.Huella_Biometrica);
+            request.Huella_Biometrica,
+            request.Email);
 
         if (!result.IsSuccess)
         {
@@ -71,5 +78,13 @@ public class UpdateEmpleadoCommandHandler(IApplicationDbContext context, ICurren
         _ = await context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
+    }
+
+    // Tenant-filtered: the same email may exist in another company
+    private async Task<bool> EmailEnUsoAsync(Guid empleadoId, string? requestedEmail, CancellationToken cancellationToken)
+    {
+        var email = Empleado.NormalizeEmail(requestedEmail);
+        return email is not null
+            && await context.Empleados.AnyAsync(e => e.Id != empleadoId && e.Email == email && !e.IsDeleted, cancellationToken);
     }
 }

@@ -220,8 +220,8 @@ dotnet user-secrets set "<Clave>" "<valor>" --project src/SOFIA.API/SOFIA.API.cs
 | `PresidioApi:BaseUrl` | URL de Presidio (p. ej. `http://localhost:8001`) |
 | `PresidioApi:InternalKey` | Opcional: clave compartida con Presidio (`PRESIDIO_INTERNAL_KEY`) |
 | `GeminiApi:ApiKey` | API key de Google Gemini |
-| `GeminiApi:BaseUrl` | URL base de modelos de Gemini (la API llama a `{BaseUrl}{OcrModel}:generateContent`) |
-| `GeminiApi:OcrModel` | Modelo de Gemini a usar |
+| `GeminiApi:BaseUrl` | URL base de modelos de Gemini, terminada en `/v1beta/models/` (la API llama a `{BaseUrl}{OcrModel}:generateContent`) |
+| `GeminiApi:OcrModel` | Modelo de Gemini a usar (p. ej. `gemini-3.6-flash`) |
 
 ### 3. Crear / migrar el esquema
 

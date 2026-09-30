@@ -50,9 +50,9 @@ services:
       - Jwt__ExpiryMinutes=15
       - PresidioApi__BaseUrl=http://presidio-api:8000
       - PresidioApi__InternalKey=${PRESIDIO_INTERNAL_KEY:-}
-      - GeminiApi__BaseUrl=${GEMINI_BASE_URL:-}
-      - GeminiApi__OcrModel=${GEMINI_OCR_MODEL:-gemini-1.5-flash}
-      - GeminiApi__ReasoningModel=${GEMINI_REASONING_MODEL:-gemini-1.5-pro}
+      - GeminiApi__BaseUrl=${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/models/}
+      - GeminiApi__OcrModel=${GEMINI_OCR_MODEL:-gemini-3.6-flash}
+      - GeminiApi__ReasoningModel=${GEMINI_REASONING_MODEL:-gemini-2.5-pro}
       - GeminiApi__ApiKey=${GEMINI_API_KEY:-}
     volumes:
       - sofia_logs:/app/logs

@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Devoluciones.Common;
 using SOFIA.Application.Ventas.Common;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
@@ -61,7 +62,7 @@ public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext, I
             .GroupBy(d => d.DetalleVentaId)
             .ToDictionary(g => g.Key, g => g.Sum(d => d.CantidadDevuelta));
 
-        var cantidadesYaDevueltas = await GetCantidadesYaDevueltasAsync(venta, cancellationToken);
+        var cantidadesYaDevueltas = await dbContext.GetCantidadesDevueltasAsync([.. venta.Detalles.Select(d => d.Id)], cancellationToken);
 
         var montoResult = venta.RegistrarDevolucion(cantidadesADevolver, cantidadesYaDevueltas);
         if (montoResult.IsFailure)
@@ -134,21 +135,6 @@ public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext, I
         return serieNc == null
             ? Result.Failure<(SunatComprobanteEmitido, SunatSerieFiscal)>(Error.Validation("Devolucion.SerieNotaCredito.NoConfigurada", "The branch has no active credit note series."))
             : Result.Success((comprobanteOrigen, serieNc));
-    }
-
-    private async Task<Dictionary<Guid, decimal>> GetCantidadesYaDevueltasAsync(Venta venta, CancellationToken cancellationToken)
-    {
-        var detalleIds = venta.Detalles.Select(d => d.Id).ToList();
-
-        var devueltas = await (
-            from dd in dbContext.DetallesDevolucion
-            join dc in dbContext.Devoluciones on dd.DevolucionId equals dc.Id
-            where detalleIds.Contains(dd.DetalleVentaId) && !dd.IsDeleted && !dc.IsDeleted
-            select new { dd.DetalleVentaId, dd.CantidadDevuelta }).ToListAsync(cancellationToken);
-
-        return devueltas
-            .GroupBy(d => d.DetalleVentaId)
-            .ToDictionary(g => g.Key, g => g.Sum(d => d.CantidadDevuelta));
     }
 
     // The customer gets back only their share; the insurer-covered part of the credited amount is not paid out

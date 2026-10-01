@@ -20,7 +20,8 @@ public record VentaConDetalleDto(
     string? ClienteDocumento,
     List<VentaDetalleDto> Detalles,
     ComprobanteDto? Comprobante,
-    List<VentaPagoDto> Pagos);
+    List<VentaPagoDto> Pagos,
+    List<VentaDevolucionDto> Devoluciones);
 
 public record ComprobanteDto(
     string Tipo,
@@ -41,7 +42,8 @@ public record VentaDetalleDto(
     Guid? PresentacionVentaId,
     string? PresentacionDescripcion,
     decimal? CantidadEnPresentacion,
-    Guid? RecetaId);
+    Guid? RecetaId,
+    decimal CantidadDevuelta);
 
 public record VentaPagoDto(
     Guid Id,
@@ -49,3 +51,10 @@ public record VentaPagoDto(
     decimal MontoPagado,
     string? ReferenciaOperacion,
     DateTime FechaPago);
+
+public record VentaDevolucionDto(
+    Guid Id,
+    DateTime Fecha,
+    string? NumeroNotaCredito,
+    decimal? MontoReembolsado,
+    string? MetodoReembolso);

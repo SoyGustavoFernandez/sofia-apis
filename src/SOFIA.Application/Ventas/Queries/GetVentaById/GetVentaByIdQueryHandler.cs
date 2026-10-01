@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Devoluciones.Common;
 using SOFIA.Application.Ventas.Common;
 using SOFIA.Domain.Common;
 
@@ -50,6 +51,9 @@ public class GetVentaByIdQueryHandler(
             return Result.Failure<VentaConDetalleDto>(Error.Forbidden("Venta.Forbidden", "No tiene permiso para ver esta venta."));
         }
 
+        var cantidadesDevueltas = await context.GetCantidadesDevueltasAsync([.. venta.Detalles.Select(d => d.Id)], cancellationToken);
+        var devoluciones = comprobante != null ? await GetDevolucionesAsync(comprobante.Id, cancellationToken) : [];
+
         var codigoVenta = comprobante != null
             ? $"{comprobante.Serie?.PrefijoSerie}-{comprobante.NumeroCorrelativo:D8}"
             : venta.Id.ToString()[..8].ToUpper();
@@ -76,7 +80,8 @@ public class GetVentaByIdQueryHandler(
                 d.PresentacionVentaId,
                 d.PresentacionVenta?.Descripcion,
                 d.CantidadEnPresentacion,
-                d.RecetaId
+                d.RecetaId,
+                cantidadesDevueltas.GetValueOrDefault(d.Id)
             ))],
             comprobante != null ? new ComprobanteDto(
                 comprobante.Serie?.TipoComprobante.ToString() ?? "Boleta",
@@ -92,9 +97,36 @@ public class GetVentaByIdQueryHandler(
                 p.MontoPagado,
                 p.ReferenciaOperacion,
                 p.FechaPago
-            ))]
+            ))],
+            devoluciones
         );
 
         return Result.Success(dto);
+    }
+
+    // Returns credit the sale's boleta/factura; each one carries the credit note issued for it
+    private async Task<List<VentaDevolucionDto>> GetDevolucionesAsync(Guid comprobanteId, CancellationToken cancellationToken)
+    {
+        var devoluciones = await context.Devoluciones
+            .AsNoTracking()
+            .Where(d => d.ComprobanteOrigenId == comprobanteId && !d.IsDeleted)
+            .OrderBy(d => d.FechaDevolucion)
+            .ToListAsync(cancellationToken);
+
+        var ncIds = devoluciones.Where(d => d.ComprobanteNcId.HasValue).Select(d => d.ComprobanteNcId!.Value).ToList();
+        var notasCredito = await context.SUNATComprobantesEmitidos
+            .AsNoTracking()
+            .Include(c => c.Serie)
+            .Where(c => ncIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, cancellationToken);
+
+        return [.. devoluciones.Select(d => new VentaDevolucionDto(
+            d.Id,
+            d.FechaDevolucion,
+            d.ComprobanteNcId.HasValue && notasCredito.TryGetValue(d.ComprobanteNcId.Value, out var nc)
+                ? $"{nc.Serie?.PrefijoSerie}-{nc.NumeroCorrelativo:D8}"
+                : null,
+            d.MontoReembolsado,
+            d.MetodoReembolso?.ToString()))];
     }
 }

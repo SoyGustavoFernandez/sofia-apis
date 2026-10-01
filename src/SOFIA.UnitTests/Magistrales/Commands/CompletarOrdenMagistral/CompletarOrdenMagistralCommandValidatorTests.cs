@@ -79,4 +79,21 @@ public class CompletarOrdenMagistralCommandValidatorTests
         _ = result.IsValid.Should().BeFalse();
         _ = result.Errors.Should().Contain(e => e.PropertyName == "FechaCaducidad");
     }
+
+    [Fact]
+    public void FechaCaducidadWhoseDayHasNotEnded_ShouldNotHaveValidationError()
+    {
+        // Arrange
+        var command = new CompletarOrdenMagistralCommand(
+            Guid.NewGuid(),
+            "LOTE-123",
+            DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(-5)).AddHours(-12)
+        );
+
+        // Act
+        var result = _validator.Validate(command);
+
+        // Assert
+        _ = result.IsValid.Should().BeTrue();
+    }
 }

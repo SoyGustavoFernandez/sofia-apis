@@ -24,13 +24,16 @@ public class VentaDetalleFactoryTests
 
     private LoteInventario _loteRx = null!;
 
-    private void SetupMocks(CondicionVenta condicionRx, List<RecetaMedica>? recetas = null, bool loteRxVencido = false)
+    // Expiry stored like the SPA sends it (-05:00) for an expiry day that started the given hours ago.
+    private static DateTimeOffset CaducidadIniciadaHace(double horas) => DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(-5)).AddHours(-horas);
+
+    private void SetupMocks(CondicionVenta condicionRx, List<RecetaMedica>? recetas = null, DateTimeOffset? caducidadRx = null)
     {
         _loteRx = LoteInventario.Create(_productoRxId, "L-RX", null, DateTimeOffset.UtcNow.AddYears(1)).Value!;
         _loteRx.SetId(_loteRxId);
-        if (loteRxVencido)
+        if (caducidadRx.HasValue)
         {
-            typeof(LoteInventario).GetProperty(nameof(LoteInventario.FechaCaducidad))!.SetValue(_loteRx, DateTimeOffset.UtcNow.AddDays(-1));
+            typeof(LoteInventario).GetProperty(nameof(LoteInventario.FechaCaducidad))!.SetValue(_loteRx, caducidadRx.Value);
         }
 
         var loteOtc = LoteInventario.Create(_productoOtcId, "L-OTC", null, DateTimeOffset.UtcNow.AddYears(1)).Value!;
@@ -68,16 +71,31 @@ public class VentaDetalleFactoryTests
     private Task<Result<List<DetalleVenta>>> Build(List<CreateVentaDetailDto> dtos, Guid? clienteId, Guid? ventaIdExcluida = null) =>
         VentaDetalleFactory.BuildAsync(_dbContextMock.Object, dtos, _sucursalId, clienteId, ventaIdExcluida, CancellationToken.None);
 
-    [Fact]
-    public async Task BuildAsync_ShouldReturnVencido_WhenLotIsExpired()
+    [Theory]
+    [InlineData(24)]
+    [InlineData(36)]
+    public async Task BuildAsync_ShouldReturnVencido_WhenTheExpiryDayAlreadyEnded(double horas)
     {
-        SetupMocks(CondicionVenta.VentaLibreOTC, loteRxVencido: true);
+        SetupMocks(CondicionVenta.VentaLibreOTC, caducidadRx: CaducidadIniciadaHace(horas));
 
         var result = await Build([new CreateVentaDetailDto(_loteRxId, 1)], _clienteId);
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Venta.Lote.Vencido");
         _ = _inventario[0].CantidadFisica.Should().Be(20);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(23)]
+    public async Task BuildAsync_ShouldSucceed_WhenTheLotExpiresToday(double horas)
+    {
+        SetupMocks(CondicionVenta.VentaLibreOTC, caducidadRx: CaducidadIniciadaHace(horas));
+
+        var result = await Build([new CreateVentaDetailDto(_loteRxId, 1)], _clienteId);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = _inventario[0].CantidadFisica.Should().Be(19);
     }
 
     [Fact]

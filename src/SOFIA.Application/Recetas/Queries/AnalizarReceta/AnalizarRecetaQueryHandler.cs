@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Inventarios.Common;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Recetas.Queries.AnalizarReceta;
@@ -140,8 +141,8 @@ public class AnalizarRecetaQueryHandler(
             .Include(x => x.Lote)
             .Where(x => x.SucursalId == _sucursalId
                 && x.Lote != null
-                && x.Lote.ProductoId == medicamentoId
-                && x.Lote.FechaCaducidad > DateTimeOffset.UtcNow)
+                && x.Lote.ProductoId == medicamentoId)
+            .WhereLoteNoVencido(DateTimeOffset.UtcNow)
             .SumAsync(x => x.CantidadFisica, ct);
     }
 

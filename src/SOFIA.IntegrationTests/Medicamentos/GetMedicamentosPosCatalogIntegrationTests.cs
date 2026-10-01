@@ -127,7 +127,8 @@ public class GetMedicamentosPosCatalogIntegrationTests(SofiaWebAppFactory factor
         var soloOtraSucursal = await seeder.SeedMedicamentoAsync($"{_token} B");
         _ = await seeder.SeedLoteAsync(producto.Id, sucursalId, 5m);
         _ = await seeder.SeedLoteAsync(producto.Id, otraSucursalId, 100m);
-        _ = await seeder.SeedLoteAsync(producto.Id, sucursalId, 30m, DateTimeOffset.UtcNow.AddDays(-1));
+        _ = await seeder.SeedLoteAsync(producto.Id, sucursalId, 3m, PosCatalogSeeder.CaducidadIniciadaHace(23));
+        _ = await seeder.SeedLoteAsync(producto.Id, sucursalId, 30m, PosCatalogSeeder.CaducidadIniciadaHace(25));
         var retenido = await seeder.SeedLoteAsync(producto.Id, sucursalId, 70m);
         await seeder.SeedCuarentenaAsync(sucursalId, retenido.Id, empleadoId, EstadoResolucionCuarentena.Retenido);
         _ = await seeder.SeedLoteAsync(soloOtraSucursal.Id, otraSucursalId, 40m);
@@ -135,8 +136,8 @@ public class GetMedicamentosPosCatalogIntegrationTests(SofiaWebAppFactory factor
         var pos = await Sender.Send(new GetMedicamentosQuery { NombreComercial = _token, IncluirStock = true, SoloStockVendibleEnMiSucursal = true });
         var general = await Sender.Send(new GetMedicamentosQuery { NombreComercial = _token, IncluirStock = true });
 
-        _ = pos.Value!.Items.Select(x => x.StockTotal).Should().Equal(5m, 0m);
-        _ = general.Value!.Items.Select(x => x.StockTotal).Should().Equal(205m, 40m);
+        _ = pos.Value!.Items.Select(x => x.StockTotal).Should().Equal(8m, 0m);
+        _ = general.Value!.Items.Select(x => x.StockTotal).Should().Equal(208m, 40m);
     }
 
     [Fact]

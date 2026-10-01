@@ -42,6 +42,9 @@ public sealed class PosCatalogSeeder(ApplicationDbContext dbContext)
         return medicamento;
     }
 
+    // Expiry stored like the SPA sends it (-05:00) for an expiry day that started the given hours ago.
+    public static DateTimeOffset CaducidadIniciadaHace(double horas) => DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(-5)).AddHours(-horas);
+
     // A lot can only be created with a future expiry, so an expired one is back-dated after creation.
     public async Task<LoteInventario> SeedLoteAsync(Guid productoId, Guid sucursalId, decimal cantidad, DateTimeOffset? caducidad = null)
     {

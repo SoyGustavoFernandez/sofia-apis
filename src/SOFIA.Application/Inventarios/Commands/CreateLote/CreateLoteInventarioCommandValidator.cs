@@ -20,7 +20,7 @@ public class CreateLoteInventarioValidator : AbstractValidator<CreateLoteInventa
 
         _ = RuleFor(v => v.FechaCaducidad)
             .NotEmpty().WithMessage("Expiration date is required.")
-            .GreaterThan(DateTimeOffset.UtcNow).WithMessage("Expiration date must be in the future.");
+            .Must(fecha => !LoteInventario.CaducidadVencida(fecha, DateTimeOffset.UtcNow)).WithMessage("Expiration date cannot be in the past.");
 
         _ = RuleFor(v => v.FechaFabricacion)
             .LessThanOrEqualTo(DateTimeOffset.UtcNow).WithMessage("Manufacture date cannot be in the future.")

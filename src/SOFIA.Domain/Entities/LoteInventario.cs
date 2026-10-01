@@ -35,9 +35,9 @@ public sealed class LoteInventario : BaseEntity
             return Result.Failure<LoteInventario>(Error.Validation("LoteInventario.NumeroLoteMfr", "Batch Number must not exceed 100 characters."));
         }
 
-        if (fechaCaducidad <= DateTimeOffset.UtcNow)
+        if (CaducidadVencida(fechaCaducidad, DateTimeOffset.UtcNow))
         {
-            return Result.Failure<LoteInventario>(Error.Validation("LoteInventario.FechaCaducidad", "Expiration date must be in the future."));
+            return Result.Failure<LoteInventario>(Error.Validation("LoteInventario.FechaCaducidad", "Expiration date cannot be in the past."));
         }
 
         if (fechaFabricacion.HasValue && fechaFabricacion.Value > DateTimeOffset.UtcNow)
@@ -74,9 +74,9 @@ public sealed class LoteInventario : BaseEntity
             return Result.Failure(Error.Validation("LoteInventario.NumeroLoteMfr", "Batch Number must not exceed 100 characters."));
         }
 
-        if (fechaCaducidad <= DateTimeOffset.UtcNow)
+        if (CaducidadVencida(fechaCaducidad, DateTimeOffset.UtcNow))
         {
-            return Result.Failure(Error.Validation("LoteInventario.FechaCaducidad", "Expiration date must be in the future."));
+            return Result.Failure(Error.Validation("LoteInventario.FechaCaducidad", "Expiration date cannot be in the past."));
         }
 
         if (fechaFabricacion.HasValue && fechaFabricacion.Value > DateTimeOffset.UtcNow)
@@ -91,5 +91,10 @@ public sealed class LoteInventario : BaseEntity
         return Result.Success();
     }
 
-    public bool EstaVencido(DateTimeOffset ahora) => FechaCaducidad <= ahora;
+    // A lot sells through the end of its expiry day: it expires one day after the stored instant, in its own offset.
+    public static DateTimeOffset UltimaCaducidadVencida(DateTimeOffset ahora) => ahora.AddDays(-1);
+
+    public static bool CaducidadVencida(DateTimeOffset fechaCaducidad, DateTimeOffset ahora) => fechaCaducidad <= UltimaCaducidadVencida(ahora);
+
+    public bool EstaVencido(DateTimeOffset ahora) => CaducidadVencida(FechaCaducidad, ahora);
 }

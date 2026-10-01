@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Inventarios.Commands.UpdateLote;
 
@@ -19,7 +20,7 @@ public class UpdateLoteInventarioValidator : AbstractValidator<UpdateLoteInventa
 
         _ = RuleFor(v => v.FechaCaducidad)
             .NotEmpty().WithMessage("Expiration date is required.")
-            .GreaterThan(DateTimeOffset.UtcNow).WithMessage("Expiration date must be in the future.");
+            .Must(fecha => !LoteInventario.CaducidadVencida(fecha, DateTimeOffset.UtcNow)).WithMessage("Expiration date cannot be in the past.");
 
         _ = RuleFor(v => v.FechaFabricacion)
             .LessThanOrEqualTo(DateTimeOffset.UtcNow).WithMessage("Manufacture date cannot be in the future.")

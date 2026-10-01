@@ -54,6 +54,19 @@ public class UpdateLoteInventarioValidatorTests
     }
 
     [Fact]
+    public void Validate_ShouldPass_WhenExpiryDayHasNotEnded() =>
+        _ = _validator.Validate(ValidCommand() with { FechaCaducidad = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(-5)).AddHours(-12) }).IsValid.Should().BeTrue();
+
+    [Fact]
+    public void Validate_ShouldFail_WhenExpiryDayAlreadyEnded()
+    {
+        var result = _validator.Validate(ValidCommand() with { FechaCaducidad = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(-5)).AddHours(-36) });
+
+        _ = result.IsValid.Should().BeFalse();
+        _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(UpdateLoteInventarioCommand.FechaCaducidad));
+    }
+
+    [Fact]
     public void Validate_ShouldFail_WhenManufactureDateInTheFuture()
     {
         var result = _validator.Validate(ValidCommand() with { FechaFabricacion = DateTimeOffset.UtcNow.AddDays(10) });

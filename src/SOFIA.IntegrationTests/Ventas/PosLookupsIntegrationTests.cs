@@ -21,7 +21,8 @@ public class PosLookupsIntegrationTests(SofiaWebAppFactory factory) : BaseIntegr
         var tardio = await seeder.SeedLoteAsync(producto.Id, sucursalId, 5m, DateTimeOffset.UtcNow.AddMonths(8));
         var proximo = await seeder.SeedLoteAsync(producto.Id, sucursalId, 7m, DateTimeOffset.UtcNow.AddMonths(2));
         _ = await seeder.SeedLoteAsync(producto.Id, otraSucursalId, 100m);
-        _ = await seeder.SeedLoteAsync(producto.Id, sucursalId, 30m, DateTimeOffset.UtcNow.AddDays(-1));
+        var venceHoy = await seeder.SeedLoteAsync(producto.Id, sucursalId, 4m, PosCatalogSeeder.CaducidadIniciadaHace(23));
+        _ = await seeder.SeedLoteAsync(producto.Id, sucursalId, 30m, PosCatalogSeeder.CaducidadIniciadaHace(25));
         _ = await seeder.SeedLoteAsync(producto.Id, sucursalId, 0m);
         var retenido = await seeder.SeedLoteAsync(producto.Id, sucursalId, 70m);
         await seeder.SeedCuarentenaAsync(sucursalId, retenido.Id, empleadoId, EstadoResolucionCuarentena.Retenido);
@@ -32,10 +33,10 @@ public class PosLookupsIntegrationTests(SofiaWebAppFactory factory) : BaseIntegr
         var result = await Sender.Send(new GetLotesDisponiblesVentaQuery { ProductoId = producto.Id });
 
         _ = result.IsSuccess.Should().BeTrue();
-        _ = result.Value!.Select(x => x.LoteId).Should().Equal(proximo.Id, tardio.Id, liberado.Id);
-        _ = result.Value![0].CantidadFisica.Should().Be(7m);
-        _ = result.Value![0].ProductoNombre.Should().Be($"{_token} A");
-        _ = result.Value![0].PrecioVentaBase.Should().Be(10m);
+        _ = result.Value!.Select(x => x.LoteId).Should().Equal(venceHoy.Id, proximo.Id, tardio.Id, liberado.Id);
+        _ = result.Value![1].CantidadFisica.Should().Be(7m);
+        _ = result.Value![1].ProductoNombre.Should().Be($"{_token} A");
+        _ = result.Value![1].PrecioVentaBase.Should().Be(10m);
     }
 
     [Fact]

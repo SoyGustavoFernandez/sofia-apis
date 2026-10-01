@@ -13,15 +13,16 @@ public record RegistrarEmpresaCommand : ICommand<LoginResult>
 {
     // Minimum required
     public string NombreEmpresa { get; init; } = string.Empty;
+    public string RUC { get; init; } = string.Empty;
     public string Usuario { get; init; } = string.Empty;
     public string Password { get; init; } = string.Empty;
+    public string AdminNombres { get; init; } = string.Empty;
+    public string AdminApellidoPaterno { get; init; } = string.Empty;
+    public string AdminEmail { get; init; } = string.Empty;
 
     // Optional â€” completable from the company profile after registration
-    public string? RUC { get; init; }
+    public string? AdminApellidoMaterno { get; init; }
     public string? NombreSede { get; init; }
     public string? DireccionSede { get; init; }
     public string? NumeroLicencia { get; init; }
-    public string? AdminNombres { get; init; }
-    public string? AdminApellidoPaterno { get; init; }
-    public string? AdminApellidoMaterno { get; init; }
 }

@@ -64,8 +64,12 @@ public class RegistrarEmpresaCommandHandlerTests
     private static RegistrarEmpresaCommand MinimalCommand() => new()
     {
         NombreEmpresa = "Farmacia Salud",
+        RUC = "20123456789",
         Usuario = "admin",
-        Password = "Segura123"
+        Password = "Segura123",
+        AdminNombres = "Ana Maria",
+        AdminApellidoPaterno = "Quispe",
+        AdminEmail = "Ana.Quispe@Farmacia.pe"
     };
 
     [Fact]
@@ -222,15 +226,58 @@ public class RegistrarEmpresaCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldSkipRUCCheck_WhenRUCIsNull()
+    public async Task Handle_ShouldStoreRUCOnCompany_WhenSuccessful()
+    {
+        SetupEmptyContext();
+        Empresa? capturedEmpresa = null;
+        _ = _dbContextMock.Setup(c => c.Empresas.Add(It.IsAny<Empresa>())).Callback<Empresa>(e => capturedEmpresa = e);
+
+        _ = await _handler.Handle(MinimalCommand(), CancellationToken.None);
+
+        _ = capturedEmpresa!.RUC!.Value.Should().Be("20123456789");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFailWithoutSaving_WhenRUCIsEmpty()
     {
         SetupEmptyContext();
 
-        var result = await _handler.Handle(MinimalCommand() with { RUC = null }, CancellationToken.None);
+        var result = await _handler.Handle(MinimalCommand() with { RUC = "" }, CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Ruc.Vacio");
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreateAdminEmployeeWithNamesAndNormalizedEmail_WhenSuccessful()
+    {
+        SetupEmptyContext();
+        Empleado? capturedEmpleado = null;
+        _ = _dbContextMock.Setup(c => c.Empleados.Add(It.IsAny<Empleado>())).Callback<Empleado>(e => capturedEmpleado = e);
+
+        _ = await _handler.Handle(MinimalCommand() with { AdminApellidoMaterno = "Rojas" }, CancellationToken.None);
+
+        _ = capturedEmpleado!.Nombres.Should().Be("Ana Maria");
+        _ = capturedEmpleado.Apellido_Paterno.Should().Be("Quispe");
+        _ = capturedEmpleado.Apellido_Materno.Should().Be("Rojas");
+        _ = capturedEmpleado.Email.Should().Be("ana.quispe@farmacia.pe");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Handle_ShouldUseDashAsMaternalSurname_WhenNotProvided(string? apellidoMaterno)
+    {
+        SetupEmptyContext();
+        Empleado? capturedEmpleado = null;
+        _ = _dbContextMock.Setup(c => c.Empleados.Add(It.IsAny<Empleado>())).Callback<Empleado>(e => capturedEmpleado = e);
+
+        var result = await _handler.Handle(MinimalCommand() with { AdminApellidoMaterno = apellidoMaterno }, CancellationToken.None);
 
         _ = result.IsSuccess.Should().BeTrue();
-        // Empresa check should NOT have been called with RUC filter
-        _dbContextMock.Verify(c => c.Empresas, Times.Exactly(1)); // only for Add
+        _ = capturedEmpleado!.Apellido_Materno.Should().Be("-");
     }
 
     [Fact]

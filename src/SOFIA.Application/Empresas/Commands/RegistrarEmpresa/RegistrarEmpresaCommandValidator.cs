@@ -25,9 +25,25 @@ public class RegistrarEmpresaCommandValidator : AbstractValidator<RegistrarEmpre
             .NotEmpty().WithMessage("Password is required.")
             .MinimumLength(8).WithMessage("Password must be at least 8 characters long.");
 
-        _ = When(x => x.RUC is not null, () =>
-            RuleFor(x => x.RUC)
-                .Length(11).WithMessage("RUC must be exactly 11 digits.")
-                .Matches("^[0-9]{11}$").WithMessage("RUC must contain only digits."));
+        _ = RuleFor(x => x.RUC)
+            .NotEmpty().WithMessage("RUC is required.")
+            .Length(11).WithMessage("RUC must be exactly 11 digits.")
+            .Matches("^[0-9]{11}$").WithMessage("RUC must contain only digits.");
+
+        _ = RuleFor(x => x.AdminNombres)
+            .NotEmpty().WithMessage("Admin first names are required.")
+            .MaximumLength(75).WithMessage("Admin first names must not exceed 75 characters.");
+
+        _ = RuleFor(x => x.AdminApellidoPaterno)
+            .NotEmpty().WithMessage("Admin paternal surname is required.")
+            .MaximumLength(75).WithMessage("Admin paternal surname must not exceed 75 characters.");
+
+        _ = RuleFor(x => x.AdminApellidoMaterno)
+            .MaximumLength(75).WithMessage("Admin maternal surname must not exceed 75 characters.");
+
+        _ = RuleFor(x => x.AdminEmail)
+            .NotEmpty().WithMessage("Admin email is required.")
+            .MaximumLength(Empleado.EmailMaxLength).WithMessage("Admin email must not exceed 254 characters.")
+            .EmailAddress().WithMessage("Admin email is not a valid address.");
     }
 }

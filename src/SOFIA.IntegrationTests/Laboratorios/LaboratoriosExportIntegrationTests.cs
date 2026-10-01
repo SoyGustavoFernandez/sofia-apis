@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using SOFIA.Application.Common.Models;
-using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 using SOFIA.Domain.Entities;
 using SOFIA.IntegrationTests.Infrastructure;
 
@@ -41,12 +40,7 @@ public class LaboratoriosExportIntegrationTests(SofiaWebAppFactory factory) : Ba
     {
         CurrentUser.Empresa = null;
         var usuario = $"export_{Guid.NewGuid():N}"[..20];
-        var registro = await Sender.Send(new RegistrarEmpresaCommand
-        {
-            NombreEmpresa = $"Farmacia {usuario}",
-            Usuario = usuario,
-            Password = "TestPassword123!",
-        });
+        var registro = await Sender.Send(RegistroEmpresaBuilder.Nuevo(usuario));
         _ = registro.IsSuccess.Should().BeTrue();
 
         CurrentUser.Empresa = DbContext.Cuentas.Local.Single(c => c.NombreUsuario == usuario).TenantId;

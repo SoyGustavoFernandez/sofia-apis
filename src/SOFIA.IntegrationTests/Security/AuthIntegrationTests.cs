@@ -1,11 +1,11 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 using SOFIA.Application.Security.Commands.ForgotPassword;
 using SOFIA.Application.Security.Commands.Login;
 using SOFIA.Application.Security.Commands.Logout;
@@ -74,12 +74,7 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
         // Arrange — sign-up runs anonymously, so its refresh token is stored without tenant
         CurrentUser.Empresa = null;
         var usuario = $"logout_{Guid.NewGuid():N}"[..20];
-        var registro = await Sender.Send(new RegistrarEmpresaCommand
-        {
-            NombreEmpresa = $"Farmacia {usuario}",
-            Usuario = usuario,
-            Password = "TestPassword123!",
-        });
+        var registro = await Sender.Send(RegistroEmpresaBuilder.Nuevo(usuario));
         _ = registro.IsSuccess.Should().BeTrue();
 
         var cuenta = await DbContext.Cuentas
@@ -265,6 +260,9 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
     public async Task ForgotPassword_ShouldSendNothing_WhenTheEmployeeHasNoEmail()
     {
         var (usuario, _) = await RegistrarEmpresaAnonimaAsync();
+        var empleadoId = await DbContext.Cuentas.IgnoreQueryFilters().Where(c => c.NombreUsuario == usuario).Select(c => c.EmpleadoId).SingleAsync();
+        _ = await DbContext.Empleados.IgnoreQueryFilters().Where(e => e.Id == empleadoId).ExecuteUpdateAsync(s => s.SetProperty(e => e.Email, (string?)null));
+        DbContext.ChangeTracker.Clear();
         var antes = Factory.EmailSender.Messages.Count;
 
         var result = await Sender.Send(new ForgotPasswordCommand(usuario));
@@ -273,6 +271,32 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
         _ = Factory.EmailSender.Messages.Count.Should().Be(antes);
         var cuenta = await DbContext.Cuentas.IgnoreQueryFilters().AsNoTracking().SingleAsync(c => c.NombreUsuario == usuario);
         _ = cuenta.RecoveryToken.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ForgotPassword_ShouldEmailTheAdmin_WhenRegisteredThroughSignUp()
+    {
+        var (usuario, _) = await RegistrarEmpresaAnonimaAsync();
+
+        var result = await Sender.Send(new ForgotPasswordCommand(usuario));
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = Factory.EmailSender.Messages.Should().ContainSingle(m => m.To == $"{usuario}@sofia.test");
+    }
+
+    [Fact]
+    public async Task Refresh_ShouldKeepTheCompanyNameInTheNewAccessToken()
+    {
+        var (usuario, refreshToken) = await RegistrarEmpresaAnonimaAsync();
+        // The handlers share this DbContext, so tracked entities would fill the navigations without the Include under test
+        DbContext.ChangeTracker.Clear();
+
+        var refresh = await Sender.Send(new RefreshTokenCommand(refreshToken));
+
+        _ = refresh.IsSuccess.Should().BeTrue();
+        var claims = new JwtSecurityTokenHandler().ReadJwtToken(refresh.Value!.AccessToken).Claims.ToList();
+        _ = claims.Should().ContainSingle(c => c.Type == "nombreEmpresa").Which.Value.Should().Be($"Farmacia {usuario}");
+        _ = claims.Should().ContainSingle(c => c.Type == "fullName").Which.Value.Should().Be("Admin Prueba -");
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────
@@ -315,12 +339,7 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
     {
         CurrentUser.Empresa = null;
         var usuario = $"reuse_{Guid.NewGuid():N}"[..20];
-        var registro = await Sender.Send(new RegistrarEmpresaCommand
-        {
-            NombreEmpresa = $"Farmacia {usuario}",
-            Usuario = usuario,
-            Password = "TestPassword123!",
-        });
+        var registro = await Sender.Send(RegistroEmpresaBuilder.Nuevo(usuario));
         _ = registro.IsSuccess.Should().BeTrue();
 
         return (usuario, registro.Value!.RefreshToken, registro.Value.AccessToken);

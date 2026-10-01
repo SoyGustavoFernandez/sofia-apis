@@ -55,7 +55,7 @@ public class RefreshTokenCommandHandler(
             // Only the account's own live roles: a stray link to a foreign or NULL-tenant role must never grant access
             .Include(c => c.Roles.Where(r => r.TenantId != null && !r.IsDeleted
                 && r.Cuentas.Any(x => x.Id == stored.CuentaId && x.TenantId == r.TenantId)))
-            .Include(c => c.Empleado).ThenInclude(e => e!.Sucursal_Base)
+            .Include(c => c.Empleado).ThenInclude(e => e!.Sucursal_Base).ThenInclude(s => s!.Empresa)
             .FirstOrDefaultAsync(c => c.Id == stored.CuentaId && c.CuentaActiva && !c.IsDeleted, cancellationToken);
 
         if (cuenta is null)

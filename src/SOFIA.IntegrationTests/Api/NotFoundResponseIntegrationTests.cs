@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Headers;
-using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 using SOFIA.IntegrationTests.Infrastructure;
 
 namespace SOFIA.IntegrationTests.Api;
@@ -22,12 +21,7 @@ public class NotFoundResponseIntegrationTests(SofiaWebAppFactory factory) : Base
     {
         CurrentUser.Empresa = null;
         var usuario = $"notfound_{Guid.NewGuid():N}"[..20];
-        var registro = await Sender.Send(new RegistrarEmpresaCommand
-        {
-            NombreEmpresa = $"Farmacia {usuario}",
-            Usuario = usuario,
-            Password = "TestPassword123!",
-        });
+        var registro = await Sender.Send(RegistroEmpresaBuilder.Nuevo(usuario));
         _ = registro.IsSuccess.Should().BeTrue();
 
         var client = Factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });

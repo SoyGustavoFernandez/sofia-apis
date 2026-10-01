@@ -250,10 +250,5 @@ public class TenantIsolationIntegrationTests(SofiaWebAppFactory factory) : BaseI
         return context.HasSucceeded;
     }
 
-    private static RegistrarEmpresaCommand NewRegistro() => new()
-    {
-        NombreEmpresa = $"Farmacia {Guid.NewGuid():N}"[..30],
-        Usuario = $"u{Guid.NewGuid():N}"[..20],
-        Password = "TestPassword123!"
-    };
+    private static RegistrarEmpresaCommand NewRegistro() => RegistroEmpresaBuilder.Nuevo($"u{Guid.NewGuid():N}"[..20]);
 }

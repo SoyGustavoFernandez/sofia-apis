@@ -21,17 +21,20 @@ public class RegistrarEmpresaCommandHandler(
 
     public async Task<Result<LoginResult>> Handle(RegistrarEmpresaCommand request, CancellationToken cancellationToken)
     {
-        if (request.RUC is not null)
+        var rucResult = Ruc.Create(request.RUC);
+        if (rucResult.IsFailure)
         {
-            var rucVo = Ruc.Create(request.RUC).Value!;
-            // Anonymous sign-up: RUC and username uniqueness are global, not per tenant
-            var rucTomado = await context.Empresas
-                .IgnoreQueryFilters([QueryFilters.Tenant])
-                .AnyAsync(e => e.RUC == rucVo && !e.IsDeleted, cancellationToken);
-            if (rucTomado)
-            {
-                return Result.Failure<LoginResult>(Error.Conflict("Empresa.RUC.Duplicado", "Ya existe una empresa registrada con este RUC."), 409);
-            }
+            return Result.Failure<LoginResult>(rucResult.Error);
+        }
+
+        var rucVo = rucResult.Value!;
+        // Anonymous sign-up: RUC and username uniqueness are global, not per tenant
+        var rucTomado = await context.Empresas
+            .IgnoreQueryFilters([QueryFilters.Tenant])
+            .AnyAsync(e => e.RUC == rucVo && !e.IsDeleted, cancellationToken);
+        if (rucTomado)
+        {
+            return Result.Failure<LoginResult>(Error.Conflict("Empresa.RUC.Duplicado", "Ya existe una empresa registrada con este RUC."), 409);
         }
 
         var usuarioTomado = await context.Cuentas
@@ -91,11 +94,11 @@ public class RegistrarEmpresaCommandHandler(
 
         var sucursal = sucursalResult.Value!;
 
-        var adminNombres = string.IsNullOrWhiteSpace(request.AdminNombres) ? request.Usuario : request.AdminNombres;
-        var adminApPat = string.IsNullOrWhiteSpace(request.AdminApellidoPaterno) ? "-" : request.AdminApellidoPaterno;
+        // The employee entity requires a maternal surname, which is optional at sign-up
         var adminApMat = string.IsNullOrWhiteSpace(request.AdminApellidoMaterno) ? "-" : request.AdminApellidoMaterno;
 
-        var empleadoResult = Empleado.Create(sucursal.Id, adminNombres, adminApPat, adminApMat, tenantId: empresa.Id);
+        var empleadoResult = Empleado.Create(
+            sucursal.Id, request.AdminNombres, request.AdminApellidoPaterno, adminApMat, tenantId: empresa.Id, email: request.AdminEmail);
         if (empleadoResult.IsFailure)
         {
             return Result.Failure<(Empresa, Sucursal, Empleado, Cuenta, Rol)>(empleadoResult.Error);

@@ -13,12 +13,14 @@ public sealed class TestCurrentUser : ICurrentUser
 
     public Guid? Empleado { get; set; }
 
+    public Guid? Sucursal { get; set; }
+
     public bool Admin { get; set; }
 
     public string? Id => Empleado?.ToString();
     public string? CuentaId => null;
     public string? Name => "integration-test";
-    public string? SucursalId => null;
+    public string? SucursalId => Sucursal?.ToString();
     public string? EmpresaId => Empresa?.ToString();
     public bool IsAuthenticated => Empresa is not null;
     public string? ClientIpAddress => "127.0.0.1";

@@ -2,6 +2,8 @@ using SOFIA.Application.Ventas.Commands.ActualizarVentaPendiente;
 using SOFIA.Application.Ventas.Commands.AnularVenta;
 using SOFIA.Application.Ventas.Commands.CompletarVenta;
 using SOFIA.Application.Ventas.Commands.CreateVenta;
+using SOFIA.Application.Ventas.Queries.GetLotesDisponiblesVenta;
+using SOFIA.Application.Ventas.Queries.GetPresentacionesProductoVenta;
 using SOFIA.Application.Ventas.Queries.GetVentaById;
 using SOFIA.Application.Ventas.Queries.GetVentas;
 using SOFIA.Domain.Enums;
@@ -37,6 +39,25 @@ public class VentasController(ISender sender) : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateVentaCommand command)
     {
         var result = await sender.Send(command);
+
+        return result.ToActionResult();
+    }
+
+    // Selling must not require inventory permissions, so the POS lookups are authorized by Ventas:Crear.
+    [HasPermission("Ventas", "Crear")]
+    [HttpGet("lotes-disponibles")]
+    public async Task<IActionResult> GetLotesDisponibles([FromQuery] GetLotesDisponiblesVentaQuery query)
+    {
+        var result = await sender.Send(query);
+
+        return result.ToActionResult();
+    }
+
+    [HasPermission("Ventas", "Crear")]
+    [HttpGet("presentaciones")]
+    public async Task<IActionResult> GetPresentaciones([FromQuery] Guid productoId)
+    {
+        var result = await sender.Send(new GetPresentacionesProductoVentaQuery(productoId));
 
         return result.ToActionResult();
     }

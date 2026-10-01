@@ -22,6 +22,7 @@ public abstract class BaseIntegrationTest : IClassFixture<SofiaWebAppFactory>, I
         CurrentUser = factory.CurrentUser;
         CurrentUser.Empresa = TestCurrentUser.DefaultEmpresaId;
         CurrentUser.Empleado = null;
+        CurrentUser.Sucursal = null;
         CurrentUser.Admin = false;
         // Scope fresco por cada instancia de test — evita DbContext compartido entre tests paralelos
         _scope = factory.Services.CreateScope();

@@ -16,6 +16,9 @@ public record GetMedicamentosQuery : IRequest<Result<PaginatedList<MedicamentoDt
     // Opt-in: keeps the stock join off the Excel export, which reuses this query at PageSize = PaginationLimits.MaxPageSize.
     public bool IncluirStock { get; init; }
 
+    // POS only: StockTotal counts just what the caller's own sucursal can sell (in stock, not expired, not quarantined).
+    public bool SoloStockVendibleEnMiSucursal { get; init; }
+
     // POS default view only: ranks by units sold in the caller's own sucursal over the last 30 days instead of by name.
     public bool OrdenarPorMasVendidos { get; init; }
     public int PageNumber { get; init; } = 1;

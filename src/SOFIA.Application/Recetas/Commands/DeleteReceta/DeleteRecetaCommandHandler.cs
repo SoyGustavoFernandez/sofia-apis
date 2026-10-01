@@ -21,6 +21,15 @@ public class DeleteRecetaCommandHandler(IApplicationDbContext context) : IReques
             return Result.Failure<Guid>(Error.NotFound("NotFound", "Record not found."), 404);
         }
 
+        var usadaEnVentas = await context.DetallesVenta
+            .AnyAsync(d => d.RecetaId == request.Id && !d.IsDeleted, cancellationToken);
+        if (usadaEnVentas)
+        {
+            return Result.Failure<Guid>(
+                Error.Conflict("RecetaMedica.InUse", "Cannot delete a prescription already used in sales."),
+                409);
+        }
+
         _ = context.Recetas.Remove(entity);
 
         _ = await context.SaveChangesAsync(cancellationToken);

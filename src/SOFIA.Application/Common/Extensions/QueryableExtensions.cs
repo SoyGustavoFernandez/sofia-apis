@@ -4,7 +4,7 @@ namespace SOFIA.Application.Common.Extensions;
 
 public static class QueryableExtensions
 {
-    // Normalizes input dates to UTC before comparing to ensure consistent behavior across timezones.
+    // Bounds are normalized to UTC and sent as parameters so the comparison never depends on the server time zone
     public static IQueryable<T> WhereDateRange<T>(
         this IQueryable<T> source,
         Expression<Func<T, DateTime>> selector,
@@ -13,22 +13,29 @@ public static class QueryableExtensions
     {
         if (from.HasValue)
         {
-            var fromUtc = DateTime.SpecifyKind(from.Value, DateTimeKind.Utc);
+            var fromUtc = ToUtc(from.Value);
+            Expression<Func<DateTime>> fromAccessor = () => fromUtc;
             var param = selector.Parameters[0];
-            var body = Expression.GreaterThanOrEqual(selector.Body, Expression.Constant(fromUtc));
+            var body = Expression.GreaterThanOrEqual(selector.Body, fromAccessor.Body);
             source = source.Where(Expression.Lambda<Func<T, bool>>(body, param));
         }
 
         if (to.HasValue)
         {
-            var toUtc = DateTime.SpecifyKind(to.Value, DateTimeKind.Utc);
+            var toUtc = ToUtc(to.Value);
+            Expression<Func<DateTime>> toAccessor = () => toUtc;
             var param = selector.Parameters[0];
-            var body = Expression.LessThanOrEqual(selector.Body, Expression.Constant(toUtc));
+            var body = Expression.LessThanOrEqual(selector.Body, toAccessor.Body);
             source = source.Where(Expression.Lambda<Func<T, bool>>(body, param));
         }
 
         return source;
     }
+
+    // Query-string instants arrive as Local (the binder converts them); values without offset are taken as UTC
+    private static DateTime ToUtc(DateTime value) => value.Kind == DateTimeKind.Local
+            ? value.ToUniversalTime()
+            : DateTime.SpecifyKind(value, DateTimeKind.Utc);
 
     // A null set means no branch restriction (Admin); ids are captured so EF sends them as a parameter
     public static IQueryable<T> WhereSucursalIn<T>(

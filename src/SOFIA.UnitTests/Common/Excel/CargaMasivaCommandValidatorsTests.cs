@@ -45,8 +45,8 @@ public class CargaMasivaCommandValidatorsTests
             new MedicamentoImportRow(Long(Medicamento.CodigoNacionalMaxLength + 1), "Paracetamol", "Bayer", "Tableta", "Venta Libre (OTC)"), "CodigoNacional"),
         ["Pacientes"] = For(
             new CargaMasivaPacientesCommandValidator(), rows => new CargaMasivaPacientesCommand(rows),
-            new PacienteImportRow("12345678", "Juan Perez", "01/01/1990", null),
-            new PacienteImportRow("12345678", Long(201), "01/01/1990", null), "NombreApellidos"),
+            new PacienteImportRow("DNI", "12345678", "Juan Perez", "01/01/1990", null),
+            new PacienteImportRow("DNI", "12345678", Long(201), "01/01/1990", null), "NombreApellidos"),
         ["ProfesionalesSalud"] = For(
             new CargaMasivaProfesionalesSaludCommandValidator(), rows => new CargaMasivaProfesionalesSaludCommand(rows),
             new ProfesionalSaludImportRow("CMP-1", "Dra. Rojas", null),

@@ -4,6 +4,7 @@ using Moq;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Pacientes.Commands.CargaMasivaPacientes;
 using SOFIA.Domain.Entities;
+using SOFIA.Domain.Enums;
 
 namespace SOFIA.UnitTests.Pacientes.Commands.CargaMasivaPacientes;
 
@@ -25,8 +26,8 @@ public class CargaMasivaPacientesCommandHandlerTests
     [Fact]
     public async Task Handle_ShouldSkipRows_WhoseKeyExistsInTheDatabaseOrEarlierInTheFile()
     {
-        _existentes.Add(PacienteCliente.Create("K-001", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!);
-        var command = new CargaMasivaPacientesCommand([new("k-001", "Juan Perez", "01/01/1990", null), new("K-002", "Juan Perez", "01/01/1990", null), new("k-002", "Juan Perez", "01/01/1990", null), new("K-003", "Juan Perez", "01/01/1990", null)]);
+        _existentes.Add(PacienteCliente.Create(TipoDocumentoIdentidad.Pasaporte, "K001", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!);
+        var command = new CargaMasivaPacientesCommand([new("PASAPORTE", "k001", "Juan Perez", "01/01/1990", null), new("PASAPORTE", "K002", "Juan Perez", "01/01/1990", null), new("PASAPORTE", "k002", "Juan Perez", "01/01/1990", null), new("PASAPORTE", "K003", "Juan Perez", "01/01/1990", null)]);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -38,11 +39,11 @@ public class CargaMasivaPacientesCommandHandlerTests
     [Fact]
     public async Task Handle_ShouldSaveRow_WhenTheKeyOnlyBelongsToADeletedRow()
     {
-        var eliminado = PacienteCliente.Create("K-001", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!;
+        var eliminado = PacienteCliente.Create(TipoDocumentoIdentidad.Pasaporte, "K001", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!;
         eliminado.IsDeleted = true;
         _existentes.Add(eliminado);
 
-        var result = await _handler.Handle(new CargaMasivaPacientesCommand([new("K-001", "Juan Perez", "01/01/1990", null)]), CancellationToken.None);
+        var result = await _handler.Handle(new CargaMasivaPacientesCommand([new("PASAPORTE", "K001", "Juan Perez", "01/01/1990", null)]), CancellationToken.None);
 
         _ = result.Value.Should().Be(1);
     }

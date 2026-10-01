@@ -1,4 +1,5 @@
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Enums;
 
 namespace SOFIA.Domain.Entities;
 
@@ -147,6 +148,18 @@ public sealed class SunatComprobanteEmitido : BaseEntity
         RutaArchivoCdr = rutaArchivoCdr;
         UrlPublicaVerificacion = urlPublicaVerificacion;
 
+        return Result.Success();
+    }
+
+    // Voiding the sale voids its document locally; reporting the voiding to SUNAT is left to the future OSE/PSE integration
+    public Result Anular()
+    {
+        if (EstadoAceptacion == EstadoComprobanteSunat.Anulado)
+        {
+            return Result.Failure(Error.Validation("SunatComprobanteEmitido.YaAnulado", "The document is already voided."));
+        }
+
+        EstadoAceptacion = EstadoComprobanteSunat.Anulado;
         return Result.Success();
     }
 

@@ -203,7 +203,7 @@ public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext, I
             venta.Id, serie.Id, correlativo,
             origen.TipoDocIdentidadCliente, origen.NumeroIdentidadCliente, origen.RazonSocialCliente,
             gravado, 0m, igv, montoDevuelto,
-            null, "Aceptado", null, null, null,
+            null, EstadoComprobanteSunat.NoEnviado, null, null, null,
             DateTime.UtcNow);
 
         if (ncResult.IsFailure)

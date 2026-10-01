@@ -6,10 +6,11 @@ using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Pacientes.Queries.GetPacientes;
 
-public record PacienteDto(Guid Id, string DocIdentidadGub, string NombreApellidos, DateOnly FechaNacimiento, string? ContactoPrimario);
+public record PacienteDto(Guid Id, string? TipoDocumento, string DocIdentidadGub, string NombreApellidos, DateOnly FechaNacimiento, string? ContactoPrimario);
 
 public record GetPacientesQuery : IRequest<Result<PaginatedList<PacienteDto>>>
 {
+    public string? TipoDocumento { get; init; }
     public string? DocIdentidadGub { get; init; }
     public string? NombreApellidos { get; init; }
     public DateOnly? FechaNacimientoDesde { get; init; }

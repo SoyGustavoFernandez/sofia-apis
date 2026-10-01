@@ -11,7 +11,7 @@ namespace SOFIA.UnitTests.Servicios.Commands.RegistrarInmunizacion;
 public class RegistrarInmunizacionCommandHandlerTests
 {
     private readonly Mock<IApplicationDbContext> _dbContextMock = new();
-    private readonly PacienteCliente _paciente = PacienteCliente.Create("12345678", "Juan Perez", new DateOnly(1990, 5, 10), null).Value!;
+    private readonly PacienteCliente _paciente = PacienteCliente.Create(TipoDocumentoIdentidad.Dni, "12345678", "Juan Perez", new DateOnly(1990, 5, 10), null).Value!;
     private readonly Empleado _profesional = Empleado.Create(Guid.NewGuid(), "Rosa", "Quispe", "Mamani").Value!;
     private readonly Medicamento _vacuna = Medicamento.Create("VAC-001", "Vacuna Influenza", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.VentaLibreOTC).Value!;
     private readonly LoteInventario _lote;

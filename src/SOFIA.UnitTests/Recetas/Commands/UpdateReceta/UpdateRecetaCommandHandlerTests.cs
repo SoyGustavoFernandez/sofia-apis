@@ -4,13 +4,14 @@ using Moq;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Recetas.Commands.UpdateReceta;
 using SOFIA.Domain.Entities;
+using SOFIA.Domain.Enums;
 
 namespace SOFIA.UnitTests.Recetas.Commands.UpdateReceta;
 
 public class UpdateRecetaCommandHandlerTests
 {
     private readonly Mock<IApplicationDbContext> _dbContextMock = new();
-    private readonly PacienteCliente _paciente = PacienteCliente.Create("12345678", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!;
+    private readonly PacienteCliente _paciente = PacienteCliente.Create(TipoDocumentoIdentidad.Dni, "12345678", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!;
     private readonly ProfesionalSalud _medico = ProfesionalSalud.Create("CMP-001", "Dra. Rosa Diaz", null).Value!;
     private readonly RecetaMedica _receta;
     private readonly UpdateRecetaCommandHandler _handler;

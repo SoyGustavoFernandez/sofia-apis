@@ -6,6 +6,7 @@ using SOFIA.Application.Ventas.Commands.CompletarVenta;
 using SOFIA.Application.Ventas.Commands.CreateVenta;
 using SOFIA.Domain.Entities;
 using SOFIA.Domain.Enums;
+using SOFIA.UnitTests.Ventas.Common;
 
 namespace SOFIA.UnitTests.Ventas.Commands.CompletarVenta;
 
@@ -50,6 +51,7 @@ public class CompletarVentaCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.Aseguradoras).Returns((aseguradoras ?? []).BuildMockDbSet().Object);
 
         _ = _dbContextMock.Setup(c => c.SUNATSeriesFiscales).Returns((series ?? [SerieBoletaActiva()]).BuildMockDbSet().Object);
+        EmisorMocks.Setup(_dbContextMock, _sucursalId);
         _ = _dbContextMock.Setup(c => c.IncrementarCorrelativoSunatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var pagosList = new List<VentaPago>();

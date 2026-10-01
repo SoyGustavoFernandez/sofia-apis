@@ -4,6 +4,7 @@ using Moq;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Pacientes.Commands.CreatePaciente;
 using SOFIA.Domain.Entities;
+using SOFIA.Domain.Enums;
 
 namespace SOFIA.UnitTests.Pacientes.Commands.CreatePaciente;
 
@@ -25,9 +26,9 @@ public class CreatePacienteCommandHandlerTests
     [Fact]
     public async Task Handle_ShouldReturnConflictAndNotSave_WhenDocIsTaken()
     {
-        _existentes.Add(PacienteCliente.Create("K-001", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!);
+        _existentes.Add(PacienteCliente.Create(TipoDocumentoIdentidad.Pasaporte, "K001", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!);
 
-        var result = await _handler.Handle(new CreatePacienteCommand("K-001", "Juan Perez", new DateOnly(1990, 1, 1), null), CancellationToken.None);
+        var result = await _handler.Handle(new CreatePacienteCommand(TipoDocumentoIdentidad.Pasaporte, "K001", "Juan Perez", new DateOnly(1990, 1, 1), null), CancellationToken.None);
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Paciente.DocIdentidadGub.Duplicado");
@@ -39,13 +40,35 @@ public class CreatePacienteCommandHandlerTests
     [Fact]
     public async Task Handle_ShouldCreate_WhenDocOnlyBelongsToADeletedRow()
     {
-        var eliminado = PacienteCliente.Create("K-001", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!;
+        var eliminado = PacienteCliente.Create(TipoDocumentoIdentidad.Pasaporte, "K001", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!;
         eliminado.IsDeleted = true;
         _existentes.Add(eliminado);
 
-        var result = await _handler.Handle(new CreatePacienteCommand("K-001", "Juan Perez", new DateOnly(1990, 1, 1), null), CancellationToken.None);
+        var result = await _handler.Handle(new CreatePacienteCommand(TipoDocumentoIdentidad.Pasaporte, "K001", "Juan Perez", new DateOnly(1990, 1, 1), null), CancellationToken.None);
 
         _ = result.IsSuccess.Should().BeTrue();
         _setMock.Verify(m => m.Add(It.IsAny<PacienteCliente>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldStoreTheDocumentType_OfTheNewPatient()
+    {
+        PacienteCliente? creado = null;
+        _ = _setMock.Setup(m => m.Add(It.IsAny<PacienteCliente>())).Callback<PacienteCliente>(p => creado = p);
+
+        var result = await _handler.Handle(new CreatePacienteCommand(TipoDocumentoIdentidad.Dni, "45781236", "Juan Perez", new DateOnly(1990, 1, 1), null), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = creado!.TipoDocumento.Should().Be(TipoDocumentoIdentidad.Dni);
+        _ = creado.DocIdentidadGub.Should().Be("45781236");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFailAndNotSave_WhenTheNumberDoesNotMatchItsType()
+    {
+        var result = await _handler.Handle(new CreatePacienteCommand(TipoDocumentoIdentidad.Dni, "K001", "Juan Perez", new DateOnly(1990, 1, 1), null), CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("PacienteCliente.DocIdentidadGub.FormatoInvalido");
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

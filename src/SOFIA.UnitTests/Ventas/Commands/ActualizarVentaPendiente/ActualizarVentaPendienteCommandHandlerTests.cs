@@ -82,7 +82,7 @@ public class ActualizarVentaPendienteCommandHandlerTests
     public async Task Handle_ShouldAssignCliente_WhenNewClienteBelongsToTheTenant()
     {
         var venta = CrearVentaPendiente();
-        var cliente = PacienteCliente.Create("12345678", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!;
+        var cliente = PacienteCliente.Create(TipoDocumentoIdentidad.Dni, "12345678", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!;
         SetupMocks([venta], [InventarioSucursal.Create(_sucursalId, _loteNuevoId, 10).Value!]);
         _ = _dbContextMock.Setup(c => c.Pacientes).Returns(new List<PacienteCliente> { cliente }.BuildMockDbSet().Object);
 

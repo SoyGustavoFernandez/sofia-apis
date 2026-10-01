@@ -9,6 +9,7 @@ using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 using SOFIA.Application.Security.Commands.Login;
 using SOFIA.Application.Security.Commands.RefreshToken;
 using SOFIA.Domain.Entities;
+using SOFIA.Domain.Enums;
 using SOFIA.Infrastructure.Authentication;
 using SOFIA.IntegrationTests.Infrastructure;
 
@@ -82,12 +83,12 @@ public class TenantIsolationIntegrationTests(SofiaWebAppFactory factory) : BaseI
         var documento = $"{Random.Shared.Next(10_000_000, 99_999_999)}";
 
         CurrentUser.Empresa = EmpresaA;
-        _ = DbContext.Pacientes.Add(PacienteCliente.Create(documento, "Paciente A", new DateOnly(1990, 1, 1), null).Value!);
+        _ = DbContext.Pacientes.Add(PacienteCliente.Create(TipoDocumentoIdentidad.Dni, documento, "Paciente A", new DateOnly(1990, 1, 1), null).Value!);
         _ = await DbContext.SaveChangesAsync();
 
         // Act
         CurrentUser.Empresa = EmpresaB;
-        _ = DbContext.Pacientes.Add(PacienteCliente.Create(documento, "Paciente B", new DateOnly(1990, 1, 1), null).Value!);
+        _ = DbContext.Pacientes.Add(PacienteCliente.Create(TipoDocumentoIdentidad.Dni, documento, "Paciente B", new DateOnly(1990, 1, 1), null).Value!);
         var act = () => DbContext.SaveChangesAsync();
 
         // Assert

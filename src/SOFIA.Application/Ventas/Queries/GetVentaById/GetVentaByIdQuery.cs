@@ -21,7 +21,8 @@ public record VentaConDetalleDto(
     List<VentaDetalleDto> Detalles,
     ComprobanteDto? Comprobante,
     List<VentaPagoDto> Pagos,
-    List<VentaDevolucionDto> Devoluciones);
+    List<VentaDevolucionDto> Devoluciones,
+    string? ClienteTipoDocumento);
 
 public record ComprobanteDto(
     string Tipo,
@@ -29,7 +30,13 @@ public record ComprobanteDto(
     string EstadoAceptacion,
     string? UrlVerificacion,
     string? UrlXml,
-    string? UrlCdr);
+    string? UrlCdr,
+    string? EmisorRazonSocial,
+    string? EmisorRuc,
+    string? SucursalDireccion,
+    string ClienteTipoDocumento,
+    string ClienteNumeroDocumento,
+    string ClienteNombre);
 
 public record VentaDetalleDto(
     Guid Id,

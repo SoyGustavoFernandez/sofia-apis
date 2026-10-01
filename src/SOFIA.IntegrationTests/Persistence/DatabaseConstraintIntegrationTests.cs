@@ -23,12 +23,12 @@ public class DatabaseConstraintIntegrationTests(SofiaWebAppFactory factory) : Ba
     {
         // Arrange
         var dni = $"{Random.Shared.Next(10_000_000, 99_999_999)}";
-        var primero = await Sender.Send(new CreatePacienteCommand(dni, "Juan Perez", new DateOnly(1990, 1, 1), null));
+        var primero = await Sender.Send(new CreatePacienteCommand(TipoDocumentoIdentidad.Dni, dni, "Juan Perez", new DateOnly(1990, 1, 1), null));
         _ = primero.IsSuccess.Should().BeTrue();
         _ = (await Sender.Send(new DeletePacienteCommand(primero.Value))).IsSuccess.Should().BeTrue();
 
         // Act
-        var segundo = await Sender.Send(new CreatePacienteCommand(dni, "Juan Perez", new DateOnly(1990, 1, 1), null));
+        var segundo = await Sender.Send(new CreatePacienteCommand(TipoDocumentoIdentidad.Dni, dni, "Juan Perez", new DateOnly(1990, 1, 1), null));
 
         // Assert
         _ = segundo.IsSuccess.Should().BeTrue(because: "the unique index only counts live rows");
@@ -40,9 +40,9 @@ public class DatabaseConstraintIntegrationTests(SofiaWebAppFactory factory) : Ba
     public async Task CreatePaciente_ShouldReturnConflict_WhenTheDocumentBelongsToALivePaciente()
     {
         var dni = $"{Random.Shared.Next(10_000_000, 99_999_999)}";
-        _ = (await Sender.Send(new CreatePacienteCommand(dni, "Juan Perez", new DateOnly(1990, 1, 1), null))).IsSuccess.Should().BeTrue();
+        _ = (await Sender.Send(new CreatePacienteCommand(TipoDocumentoIdentidad.Dni, dni, "Juan Perez", new DateOnly(1990, 1, 1), null))).IsSuccess.Should().BeTrue();
 
-        var duplicado = await Sender.Send(new CreatePacienteCommand(dni, "Otro Nombre", new DateOnly(1985, 5, 5), null));
+        var duplicado = await Sender.Send(new CreatePacienteCommand(TipoDocumentoIdentidad.Dni, dni, "Otro Nombre", new DateOnly(1985, 5, 5), null));
 
         _ = duplicado.IsFailure.Should().BeTrue();
         _ = duplicado.Error.Code.Should().Be("Paciente.DocIdentidadGub.Duplicado");
@@ -65,10 +65,10 @@ public class DatabaseConstraintIntegrationTests(SofiaWebAppFactory factory) : Ba
     public async Task SaveChanges_ShouldRejectASecondLiveRowWithTheSameKey_WhenTheApplicationCheckIsBypassed()
     {
         var dni = $"{Random.Shared.Next(10_000_000, 99_999_999)}";
-        _ = DbContext.Pacientes.Add(PacienteCliente.Create(dni, "Juan Perez", new DateOnly(1990, 1, 1), null).Value!);
+        _ = DbContext.Pacientes.Add(PacienteCliente.Create(TipoDocumentoIdentidad.Dni, dni, "Juan Perez", new DateOnly(1990, 1, 1), null).Value!);
         _ = await DbContext.SaveChangesAsync();
 
-        _ = DbContext.Pacientes.Add(PacienteCliente.Create(dni, "Otro", new DateOnly(1990, 1, 1), null).Value!);
+        _ = DbContext.Pacientes.Add(PacienteCliente.Create(TipoDocumentoIdentidad.Dni, dni, "Otro", new DateOnly(1990, 1, 1), null).Value!);
         var act = () => DbContext.SaveChangesAsync();
 
         var thrown = await act.Should().ThrowAsync<DbUpdateException>();
@@ -97,9 +97,9 @@ public class DatabaseConstraintIntegrationTests(SofiaWebAppFactory factory) : Ba
     public async Task TryHandleAsync_ShouldReturnConflictWithoutLoggingTheKey_WhenAUniqueIndexIsViolated()
     {
         var dni = $"{Random.Shared.Next(10_000_000, 99_999_999)}";
-        _ = DbContext.Pacientes.Add(PacienteCliente.Create(dni, "Juan Perez", new DateOnly(1990, 1, 1), null).Value!);
+        _ = DbContext.Pacientes.Add(PacienteCliente.Create(TipoDocumentoIdentidad.Dni, dni, "Juan Perez", new DateOnly(1990, 1, 1), null).Value!);
         _ = await DbContext.SaveChangesAsync();
-        _ = DbContext.Pacientes.Add(PacienteCliente.Create(dni, "Otro", new DateOnly(1990, 1, 1), null).Value!);
+        _ = DbContext.Pacientes.Add(PacienteCliente.Create(TipoDocumentoIdentidad.Dni, dni, "Otro", new DateOnly(1990, 1, 1), null).Value!);
         var exception = await CaptureAsync(() => DbContext.SaveChangesAsync());
         _ = ((SqlException)exception.InnerException!).Number.Should().Be(2601);
 

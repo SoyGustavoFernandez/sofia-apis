@@ -53,6 +53,7 @@ public class GetVentaByIdQueryHandler(
 
         var cantidadesDevueltas = await context.GetCantidadesDevueltasAsync([.. venta.Detalles.Select(d => d.Id)], cancellationToken);
         var devoluciones = comprobante != null ? await GetDevolucionesAsync(comprobante.Id, cancellationToken) : [];
+        var emisor = comprobante != null ? await VentaComprobanteGenerator.GetEmisorAsync(context, venta.SucursalId, cancellationToken) : null;
 
         var codigoVenta = comprobante != null
             ? $"{comprobante.Serie?.PrefijoSerie}-{comprobante.NumeroCorrelativo:D8}"
@@ -89,7 +90,13 @@ public class GetVentaByIdQueryHandler(
                 comprobante.EstadoAceptacion,
                 comprobante.UrlPublicaVerificacion,
                 comprobante.RutaArchivoXml,
-                comprobante.RutaArchivoCdr
+                comprobante.RutaArchivoCdr,
+                emisor?.RazonSocial,
+                emisor?.Ruc,
+                emisor?.Direccion,
+                comprobante.TipoDocIdentidadCliente,
+                comprobante.NumeroIdentidadCliente,
+                comprobante.RazonSocialCliente
             ) : null,
             [.. venta.Pagos.Select(p => new VentaPagoDto(
                 p.Id,
@@ -98,7 +105,8 @@ public class GetVentaByIdQueryHandler(
                 p.ReferenciaOperacion,
                 p.FechaPago
             ))],
-            devoluciones
+            devoluciones,
+            venta.Cliente?.TipoDocumento
         );
 
         return Result.Success(dto);

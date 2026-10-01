@@ -20,6 +20,7 @@ public class GetPacienteByIdQueryHandler(IApplicationDbContext context) : IReque
 
         var dto = new PacienteDto(
             entity.Id,
+            entity.TipoDocumento,
             entity.DocIdentidadGub,
             entity.NombreApellidos,
             entity.FechaNacimiento,

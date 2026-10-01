@@ -265,6 +265,8 @@ public class ProcesarDevolucionCommandHandlerTests
         _ = nc.MontoGravadoIgv.Should().Be(33.90m);
         _ = nc.MontoTotalIgv.Should().Be(6.10m);
         _ = nc.RazonSocialCliente.Should().Be("JUAN PEREZ");
+        _ = nc.EstadoAceptacion.Should().Be(EstadoComprobanteSunat.NoEnviado);
+        _ = nc.HashFirmaDigital.Should().BeNull();
         _dbContextMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 

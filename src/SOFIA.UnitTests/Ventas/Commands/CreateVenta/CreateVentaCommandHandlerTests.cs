@@ -5,6 +5,7 @@ using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Ventas.Commands.CreateVenta;
 using SOFIA.Domain.Entities;
 using SOFIA.Domain.Enums;
+using SOFIA.UnitTests.Ventas.Common;
 
 namespace SOFIA.UnitTests.Ventas.Commands.CreateVenta;
 
@@ -20,7 +21,7 @@ public class CreateVentaCommandHandlerTests
     private readonly Guid _empleadoId = Guid.NewGuid();
     private readonly Guid _sesionId = Guid.NewGuid();
     private readonly Guid _loteId = Guid.NewGuid();
-    private readonly PacienteCliente _cliente = PacienteCliente.Create("12345678", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!;
+    private readonly PacienteCliente _cliente = PacienteCliente.Create(TipoDocumentoIdentidad.Dni, "12345678", "Juan Perez", new DateOnly(1990, 1, 1), null).Value!;
     private readonly Guid _productoId = Guid.NewGuid();
 
     private readonly Guid _clienteId;
@@ -730,6 +731,7 @@ public class CreateVentaCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.DigemidInventarioCuarentena).Returns(cuarentenas.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.LotesEnSucursal).Returns(inventario.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.SUNATSeriesFiscales).Returns(series.BuildMockDbSet().Object);
+        EmisorMocks.Setup(_dbContextMock, _sucursalId);
         _ = _dbContextMock.Setup(c => c.IncrementarCorrelativoSunatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
         _ = _dbContextMock.Setup(c => c.PresentacionesVenta).Returns(presentaciones.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.Aseguradoras).Returns(aseguradoras.BuildMockDbSet().Object);

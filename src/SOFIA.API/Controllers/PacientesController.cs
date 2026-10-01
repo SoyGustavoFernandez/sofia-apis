@@ -6,6 +6,7 @@ using SOFIA.Application.Pacientes.Commands.UpdatePaciente;
 using SOFIA.Application.Pacientes.Queries.GetPacienteById;
 using SOFIA.Application.Pacientes.Queries.GetPacientes;
 using SOFIA.Application.Pacientes.Queries.PreviewImportPacientes;
+using SOFIA.Domain.Enums;
 using SOFIA.Infrastructure.Excel;
 
 namespace SOFIA.Api.Controllers;
@@ -64,6 +65,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
     {
         var result = await sender.Send(new GetPacientesQuery
         {
+            TipoDocumento = request.TipoDocumento,
             DocIdentidadGub = request.DocIdentidadGub,
             NombreApellidos = request.NombreApellidos,
             FechaNacimientoDesde = request.FechaNacimientoDesde,
@@ -83,6 +85,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
         var rows = result.Value.Items.Select(p => new object?[]
         {
             p.DocIdentidadGub,
+            p.TipoDocumento is not null ? TipoDocumentoIdentidad.Abreviaturas.GetValueOrDefault(p.TipoDocumento) : null,
             p.NombreApellidos,
             p.FechaNacimiento.ToString(request.DateFormat),
             p.ContactoPrimario,
@@ -95,7 +98,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
     [HttpGet("plantilla")]
     public IActionResult GetPlantilla()
     {
-        var columns = new[] { "DocIdentidadGub", "NombreApellidos", "FechaNacimiento", "ContactoPrimario" };
+        var columns = new[] { "TipoDocumento", "DocIdentidadGub", "NombreApellidos", "FechaNacimiento", "ContactoPrimario" };
         var bytes = ExcelTemplateGenerator.GenerateTemplate(columns);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla-pacientes.xlsx");
     }
@@ -111,7 +114,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
             return BadRequest("Debe adjuntar un archivo Excel.");
         }
 
-        var columns = new[] { "DocIdentidadGub", "NombreApellidos", "FechaNacimiento", "ContactoPrimario" };
+        var columns = new[] { "TipoDocumento", "DocIdentidadGub", "NombreApellidos", "FechaNacimiento", "ContactoPrimario" };
         using var stream = file.OpenReadStream();
         var rows = excelReader.ReadRows(stream, columns, file.FileName);
         var result = await sender.Send(new PreviewImportPacientesQuery(rows), cancellationToken);
@@ -131,6 +134,7 @@ public class PacientesController(ISender sender, IExcelReaderService excelReader
 public record PacienteExportRequest(
     [ExportHeaders] string[] Headers,
     [ExportDateFormat] string DateFormat,
+    string? TipoDocumento,
     string? DocIdentidadGub,
     string? NombreApellidos,
     DateOnly? FechaNacimientoDesde,

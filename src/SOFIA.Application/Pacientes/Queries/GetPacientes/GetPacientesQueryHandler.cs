@@ -14,6 +14,11 @@ public class GetPacientesQueryHandler(IApplicationDbContext context) : IRequestH
             .AsNoTracking()
             .Where(x => !x.IsDeleted);
 
+        if (!string.IsNullOrWhiteSpace(request.TipoDocumento))
+        {
+            query = query.Where(x => x.TipoDocumento == request.TipoDocumento);
+        }
+
         if (!string.IsNullOrWhiteSpace(request.DocIdentidadGub))
         {
             query = query.Where(x => x.DocIdentidadGub.Contains(request.DocIdentidadGub));
@@ -35,7 +40,7 @@ public class GetPacientesQueryHandler(IApplicationDbContext context) : IRequestH
         }
 
         var paginatedList = await PaginatedList<PacienteDto>.CreateAsync(
-            query.Select(x => new PacienteDto(x.Id, x.DocIdentidadGub, x.NombreApellidos, x.FechaNacimiento, x.ContactoPrimario)),
+            query.Select(x => new PacienteDto(x.Id, x.TipoDocumento, x.DocIdentidadGub, x.NombreApellidos, x.FechaNacimiento, x.ContactoPrimario)),
             request.PageNumber,
             request.PageSize);
 

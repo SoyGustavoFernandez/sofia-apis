@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Excel;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Domain.Enums;
 
 namespace SOFIA.Application.Pacientes.Queries.PreviewImportPacientes;
 
@@ -40,6 +41,21 @@ public class PreviewImportPacientesQueryHandler(IApplicationDbContext context)
                 var nombre = row.Values.GetValueOrDefault("NombreApellidos");
                 var fechaStr = row.Values.GetValueOrDefault("FechaNacimiento");
                 var contacto = row.Values.GetValueOrDefault("ContactoPrimario");
+                var tipoTexto = row.Values.GetValueOrDefault("TipoDocumento");
+                var tipo = TipoDocumentoIdentidad.Parse(tipoTexto);
+
+                if (string.IsNullOrWhiteSpace(tipoTexto))
+                {
+                    errors.Add(new ValidationError("required", "tipoDocumento"));
+                }
+                else if (tipo is null)
+                {
+                    errors.Add(new ValidationError("invalid-option", "tipoDocumento", new() { ["value"] = tipoTexto }));
+                }
+                else if (!string.IsNullOrWhiteSpace(doc) && !TipoDocumentoIdentidad.EsNumeroValido(tipo, doc))
+                {
+                    errors.Add(new ValidationError("invalid-document-number", "docIdentidadGub"));
+                }
 
                 if (string.IsNullOrWhiteSpace(doc))
                 {

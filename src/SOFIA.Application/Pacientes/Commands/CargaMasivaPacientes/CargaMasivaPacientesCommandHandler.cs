@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
+using SOFIA.Domain.Enums;
 
 namespace SOFIA.Application.Pacientes.Commands.CargaMasivaPacientes;
 
@@ -24,7 +25,7 @@ public class CargaMasivaPacientesCommandHandler(IApplicationDbContext context)
                 continue;
             }
 
-            var result = PacienteCliente.Create(row.DocIdentidadGub, row.NombreApellidos, fecha, row.ContactoPrimario);
+            var result = PacienteCliente.Create(TipoDocumentoIdentidad.Parse(row.TipoDocumento), row.DocIdentidadGub, row.NombreApellidos, fecha, row.ContactoPrimario);
             if (result.IsSuccess && tomados.Add(result.Value.DocIdentidadGub))
             {
                 _ = context.Pacientes.Add(result.Value);

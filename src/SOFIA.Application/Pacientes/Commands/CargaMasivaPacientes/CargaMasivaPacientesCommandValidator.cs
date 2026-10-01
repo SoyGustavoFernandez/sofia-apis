@@ -10,6 +10,7 @@ public class CargaMasivaPacientesCommandValidator : AbstractValidator<CargaMasiv
         _ = RuleFor(v => v.Rows).WithinImportLimits();
         _ = RuleForEach(v => v.Rows).ChildRules(row =>
         {
+            _ = row.RuleFor(r => r.TipoDocumento).NotEmpty().MaximumLength(20);
             _ = row.RuleFor(r => r.DocIdentidadGub).NotEmpty().MaximumLength(50);
             _ = row.RuleFor(r => r.NombreApellidos).NotEmpty().MaximumLength(200);
             _ = row.RuleFor(r => r.FechaNacimiento).NotEmpty().MaximumLength(10);

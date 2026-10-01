@@ -16,6 +16,10 @@ public class PacienteClienteConfiguration : IEntityTypeConfiguration<PacienteCli
             .HasColumnName("Cliente_ID")
             .ValueGeneratedOnAdd();
 
+        _ = builder.Property(x => x.TipoDocumento)
+            .HasColumnName("Tipo_Doc_Identidad")
+            .HasMaxLength(1);
+
         _ = builder.Property(x => x.DocIdentidadGub)
             .HasColumnName("Doc_Identidad_Gub")
             .HasMaxLength(50)
@@ -47,6 +51,8 @@ public class PacienteClienteConfiguration : IEntityTypeConfiguration<PacienteCli
         _ = builder.HasIndex(x => new { x.TenantId, x.DocIdentidadGub }, "UX_Pacientes_Clientes_Tenant_Doc_Identidad_Gub")
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
+
+        _ = builder.ToTable(t => t.HasCheckConstraint("CHK_Pacientes_Clientes_Tipo_Doc_Identidad", "[Tipo_Doc_Identidad] IN ('1', '4', '6', '7')"));
 
         // Soft delete query filter
     }

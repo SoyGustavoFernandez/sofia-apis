@@ -5,4 +5,4 @@ using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Pacientes.Commands.UpdatePaciente;
 
-public record UpdatePacienteCommand(Guid Id, string DocIdentidadGub, string NombreApellidos, DateOnly FechaNacimiento, string? ContactoPrimario) : ICommand;
+public record UpdatePacienteCommand(Guid Id, string? TipoDocumento, string DocIdentidadGub, string NombreApellidos, DateOnly FechaNacimiento, string? ContactoPrimario) : ICommand;

@@ -9,7 +9,7 @@ public class CreatePacienteCommandHandler(IApplicationDbContext dbContext) : IRe
 {
     public async Task<Result<Guid>> Handle(CreatePacienteCommand request, CancellationToken cancellationToken)
     {
-        var createResult = Domain.Entities.PacienteCliente.Create(request.DocIdentidadGub, request.NombreApellidos, request.FechaNacimiento, request.ContactoPrimario);
+        var createResult = Domain.Entities.PacienteCliente.Create(request.TipoDocumento, request.DocIdentidadGub, request.NombreApellidos, request.FechaNacimiento, request.ContactoPrimario);
         if (createResult.IsFailure)
         {
             return Result.Failure<Guid>(createResult.Error);

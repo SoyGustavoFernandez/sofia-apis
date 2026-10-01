@@ -24,7 +24,7 @@ public class UpdatePacienteCommandHandler(IApplicationDbContext context) : IRequ
             return Result.Failure(Error.Conflict("Paciente.DocIdentidadGub.Duplicado", "Another patient already uses this identity document."), 409);
         }
 
-        var result = entity.Update(request.DocIdentidadGub, request.NombreApellidos, request.FechaNacimiento, request.ContactoPrimario);
+        var result = entity.Update(request.TipoDocumento, request.DocIdentidadGub, request.NombreApellidos, request.FechaNacimiento, request.ContactoPrimario);
 
         if (!result.IsSuccess)
         {

@@ -11,7 +11,7 @@ namespace SOFIA.UnitTests.Servicios.Commands.AgendarServicio;
 public class AgendarServicioCommandHandlerTests
 {
     private readonly Mock<IApplicationDbContext> _dbContextMock = new();
-    private readonly PacienteCliente _paciente = PacienteCliente.Create("12345678", "Juan Perez", new DateOnly(1990, 5, 10), null).Value!;
+    private readonly PacienteCliente _paciente = PacienteCliente.Create(TipoDocumentoIdentidad.Dni, "12345678", "Juan Perez", new DateOnly(1990, 5, 10), null).Value!;
     private readonly Medicamento _producto = Medicamento.Create("SRV-001", "Vacuna Influenza", Guid.NewGuid(), Guid.NewGuid(), CondicionVenta.VentaLibreOTC).Value!;
     private readonly List<ServicioAgenda> _agenda = [];
     private readonly AgendarServicioCommandHandler _handler;

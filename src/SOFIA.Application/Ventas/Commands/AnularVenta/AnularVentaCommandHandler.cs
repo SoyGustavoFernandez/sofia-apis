@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Enums;
 
 namespace SOFIA.Application.Ventas.Commands.AnularVenta;
 
@@ -53,6 +54,23 @@ public class AnularVentaCommandHandler(
         if (!resultAnular.IsSuccess)
         {
             return Result.Failure(resultAnular.Error);
+        }
+
+        // The sale's boleta/factura is voided with it in the same save
+        var comprobantes = await (
+            from c in context.SUNATComprobantesEmitidos
+            join s in context.SUNATSeriesFiscales on c.SerieId equals s.Id
+            where c.TransaccionId == venta.Id && !c.IsDeleted && c.EstadoAceptacion != EstadoComprobanteSunat.Anulado
+                && (s.TipoComprobante == TipoComprobante.Boleta || s.TipoComprobante == TipoComprobante.Factura)
+            select c).ToListAsync(cancellationToken);
+
+        foreach (var comprobante in comprobantes)
+        {
+            var anularComprobante = comprobante.Anular();
+            if (anularComprobante.IsFailure)
+            {
+                return anularComprobante;
+            }
         }
 
         // 4. Revertir Stock

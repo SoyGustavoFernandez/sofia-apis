@@ -55,6 +55,7 @@ public class IniciarOrdenMagistralCommandHandler(IApplicationDbContext dbContext
         }
 
         var orden = ordenResult.Value;
+        var ahora = DateTimeOffset.UtcNow;
 
         // 2. Descontar Insumos y Guardar Consumos
         foreach (var dto in request.Consumos)
@@ -69,9 +70,10 @@ public class IniciarOrdenMagistralCommandHandler(IApplicationDbContext dbContext
                 return Result.Failure<Guid>(Error.NotFound("Inventario.NotFound", $"Inventario ID {dto.InventarioSucursalId} no encontrado."), 404);
             }
 
-            if (inventario.CantidadFisica < dto.CantidadConsumida)
+            var insumoResult = ValidateInsumo(inventario, dto, ahora);
+            if (insumoResult.IsFailure)
             {
-                return Result.Failure<Guid>(Error.Validation("Inventario.StockInsuficiente", $"Stock insuficiente para el inventario {dto.InventarioSucursalId}. Stock actual: {inventario.CantidadFisica}"));
+                return Result.Failure<Guid>(insumoResult.Error);
             }
 
             // Deduct inventory
@@ -100,5 +102,18 @@ public class IniciarOrdenMagistralCommandHandler(IApplicationDbContext dbContext
         _ = await dbContext.SaveChangesAsync(cancellationToken);
 
         return Result.Success(orden!.Id);
+    }
+
+    // Same rule as the sale flow: an input lot is usable through the end of its expiry day, and only up to the stock on hand
+    private static Result ValidateInsumo(InventarioSucursal inventario, InsumoDto dto, DateTimeOffset ahora)
+    {
+        if (inventario.Lote is null || inventario.Lote.EstaVencido(ahora))
+        {
+            return Result.Failure(Error.Validation("Magistral.Insumo.LoteVencido", $"El lote del inventario {dto.InventarioSucursalId} está vencido y no puede usarse como insumo."));
+        }
+
+        return inventario.CantidadFisica < dto.CantidadConsumida
+            ? Result.Failure(Error.Validation("Inventario.StockInsuficiente", $"Stock insuficiente para el inventario {dto.InventarioSucursalId}. Stock actual: {inventario.CantidadFisica}"))
+            : Result.Success();
     }
 }

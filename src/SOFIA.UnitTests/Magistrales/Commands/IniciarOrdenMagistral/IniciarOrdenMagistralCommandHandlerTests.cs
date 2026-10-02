@@ -1,3 +1,4 @@
+using System.Reflection;
 using FluentAssertions;
 using MockQueryable.Moq;
 using Moq;
@@ -36,15 +37,89 @@ public class IniciarOrdenMagistralCommandHandlerTests
         _handler = new IniciarOrdenMagistralCommandHandler(_dbContextMock.Object, _currentUserMock.Object);
     }
 
-    private InventarioSucursal AddInventario(Guid sucursalId, decimal cantidad)
+    // Expiry stored like the SPA sends it (-05:00) for an expiry day that started the given hours ago.
+    private static DateTimeOffset CaducidadIniciadaHace(double horas) => DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(-5)).AddHours(-horas);
+
+    // Builds the stock row with its Lote navigation loaded, as the handler's Include does
+    private InventarioSucursal AddInventario(Guid sucursalId, decimal cantidad, DateTimeOffset? caducidad = null, bool conLote = true)
     {
-        var inventario = InventarioSucursal.Create(sucursalId, Guid.NewGuid(), cantidad).Value!;
+        var lote = LoteInventario.Create(Guid.NewGuid(), "L-INSUMO", null, DateTimeOffset.UtcNow.AddYears(1)).Value!;
+        if (caducidad.HasValue)
+        {
+            typeof(LoteInventario).GetProperty(nameof(LoteInventario.FechaCaducidad))!.SetValue(lote, caducidad.Value);
+        }
+
+        var inventario = InventarioSucursal.Create(sucursalId, lote.Id, cantidad).Value!;
+        if (conLote)
+        {
+            typeof(InventarioSucursal).GetField("<Lote>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(inventario, lote);
+        }
+
         _inventarios.Add(inventario);
         return inventario;
     }
 
     private IniciarOrdenMagistralCommand Command(Guid inventarioId, decimal cantidad, Guid? recetaId = null) =>
         new(recetaId, _producto.Id, 10, [new(inventarioId, cantidad)]);
+
+    [Theory]
+    [InlineData(24)]
+    [InlineData(36)]
+    public async Task Handle_ShouldReturnLoteVencido_WhenTheInputExpiryDayAlreadyEnded(double horas)
+    {
+        var inventario = AddInventario(_sucursalId, 50m, CaducidadIniciadaHace(horas));
+
+        var result = await _handler.Handle(Command(inventario.Id, 10), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Magistral.Insumo.LoteVencido");
+        _ = inventario.CantidadFisica.Should().Be(50m, because: "an expired input must never be consumed");
+        _ = _ordenes.Should().BeEmpty();
+        _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _dbContextMock.Verify(db => db.MagistralesConsumosInsumo.Add(It.IsAny<MagistralConsumoInsumo>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(23)]
+    public async Task Handle_ShouldCreateOrder_WhenTheInputLotExpiresToday(double horas)
+    {
+        var inventario = AddInventario(_sucursalId, 50m, CaducidadIniciadaHace(horas));
+
+        var result = await _handler.Handle(Command(inventario.Id, 10), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = inventario.CantidadFisica.Should().Be(40m);
+        _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotSaveAnything_WhenALaterInputIsExpired()
+    {
+        var vigente = AddInventario(_sucursalId, 50m);
+        var vencido = AddInventario(_sucursalId, 30m, CaducidadIniciadaHace(36));
+        var command = new IniciarOrdenMagistralCommand(null, _producto.Id, 10, [new(vigente.Id, 10), new(vencido.Id, 5)]);
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Magistral.Insumo.LoteVencido");
+        _ = vencido.CantidadFisica.Should().Be(30m);
+        _ = _ordenes.Should().BeEmpty();
+        _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never, "the deduction of the first input must not be persisted");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnLoteVencido_WhenTheInputLotIsNotLoaded()
+    {
+        var inventario = AddInventario(_sucursalId, 50m, conLote: false);
+
+        var result = await _handler.Handle(Command(inventario.Id, 10), CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Magistral.Insumo.LoteVencido");
+        _ = inventario.CantidadFisica.Should().Be(50m);
+        _dbContextMock.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
 
     [Fact]
     public async Task Handle_ShouldCreateOrderForSessionChemistAndBranch_WhenStockIsAvailable()

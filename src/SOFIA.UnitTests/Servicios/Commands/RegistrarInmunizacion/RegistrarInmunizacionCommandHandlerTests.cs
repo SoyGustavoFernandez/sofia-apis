@@ -38,6 +38,88 @@ public class RegistrarInmunizacionCommandHandlerTests
         null, _paciente.Id, _profesional.Id, _vacuna.Id, _lote.Id,
         "IM", "Deltoides", 0.5m, DateTime.UtcNow, null, ModalidadRegistro.Corriente);
 
+    // Expiry stored like the SPA sends it (-05:00) for an expiry day that started the given hours ago.
+    private static DateTimeOffset CaducidadIniciadaHace(double horas) => DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(-5)).AddHours(-horas);
+
+    private void SetCaducidad(DateTimeOffset caducidad) =>
+        typeof(LoteInventario).GetProperty(nameof(LoteInventario.FechaCaducidad))!.SetValue(_lote, caducidad);
+
+    [Theory]
+    [InlineData(24)]
+    [InlineData(36)]
+    public async Task Handle_ShouldReturnLoteVencido_WhenTheExpiryDayEndedBeforeTheDose(double horas)
+    {
+        SetCaducidad(CaducidadIniciadaHace(horas));
+
+        var result = await _handler.Handle(Command(), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Inmunizacion.Lote.Vencido");
+        _ = _inmunizaciones.Should().BeEmpty();
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(23)]
+    public async Task Handle_ShouldRegister_WhenTheLotExpiresOnTheDoseDay(double horas)
+    {
+        SetCaducidad(CaducidadIniciadaHace(horas));
+
+        var result = await _handler.Handle(Command(), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = _inmunizaciones.Should().ContainSingle();
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRegister_WhenTheDoseWasGivenBeforeTheLotExpired()
+    {
+        SetCaducidad(CaducidadIniciadaHace(36));
+
+        var result = await _handler.Handle(Command() with { FechaAdmnFisica = DateTime.UtcNow.AddDays(-2) }, CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue(because: "the lot is judged at the administration date, not at the registration time");
+        _ = _inmunizaciones.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnLoteVencido_WhenTheDoseDateIsAfterTheExpiryDayOfAValidLot()
+    {
+        var result = await _handler.Handle(Command() with { FechaAdmnFisica = DateTime.UtcNow.AddYears(2) }, CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("Inmunizacion.Lote.Vencido");
+        _ = _inmunizaciones.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(10, 23, 59, false)]
+    [InlineData(11, 0, 0, true)]
+    public async Task Handle_ShouldReadTheDoseDateAsUtc_WhenItHasNoOffset(int dia, int hora, int minuto, bool vencido)
+    {
+        SetCaducidad(new DateTimeOffset(2026, 3, 10, 0, 0, 0, TimeSpan.Zero));
+        var fechaSinOffset = new DateTime(2026, 3, dia, hora, minuto, 0, DateTimeKind.Unspecified);
+
+        var result = await _handler.Handle(Command() with { FechaAdmnFisica = fechaSinOffset }, CancellationToken.None);
+
+        _ = result.IsFailure.Should().Be(vencido);
+        _ = _inmunizaciones.Should().HaveCount(vencido ? 0 : 1);
+    }
+
+    [Theory]
+    [InlineData(23.9, false)]
+    [InlineData(24.1, true)]
+    public async Task Handle_ShouldKeepTheInstant_WhenTheDoseDateIsLocal(double horas, bool vencido)
+    {
+        SetCaducidad(CaducidadIniciadaHace(horas));
+
+        var result = await _handler.Handle(Command() with { FechaAdmnFisica = DateTime.UtcNow.ToLocalTime() }, CancellationToken.None);
+
+        _ = result.IsFailure.Should().Be(vencido);
+        _ = _inmunizaciones.Should().HaveCount(vencido ? 0 : 1);
+    }
+
     [Fact]
     public async Task Handle_ShouldRegister_WhenReferencesBelongToCompany()
     {

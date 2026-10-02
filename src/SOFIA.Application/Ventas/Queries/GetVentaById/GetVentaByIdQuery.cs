@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Enums;
 
 namespace SOFIA.Application.Ventas.Queries.GetVentaById;
 
@@ -22,7 +23,9 @@ public record VentaConDetalleDto(
     ComprobanteDto? Comprobante,
     List<VentaPagoDto> Pagos,
     List<VentaDevolucionDto> Devoluciones,
-    string? ClienteTipoDocumento);
+    string? ClienteTipoDocumento,
+    string? RecetaVerificadaPor,
+    DateTime? RecetaVerificadaEn);
 
 public record ComprobanteDto(
     string Tipo,
@@ -50,7 +53,8 @@ public record VentaDetalleDto(
     string? PresentacionDescripcion,
     decimal? CantidadEnPresentacion,
     Guid? RecetaId,
-    decimal CantidadDevuelta);
+    decimal CantidadDevuelta,
+    CondicionVenta? CondicionVenta);
 
 public record VentaPagoDto(
     Guid Id,

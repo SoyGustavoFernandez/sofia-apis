@@ -39,6 +39,10 @@ public class EmpresaConfiguration : IEntityTypeConfiguration<Empresa>
         _ = builder.Property(x => x.FechaVencimiento)
             .IsRequired();
 
+        _ = builder.Property(x => x.ExigirRegistroReceta)
+            .HasDefaultValue(false)
+            .IsRequired();
+
         _ = builder.Ignore(x => x.EstaVigente);
 
         // Filtered unique index: two empresas can't share a RUC, but null is allowed (RUC not yet set)

@@ -6,6 +6,7 @@ using SOFIA.Application.Ventas.Commands.ActualizarVentaPendiente;
 using SOFIA.Application.Ventas.Commands.CreateVenta;
 using SOFIA.Domain.Entities;
 using SOFIA.Domain.Enums;
+using SOFIA.UnitTests.Ventas.Common;
 
 namespace SOFIA.UnitTests.Ventas.Commands.ActualizarVentaPendiente;
 
@@ -39,7 +40,7 @@ public class ActualizarVentaPendienteCommandHandlerTests
         return Venta.Create(sucursalId ?? _sucursalId, _empleadoId, null, Guid.NewGuid(), [detalle], EstadoVenta.Pendiente).Value!;
     }
 
-    private void SetupMocks(List<Venta> ventas, List<InventarioSucursal> inventario, List<DigemidInventarioCuarentena>? cuarentenas = null, CondicionVenta condicionVenta = CondicionVenta.VentaLibreOTC, List<RecetaMedica>? recetas = null)
+    private void SetupMocks(List<Venta> ventas, List<InventarioSucursal> inventario, List<DigemidInventarioCuarentena>? cuarentenas = null, CondicionVenta condicionVenta = CondicionVenta.VentaLibreOTC, List<RecetaMedica>? recetas = null, bool exigirRegistroReceta = false)
     {
         _ = _dbContextMock.Setup(c => c.Ventas).Returns(ventas.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.LotesEnSucursal).Returns(inventario.BuildMockDbSet().Object);
@@ -55,6 +56,7 @@ public class ActualizarVentaPendienteCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.HistorialPreciosProveedor).Returns(new List<HistorialPrecioProveedor>().BuildMockDbSet().Object);
 
         _ = _dbContextMock.Setup(c => c.Recetas).Returns((recetas ?? []).BuildMockDbSet().Object);
+        EmisorMocks.Setup(_dbContextMock, _sucursalId, exigirRegistroReceta: exigirRegistroReceta);
 
         var detallesList = ventas.SelectMany(v => v.Detalles).ToList();
         var detallesDbSetMock = detallesList.BuildMockDbSet();
@@ -193,7 +195,7 @@ public class ActualizarVentaPendienteCommandHandlerTests
     {
         // Arrange
         var clienteId = Guid.NewGuid();
-        var receta = RecetaMedica.Create(clienteId, Guid.NewGuid(), DateOnly.FromDateTime(DateTime.UtcNow)).Value!;
+        var receta = RecetaMedica.Create(clienteId, Guid.NewGuid(), DateOnly.FromDateTime(DateTime.UtcNow), numeroReceta: "RE-0001").Value!;
         var detalle = DetalleVenta.Create(_loteNuevoId, 1, 6, 5, receta.Id).Value!;
         var venta = Venta.Create(_sucursalId, _empleadoId, clienteId, Guid.NewGuid(), [detalle], EstadoVenta.Pendiente).Value!;
         var inventarioNuevo = InventarioSucursal.Create(_sucursalId, _loteNuevoId, 19).Value!;
@@ -208,5 +210,35 @@ public class ActualizarVentaPendienteCommandHandlerTests
         _ = result.IsSuccess.Should().BeTrue();
         _ = inventarioNuevo.CantidadFisica.Should().Be(18);
         _ = venta.Detalles.Should().ContainSingle(d => d.RecetaId == receta.Id && d.CantidadVendida == 2);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldParkWithoutConfirmation_WhenFlexibleCompanyAddsASimplePrescriptionLineWithoutPrescription()
+    {
+        var venta = CrearVentaPendiente();
+        var inventarioNuevo = InventarioSucursal.Create(_sucursalId, _loteNuevoId, 20).Value!;
+        SetupMocks([venta], [inventarioNuevo], condicionVenta: CondicionVenta.RecetaSimple);
+
+        var result = await _handler.Handle(new ActualizarVentaPendienteCommand(venta.Id, [new CreateVentaDetailDto(_loteNuevoId, 1)]), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = venta.Detalles.Should().ContainSingle(d => d.LoteId == _loteNuevoId && d.RecetaId == null);
+        _ = venta.EmpleadoVerificaRecetaId.Should().BeNull();
+        _ = venta.FechaVerificacionReceta.Should().BeNull();
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnRecetaRequerida_WhenStrictCompanyAddsASimplePrescriptionLineWithoutPrescription()
+    {
+        var venta = CrearVentaPendiente();
+        var inventarioNuevo = InventarioSucursal.Create(_sucursalId, _loteNuevoId, 20).Value!;
+        SetupMocks([venta], [inventarioNuevo], condicionVenta: CondicionVenta.RecetaSimple, exigirRegistroReceta: true);
+
+        var result = await _handler.Handle(new ActualizarVentaPendienteCommand(venta.Id, [new CreateVentaDetailDto(_loteNuevoId, 1)]), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Receta.Requerida");
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

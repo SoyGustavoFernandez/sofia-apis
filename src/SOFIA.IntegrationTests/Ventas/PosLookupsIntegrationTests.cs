@@ -1,5 +1,8 @@
+using Microsoft.EntityFrameworkCore;
+using SOFIA.Application.Ventas.Queries.GetConfiguracionVenta;
 using SOFIA.Application.Ventas.Queries.GetLotesDisponiblesVenta;
 using SOFIA.Application.Ventas.Queries.GetPresentacionesProductoVenta;
+using SOFIA.Domain.Entities;
 using SOFIA.Domain.Enums;
 using SOFIA.IntegrationTests.Infrastructure;
 
@@ -37,6 +40,62 @@ public class PosLookupsIntegrationTests(SofiaWebAppFactory factory) : BaseIntegr
         _ = result.Value![1].CantidadFisica.Should().Be(7m);
         _ = result.Value![1].ProductoNombre.Should().Be($"{_token} A");
         _ = result.Value![1].PrecioVentaBase.Should().Be(10m);
+        _ = result.Value![1].CondicionVenta.Should().Be(CondicionVenta.VentaLibreOTC);
+    }
+
+    [Theory]
+    [InlineData(CondicionVenta.RecetaSimple)]
+    [InlineData(CondicionVenta.RecetaRetenida)]
+    [InlineData(CondicionVenta.Estupefaciente)]
+    public async Task GetLotesDisponibles_ShouldReturnTheSaleConditionOfTheProduct(CondicionVenta condicion)
+    {
+        var seeder = new PosCatalogSeeder(DbContext);
+        var (sucursalId, _) = await seeder.SeedSucursalAsync();
+        CurrentUser.Sucursal = sucursalId;
+        var producto = await seeder.SeedMedicamentoAsync($"{_token} {condicion}", condicion);
+        _ = await seeder.SeedLoteAsync(producto.Id, sucursalId, 5m);
+
+        var result = await Sender.Send(new GetLotesDisponiblesVentaQuery { ProductoId = producto.Id });
+
+        _ = result.Value.Should().ContainSingle().Which.CondicionVenta.Should().Be(condicion);
+    }
+
+    [Fact]
+    public async Task GetConfiguracion_ShouldBeFlexibleByDefault_AndStrictOnceTheCompanyFlagIsTurnedOnInTheDatabase()
+    {
+        var empresa = Empresa.Create($"Botica {_token}").Value!;
+        CurrentUser.Empresa = empresa.Id;
+        _ = DbContext.Empresas.Add(empresa);
+        var sucursal = Sucursal.Create($"Suc{Guid.NewGuid():N}"[..20], "Av. Test 123", $"LIC{Guid.NewGuid():N}"[..10], null, empresa.Id).Value!;
+        _ = DbContext.Sucursales.Add(sucursal);
+        _ = await DbContext.SaveChangesAsync();
+        CurrentUser.Sucursal = sucursal.Id;
+
+        var porDefecto = await Sender.Send(new GetConfiguracionVentaQuery());
+        _ = await DbContext.Database.ExecuteSqlAsync($"UPDATE Empresas SET ExigirRegistroReceta = 1 WHERE Empresa_ID = {empresa.Id}");
+        var activada = await Sender.Send(new GetConfiguracionVentaQuery());
+
+        _ = porDefecto.Value!.ExigirRegistroReceta.Should().BeFalse();
+        _ = activada.Value!.ExigirRegistroReceta.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetConfiguracion_ShouldBeStrict_WhenTheBranchHasNoCompany()
+    {
+        var (sucursalId, _) = await new PosCatalogSeeder(DbContext).SeedSucursalAsync();
+        CurrentUser.Sucursal = sucursalId;
+
+        var result = await Sender.Send(new GetConfiguracionVentaQuery());
+
+        _ = result.Value!.ExigirRegistroReceta.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetConfiguracion_ShouldFail_WhenTheTokenHasNoBranch()
+    {
+        var result = await Sender.Send(new GetConfiguracionVentaQuery());
+
+        _ = result.Error.Code.Should().Be("Auth.Sucursal");
     }
 
     [Fact]

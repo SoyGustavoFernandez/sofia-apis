@@ -36,7 +36,8 @@ public class UpdateRecetaCommandHandler(IApplicationDbContext context) : IReques
             request.MedicoId,
             request.FechaExpedicion,
             request.RepeticionesMax,
-            request.IndicacionesUso);
+            request.IndicacionesUso,
+            request.NumeroReceta);
 
         if (updateResult.IsFailure)
         {

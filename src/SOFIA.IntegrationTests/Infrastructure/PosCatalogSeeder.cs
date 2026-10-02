@@ -23,7 +23,7 @@ public sealed class PosCatalogSeeder(ApplicationDbContext dbContext)
         return (sucursal.Id, empleado.Id);
     }
 
-    public async Task<Medicamento> SeedMedicamentoAsync(string nombre)
+    public async Task<Medicamento> SeedMedicamentoAsync(string nombre, CondicionVenta condicionVenta = CondicionVenta.VentaLibreOTC)
     {
         if (_laboratorioId == Guid.Empty)
         {
@@ -36,7 +36,7 @@ public sealed class PosCatalogSeeder(ApplicationDbContext dbContext)
             _unidadId = unidad.Id;
         }
 
-        var medicamento = Medicamento.Create($"MED-{Guid.NewGuid():N}"[..20], nombre, _laboratorioId, _unidadId, CondicionVenta.VentaLibreOTC, 10m).Value!;
+        var medicamento = Medicamento.Create($"MED-{Guid.NewGuid():N}"[..20], nombre, _laboratorioId, _unidadId, condicionVenta, 10m).Value!;
         _ = dbContext.Medicamentos.Add(medicamento);
         _ = await dbContext.SaveChangesAsync();
         return medicamento;

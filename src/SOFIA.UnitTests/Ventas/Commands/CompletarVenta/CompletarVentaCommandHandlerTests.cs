@@ -19,6 +19,8 @@ public class CompletarVentaCommandHandlerTests
 
     private readonly Guid _sucursalId = Guid.NewGuid();
     private readonly Guid _empleadoId = Guid.NewGuid();
+    private readonly Guid _loteId = Guid.NewGuid();
+    private readonly Guid _productoId = Guid.NewGuid();
     private readonly PosSesionCaja _sesionPropia;
 
     public CompletarVentaCommandHandlerTests()
@@ -35,13 +37,13 @@ public class CompletarVentaCommandHandlerTests
         _handler = new CompletarVentaCommandHandler(_dbContextMock.Object, _currentUserMock.Object);
     }
 
-    private Venta CrearVentaPendiente(Guid? sucursalId = null)
+    private Venta CrearVentaPendiente(Guid? sucursalId = null, Guid? empleadoId = null, Guid? recetaId = null, Guid? clienteId = null)
     {
-        var detalle = DetalleVenta.Create(Guid.NewGuid(), 2, 10, 5).Value!;
-        return Venta.Create(sucursalId ?? _sucursalId, _empleadoId, null, Guid.NewGuid(), [detalle], EstadoVenta.Pendiente).Value!;
+        var detalle = DetalleVenta.Create(_loteId, 2, 10, 5, recetaId).Value!;
+        return Venta.Create(sucursalId ?? _sucursalId, empleadoId ?? _empleadoId, clienteId, Guid.NewGuid(), [detalle], EstadoVenta.Pendiente).Value!;
     }
 
-    private void SetupMocks(List<Venta> ventas, List<SunatSerieFiscal>? series = null, List<AseguradoraMedica>? aseguradoras = null, List<PosSesionCaja>? sesiones = null)
+    private void SetupMocks(List<Venta> ventas, List<SunatSerieFiscal>? series = null, List<AseguradoraMedica>? aseguradoras = null, List<PosSesionCaja>? sesiones = null, CondicionVenta condicionVenta = CondicionVenta.VentaLibreOTC, bool exigirRegistroReceta = false, List<RecetaMedica>? recetas = null)
     {
         var ventasDbSetMock = ventas.BuildMockDbSet();
         _ = _dbContextMock.Setup(c => c.Ventas).Returns(ventasDbSetMock.Object);
@@ -51,8 +53,26 @@ public class CompletarVentaCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.Aseguradoras).Returns((aseguradoras ?? []).BuildMockDbSet().Object);
 
         _ = _dbContextMock.Setup(c => c.SUNATSeriesFiscales).Returns((series ?? [SerieBoletaActiva()]).BuildMockDbSet().Object);
-        EmisorMocks.Setup(_dbContextMock, _sucursalId);
+        EmisorMocks.Setup(_dbContextMock, _sucursalId, exigirRegistroReceta: exigirRegistroReceta);
         _ = _dbContextMock.Setup(c => c.IncrementarCorrelativoSunatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        // Catalog behind the parked line: its product's sale condition drives the prescription policy
+        var lote = LoteInventario.Create(_productoId, "L-001", null, DateTimeOffset.UtcNow.AddYears(1)).Value!;
+        lote.SetId(_loteId);
+        var medicamento = Medicamento.Create("COD-1", "Producto", Guid.NewGuid(), Guid.NewGuid(), condicionVenta, 10).Value!;
+        medicamento.SetId(_productoId);
+        _ = _dbContextMock.Setup(c => c.LotesInventario).Returns(new List<LoteInventario> { lote }.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.Medicamentos).Returns(new List<Medicamento> { medicamento }.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.Recetas).Returns((recetas ?? []).BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.LotesEnSucursal).Returns(new List<InventarioSucursal> { InventarioSucursal.Create(_sucursalId, _loteId, 20).Value! }.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.DigemidInventarioCuarentena).Returns(new List<DigemidInventarioCuarentena>().BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.HistorialPreciosProveedor).Returns(new List<HistorialPrecioProveedor>().BuildMockDbSet().Object);
+
+        var detallesList = ventas.SelectMany(v => v.Detalles).ToList();
+        var detallesDbSetMock = detallesList.BuildMockDbSet();
+        _ = detallesDbSetMock.Setup(d => d.Add(It.IsAny<DetalleVenta>())).Callback<DetalleVenta>(detallesList.Add);
+        _ = detallesDbSetMock.Setup(d => d.RemoveRange(It.IsAny<IEnumerable<DetalleVenta>>()));
+        _ = _dbContextMock.Setup(c => c.DetallesVenta).Returns(detallesDbSetMock.Object);
 
         var pagosList = new List<VentaPago>();
         var pagosDbSetMock = pagosList.BuildMockDbSet();
@@ -367,5 +387,97 @@ public class CompletarVentaCommandHandlerTests
         _ = result.IsSuccess.Should().BeFalse();
         _ = result.Error.Code.Should().Be("Venta.Caja.SinSesionAbierta");
         _ = venta.Estado.Should().Be(EstadoVenta.Pendiente);
+    }
+
+    // Detalles null collects the parked lines as stored; otherwise the same line is resent and replaces them
+    private CompletarVentaCommand Completar(Venta venta, bool reenviarDetalles, bool recetaVerificada) => new(
+        venta.Id,
+        [new CreateVentaPagoDto(MetodoPago.Efectivo, 20, null)],
+        reenviarDetalles ? [new CreateVentaDetailDto(_loteId, 2)] : null,
+        RecetaVerificada: recetaVerificada);
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_ShouldReturnVerificacionRequeridaAndNotSave_WhenFlexibleSimplePrescriptionSaleIsCollectedWithoutConfirmation(bool reenviarDetalles)
+    {
+        var venta = CrearVentaPendiente();
+        SetupMocks([venta], condicionVenta: CondicionVenta.RecetaSimple);
+
+        var result = await _handler.Handle(Completar(venta, reenviarDetalles, recetaVerificada: false), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Receta.VerificacionRequerida");
+        _ = venta.Estado.Should().Be(EstadoVenta.Pendiente);
+        _ = venta.EmpleadoVerificaRecetaId.Should().BeNull();
+        _dbContextMock.Verify(c => c.IncrementarCorrelativoSunatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_ShouldStoreTheCollectingEmployee_NotWhoParked_WhenConfirmationIsSent(bool reenviarDetalles)
+    {
+        var quienAparco = Guid.NewGuid();
+        var venta = CrearVentaPendiente(empleadoId: quienAparco);
+        SetupMocks([venta], condicionVenta: CondicionVenta.RecetaSimple);
+
+        var result = await _handler.Handle(Completar(venta, reenviarDetalles, recetaVerificada: true), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = venta.Estado.Should().Be(EstadoVenta.Completada);
+        _ = venta.EmpleadoId.Should().Be(quienAparco);
+        _ = venta.EmpleadoVerificaRecetaId.Should().Be(_empleadoId);
+        _ = venta.FechaVerificacionReceta.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(30));
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(true, CondicionVenta.RecetaSimple, true)]
+    [InlineData(false, CondicionVenta.RecetaSimple, true)]
+    [InlineData(true, CondicionVenta.RecetaRetenida, false)]
+    [InlineData(false, CondicionVenta.Estupefaciente, false)]
+    public async Task Handle_ShouldReturnRecetaRequeridaAndNotSave_WhenLineNeedsARegisteredPrescription(bool reenviarDetalles, CondicionVenta condicion, bool exigirRegistroReceta)
+    {
+        var venta = CrearVentaPendiente();
+        SetupMocks([venta], condicionVenta: condicion, exigirRegistroReceta: exigirRegistroReceta);
+
+        var result = await _handler.Handle(Completar(venta, reenviarDetalles, recetaVerificada: true), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Receta.Requerida");
+        _ = venta.Estado.Should().Be(EstadoVenta.Pendiente);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnNumeroRequerido_WhenStoredControlledLinePrescriptionHasNoNumber()
+    {
+        var clienteId = Guid.NewGuid();
+        var receta = RecetaMedica.Create(clienteId, Guid.NewGuid(), DateOnly.FromDateTime(DateTime.UtcNow)).Value!;
+        var venta = CrearVentaPendiente(recetaId: receta.Id, clienteId: clienteId);
+        SetupMocks([venta], condicionVenta: CondicionVenta.RecetaRetenida, recetas: [receta]);
+
+        var result = await _handler.Handle(Completar(venta, reenviarDetalles: false, recetaVerificada: true), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Receta.NumeroRequerido");
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_ShouldIgnoreTheConfirmation_WhenNoLineNeedsVerification(bool reenviarDetalles)
+    {
+        var venta = CrearVentaPendiente();
+        SetupMocks([venta]);
+
+        var result = await _handler.Handle(Completar(venta, reenviarDetalles, recetaVerificada: true), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = venta.EmpleadoVerificaRecetaId.Should().BeNull();
+        _ = venta.FechaVerificacionReceta.Should().BeNull();
     }
 }

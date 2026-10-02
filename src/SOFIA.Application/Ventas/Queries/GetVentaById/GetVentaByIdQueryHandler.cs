@@ -25,6 +25,7 @@ public class GetVentaByIdQueryHandler(
         var venta = await context.Ventas
             .AsNoTracking()
             .Include(v => v.Empleado)
+            .Include(v => v.EmpleadoVerificaReceta)
             .Include(v => v.Cliente)
             .Include(v => v.Pagos)
             .Include(v => v.Detalles)
@@ -82,7 +83,8 @@ public class GetVentaByIdQueryHandler(
                 d.PresentacionVenta?.Descripcion,
                 d.CantidadEnPresentacion,
                 d.RecetaId,
-                cantidadesDevueltas.GetValueOrDefault(d.Id)
+                cantidadesDevueltas.GetValueOrDefault(d.Id),
+                d.Lote?.Producto?.CondicionVenta
             ))],
             comprobante != null ? new ComprobanteDto(
                 comprobante.Serie?.TipoComprobante.ToString() ?? "Boleta",
@@ -106,7 +108,9 @@ public class GetVentaByIdQueryHandler(
                 p.FechaPago
             ))],
             devoluciones,
-            venta.Cliente?.TipoDocumento
+            venta.Cliente?.TipoDocumento,
+            venta.EmpleadoVerificaReceta != null ? $"{venta.EmpleadoVerificaReceta.Nombres} {venta.EmpleadoVerificaReceta.Apellido_Paterno}" : null,
+            venta.FechaVerificacionReceta
         );
 
         return Result.Success(dto);

@@ -9,4 +9,5 @@ public record UpdateRecetaCommand(
     Guid MedicoId,
     DateOnly FechaExpedicion,
     int RepeticionesMax,
-    string? IndicacionesUso) : ICommand<Guid>;
+    string? IndicacionesUso,
+    string? NumeroReceta = null) : ICommand<Guid>;

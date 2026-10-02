@@ -17,7 +17,8 @@ public record CreateVentaCommand(
     List<CreateVentaPagoDto> Pagos,
     EstadoVenta Estado = EstadoVenta.Completada,
     Guid? AseguradoraId = null,
-    decimal? MontoCubiertoSeguro = null) : ICommand<VentaCreadaDto>;
+    decimal? MontoCubiertoSeguro = null,
+    bool RecetaVerificada = false) : ICommand<VentaCreadaDto>;
 
 public record CreateVentaPagoDto(MetodoPago MetodoPago, decimal MontoPagado, string? ReferenciaOperacion);
 

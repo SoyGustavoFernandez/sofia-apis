@@ -44,7 +44,13 @@ public class CompletarVentaCommandHandler(
             return Result.Failure<VentaCreadaDto>(Error.Validation("Venta.Completar", "Only a pending sale can be completed."));
         }
 
-        var sesionResult = await AsignarSesionPropiaAsync(venta, sucursalId, cancellationToken);
+        var empleadoResult = currentUser.GetEmpleadoId();
+        if (empleadoResult.IsFailure)
+        {
+            return Result.Failure<VentaCreadaDto>(empleadoResult.Error);
+        }
+
+        var sesionResult = await AsignarSesionPropiaAsync(venta, empleadoResult.Value, sucursalId, cancellationToken);
         if (sesionResult.IsFailure)
         {
             return Result.Failure<VentaCreadaDto>(sesionResult.Error);
@@ -56,13 +62,10 @@ public class CompletarVentaCommandHandler(
             return Result.Failure<VentaCreadaDto>(coberturaResult.Error, coberturaResult.StatusCode);
         }
 
-        if (request.Detalles != null)
+        var recetaResult = await AplicarDetallesYRecetaAsync(venta, request, empleadoResult.Value, cancellationToken);
+        if (recetaResult.IsFailure)
         {
-            var updateResult = await VentaDetalleUpdater.ReplaceAsync(context, venta, request.Detalles, request.ClienteId, sucursalId, cancellationToken);
-            if (!updateResult.IsSuccess)
-            {
-                return Result.Failure<VentaCreadaDto>(updateResult.Error, updateResult.StatusCode);
-            }
+            return Result.Failure<VentaCreadaDto>(recetaResult.Error, recetaResult.StatusCode);
         }
 
         var pagosResult = VentaPagoFactory.Build(request.Pagos);
@@ -105,17 +108,25 @@ public class CompletarVentaCommandHandler(
         return Result.Success(new VentaCreadaDto(venta.Id, dtoComprobante));
     }
 
-    // The payment is collected into the caller's own open drawer, whoever parked the sale
-    private async Task<Result> AsignarSesionPropiaAsync(Venta venta, Guid sucursalId, CancellationToken cancellationToken)
+    // Resent lines replace the parked ones, otherwise the stored lines are judged; either way the caller who collects is the one who vouches for the prescription
+    private async Task<Result> AplicarDetallesYRecetaAsync(Venta venta, CompletarVentaCommand request, Guid empleadoId, CancellationToken cancellationToken)
     {
-        var empleadoResult = currentUser.GetEmpleadoId();
-        if (empleadoResult.IsFailure)
-        {
-            return Result.Failure(empleadoResult.Error);
-        }
+        var exigirRegistroReceta = await VentaDetalleFactory.ExigeRegistroRecetaAsync(context, venta.SucursalId, cancellationToken);
 
+        var requiereResult = request.Detalles != null
+            ? await VentaDetalleUpdater.ReplaceAsync(context, venta, request.Detalles, request.ClienteId, venta.SucursalId, exigirRegistroReceta, cancellationToken)
+            : await VentaDetalleFactory.RequiereVerificacionRecetaAsync(context, venta.Detalles, exigirRegistroReceta, cancellationToken);
+
+        return requiereResult.IsFailure
+            ? requiereResult
+            : VentaRecetaVerificacion.Registrar(venta, requiereResult.Value, request.RecetaVerificada, empleadoId);
+    }
+
+    // The payment is collected into the caller's own open drawer, whoever parked the sale
+    private async Task<Result> AsignarSesionPropiaAsync(Venta venta, Guid empleadoId, Guid sucursalId, CancellationToken cancellationToken)
+    {
         var sesionCaja = await context.POSSesionesCaja
-            .FirstOrDefaultAsync(s => s.EmpleadoId == empleadoResult.Value && s.SucursalId == sucursalId && s.EstadoSesion == EstadoSesion.Abierta && !s.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(s => s.EmpleadoId == empleadoId && s.SucursalId == sucursalId && s.EstadoSesion == EstadoSesion.Abierta && !s.IsDeleted, cancellationToken);
 
         return sesionCaja == null
             ? Result.Failure(Error.Validation("Venta.Caja.SinSesionAbierta", "You need an open cash register session to collect the sale."))

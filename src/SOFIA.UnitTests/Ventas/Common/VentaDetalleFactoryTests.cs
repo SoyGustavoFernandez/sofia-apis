@@ -58,8 +58,8 @@ public class VentaDetalleFactoryTests
         _ = _dbContextMock.Setup(c => c.DetallesVenta).Returns(_ventas.SelectMany(v => v.Detalles).ToList().BuildMockDbSet().Object);
     }
 
-    private RecetaMedica CrearReceta(Guid? clienteId = null, int repeticionesMax = 0) =>
-        RecetaMedica.Create(clienteId ?? _clienteId, Guid.NewGuid(), DateOnly.FromDateTime(DateTime.UtcNow), repeticionesMax).Value!;
+    private RecetaMedica CrearReceta(Guid? clienteId = null, int repeticionesMax = 0, string? numeroReceta = "RX-0001") =>
+        RecetaMedica.Create(clienteId ?? _clienteId, Guid.NewGuid(), DateOnly.FromDateTime(DateTime.UtcNow), repeticionesMax, null, numeroReceta).Value!;
 
     private Venta RegistrarVentaPrevia(Guid loteId, Guid recetaId, EstadoVenta estado = EstadoVenta.Completada)
     {
@@ -68,8 +68,8 @@ public class VentaDetalleFactoryTests
         return venta;
     }
 
-    private Task<Result<List<DetalleVenta>>> Build(List<CreateVentaDetailDto> dtos, Guid? clienteId, Guid? ventaIdExcluida = null) =>
-        VentaDetalleFactory.BuildAsync(_dbContextMock.Object, dtos, _sucursalId, clienteId, ventaIdExcluida, CancellationToken.None);
+    private Task<Result<DetallesVentaConstruidos>> Build(List<CreateVentaDetailDto> dtos, Guid? clienteId, Guid? ventaIdExcluida = null, bool exigirRegistroReceta = false) =>
+        VentaDetalleFactory.BuildAsync(_dbContextMock.Object, dtos, _sucursalId, clienteId, ventaIdExcluida, exigirRegistroReceta, CancellationToken.None);
 
     [Theory]
     [InlineData(24)]
@@ -106,21 +106,225 @@ public class VentaDetalleFactoryTests
         var result = await Build([new CreateVentaDetailDto(_loteOtcId, 2)], null);
 
         _ = result.IsSuccess.Should().BeTrue();
-        _ = result.Value!.Single().RecetaId.Should().BeNull();
+        _ = result.Value!.Detalles.Single().RecetaId.Should().BeNull();
     }
 
     [Theory]
-    [InlineData(CondicionVenta.RecetaSimple)]
-    [InlineData(CondicionVenta.RecetaRetenida)]
-    [InlineData(CondicionVenta.Estupefaciente)]
-    public async Task BuildAsync_ShouldReturnRequerida_WhenPrescriptionProductHasNoPrescription(CondicionVenta condicion)
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task BuildAsync_ShouldNotRequireVerification_WhenSaleHasOnlyOtcLines(bool exigirRegistroReceta)
+    {
+        SetupMocks(CondicionVenta.RecetaSimple);
+
+        var result = await Build([new CreateVentaDetailDto(_loteOtcId, 2)], null, exigirRegistroReceta: exigirRegistroReceta);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value!.RequiereVerificacionReceta.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(CondicionVenta.RecetaSimple, true)]
+    [InlineData(CondicionVenta.RecetaRetenida, true)]
+    [InlineData(CondicionVenta.RecetaRetenida, false)]
+    [InlineData(CondicionVenta.Estupefaciente, true)]
+    [InlineData(CondicionVenta.Estupefaciente, false)]
+    public async Task BuildAsync_ShouldReturnRequerida_WhenPrescriptionProductHasNoPrescription(CondicionVenta condicion, bool exigirRegistroReceta)
     {
         SetupMocks(condicion);
 
-        var result = await Build([new CreateVentaDetailDto(_loteRxId, 1)], _clienteId);
+        var result = await Build([new CreateVentaDetailDto(_loteRxId, 1)], _clienteId, exigirRegistroReceta: exigirRegistroReceta);
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Venta.Receta.Requerida");
+        _ = _inventario[0].CantidadFisica.Should().Be(20);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task BuildAsync_ShouldRequireVerification_WhenFlexibleCompanySellsSimplePrescriptionWithoutPrescription(bool conCliente)
+    {
+        SetupMocks(CondicionVenta.RecetaSimple);
+
+        var result = await Build([new CreateVentaDetailDto(_loteRxId, 1), new CreateVentaDetailDto(_loteOtcId, 1)], conCliente ? _clienteId : null);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value!.RequiereVerificacionReceta.Should().BeTrue();
+        _ = result.Value.Detalles.Should().OnlyContain(d => d.RecetaId == null);
+        _ = _inventario[0].CantidadFisica.Should().Be(19);
+    }
+
+    [Fact]
+    public async Task BuildAsync_ShouldNotRequireVerification_WhenFlexibleCompanyLinksARegisteredPrescription()
+    {
+        var receta = CrearReceta(numeroReceta: null);
+        SetupMocks(CondicionVenta.RecetaSimple, [receta]);
+
+        var result = await Build([new CreateVentaDetailDto(_loteRxId, 1, receta.Id)], _clienteId);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value!.RequiereVerificacionReceta.Should().BeFalse();
+        _ = result.Value.Detalles.Single().RecetaId.Should().Be(receta.Id);
+    }
+
+    [Fact]
+    public async Task BuildAsync_ShouldReturnOtroPaciente_WhenFlexibleCompanyLinksAForeignPrescription()
+    {
+        var recetaAjena = CrearReceta(clienteId: Guid.NewGuid());
+        SetupMocks(CondicionVenta.RecetaSimple, [recetaAjena]);
+
+        var result = await Build([new CreateVentaDetailDto(_loteRxId, 1, recetaAjena.Id)], _clienteId);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Receta.OtroPaciente");
+    }
+
+    [Fact]
+    public async Task BuildAsync_ShouldReturnAgotada_WhenFlexibleCompanyLinksAnExhaustedPrescription()
+    {
+        var receta = CrearReceta();
+        _ = RegistrarVentaPrevia(_loteRxId, receta.Id);
+        SetupMocks(CondicionVenta.RecetaSimple, [receta]);
+
+        var result = await Build([new CreateVentaDetailDto(_loteRxId, 1, receta.Id)], _clienteId);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Receta.Agotada");
+    }
+
+    [Theory]
+    [InlineData(CondicionVenta.RecetaRetenida, true, null)]
+    [InlineData(CondicionVenta.RecetaRetenida, false, null)]
+    [InlineData(CondicionVenta.Estupefaciente, true, null)]
+    [InlineData(CondicionVenta.Estupefaciente, false, "   ")]
+    public async Task BuildAsync_ShouldReturnNumeroRequerido_WhenControlledProductPrescriptionHasNoNumber(CondicionVenta condicion, bool exigirRegistroReceta, string? numeroReceta)
+    {
+        var receta = CrearReceta(numeroReceta: numeroReceta);
+        SetupMocks(condicion, [receta]);
+
+        var result = await Build([new CreateVentaDetailDto(_loteRxId, 1, receta.Id)], _clienteId, exigirRegistroReceta: exigirRegistroReceta);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Receta.NumeroRequerido");
+    }
+
+    [Theory]
+    [InlineData(CondicionVenta.RecetaRetenida, true)]
+    [InlineData(CondicionVenta.RecetaRetenida, false)]
+    [InlineData(CondicionVenta.Estupefaciente, true)]
+    [InlineData(CondicionVenta.Estupefaciente, false)]
+    public async Task BuildAsync_ShouldSucceedWithoutVerification_WhenControlledProductPrescriptionHasItsNumber(CondicionVenta condicion, bool exigirRegistroReceta)
+    {
+        var receta = CrearReceta(numeroReceta: "RE-778899");
+        SetupMocks(condicion, [receta]);
+
+        var result = await Build([new CreateVentaDetailDto(_loteRxId, 1, receta.Id)], _clienteId, exigirRegistroReceta: exigirRegistroReceta);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value!.RequiereVerificacionReceta.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task ExigeRegistroRecetaAsync_ShouldReturnTheCompanyFlag(bool flag, bool esperado)
+    {
+        EmisorMocks.Setup(_dbContextMock, _sucursalId, exigirRegistroReceta: flag);
+
+        var exige = await VentaDetalleFactory.ExigeRegistroRecetaAsync(_dbContextMock.Object, _sucursalId, CancellationToken.None);
+
+        _ = exige.Should().Be(esperado);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ExigeRegistroRecetaAsync_ShouldBeStrict_WhenTheCompanyCannotBeResolved(bool sucursalSinEmpresa)
+    {
+        var sucursal = Sucursal.Create("Central", "Av. Arequipa 123", "LIC-1").Value!;
+        sucursal.SetId(sucursalSinEmpresa ? _sucursalId : Guid.NewGuid());
+        _ = _dbContextMock.Setup(c => c.Sucursales).Returns(new List<Sucursal> { sucursal }.BuildMockDbSet().Object);
+        _ = _dbContextMock.Setup(c => c.Empresas).Returns(new List<Empresa> { Empresa.Create("Otra Botica").Value! }.BuildMockDbSet().Object);
+
+        var exige = await VentaDetalleFactory.ExigeRegistroRecetaAsync(_dbContextMock.Object, _sucursalId, CancellationToken.None);
+
+        _ = exige.Should().BeTrue();
+    }
+
+    private Task<Result<bool>> EvaluarGuardadas(bool exigirRegistroReceta, params DetalleVenta[] detalles) =>
+        VentaDetalleFactory.RequiereVerificacionRecetaAsync(_dbContextMock.Object, detalles, exigirRegistroReceta, CancellationToken.None);
+
+    [Fact]
+    public async Task RequiereVerificacionRecetaAsync_ShouldRequireVerification_WhenFlexibleCompanyStoredSimplePrescriptionLineHasNoPrescription()
+    {
+        SetupMocks(CondicionVenta.RecetaSimple);
+
+        var result = await EvaluarGuardadas(false, DetalleVenta.Create(_loteRxId, 1, 10, 5).Value!, DetalleVenta.Create(_loteOtcId, 1, 5, 2).Value!);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(CondicionVenta.RecetaSimple, true)]
+    [InlineData(CondicionVenta.RecetaRetenida, false)]
+    [InlineData(CondicionVenta.Estupefaciente, false)]
+    public async Task RequiereVerificacionRecetaAsync_ShouldReturnRequerida_WhenStoredLineNeedsARegisteredPrescription(CondicionVenta condicion, bool exigirRegistroReceta)
+    {
+        SetupMocks(condicion);
+
+        var result = await EvaluarGuardadas(exigirRegistroReceta, DetalleVenta.Create(_loteRxId, 1, 10, 5).Value!);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Receta.Requerida");
+    }
+
+    [Fact]
+    public async Task RequiereVerificacionRecetaAsync_ShouldReturnNumeroRequerido_WhenStoredControlledLinePrescriptionHasNoNumber()
+    {
+        var receta = CrearReceta(numeroReceta: null);
+        SetupMocks(CondicionVenta.RecetaRetenida, [receta]);
+
+        var result = await EvaluarGuardadas(false, DetalleVenta.Create(_loteRxId, 1, 10, 5, receta.Id).Value!);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Receta.NumeroRequerido");
+    }
+
+    [Theory]
+    [InlineData(CondicionVenta.RecetaRetenida, "RE-778899")]
+    [InlineData(CondicionVenta.RecetaSimple, null)]
+    public async Task RequiereVerificacionRecetaAsync_ShouldNotRequireVerification_WhenStoredLinesAreCoveredByTheirPrescription(CondicionVenta condicion, string? numeroReceta)
+    {
+        var receta = CrearReceta(numeroReceta: numeroReceta);
+        SetupMocks(condicion, [receta]);
+
+        var result = await EvaluarGuardadas(false, DetalleVenta.Create(_loteRxId, 1, 10, 5, receta.Id).Value!, DetalleVenta.Create(_loteOtcId, 1, 5, 2).Value!);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RequiereVerificacionRecetaAsync_ShouldReturnNoEncontrada_WhenStoredControlledLinePrescriptionNoLongerExists()
+    {
+        SetupMocks(CondicionVenta.Estupefaciente);
+
+        var result = await EvaluarGuardadas(false, DetalleVenta.Create(_loteRxId, 1, 10, 5, Guid.NewGuid()).Value!);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Receta.NoEncontrada");
+    }
+
+    [Fact]
+    public async Task RequiereVerificacionRecetaAsync_ShouldReturnLoteNotFound_WhenStoredLineProductCannotBeResolved()
+    {
+        SetupMocks(CondicionVenta.RecetaSimple);
+
+        var result = await EvaluarGuardadas(false, DetalleVenta.Create(Guid.NewGuid(), 1, 10, 5).Value!);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Lote");
     }
 
     [Fact]
@@ -179,7 +383,7 @@ public class VentaDetalleFactoryTests
         var result = await Build([new CreateVentaDetailDto(_loteRxId, 1, receta.Id)], _clienteId);
 
         _ = result.IsSuccess.Should().BeTrue();
-        _ = result.Value!.Single().RecetaId.Should().Be(receta.Id);
+        _ = result.Value!.Detalles.Single().RecetaId.Should().Be(receta.Id);
         _ = _inventario[0].CantidadFisica.Should().Be(19);
     }
 
@@ -192,7 +396,7 @@ public class VentaDetalleFactoryTests
         var result = await Build([new CreateVentaDetailDto(_loteRxId, 1, receta.Id), new CreateVentaDetailDto(_loteRxId, 2, receta.Id)], _clienteId);
 
         _ = result.IsSuccess.Should().BeTrue();
-        _ = result.Value.Should().HaveCount(2);
+        _ = result.Value!.Detalles.Should().HaveCount(2);
     }
 
     [Theory]

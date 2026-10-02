@@ -2,6 +2,7 @@ using SOFIA.Application.Ventas.Commands.ActualizarVentaPendiente;
 using SOFIA.Application.Ventas.Commands.AnularVenta;
 using SOFIA.Application.Ventas.Commands.CompletarVenta;
 using SOFIA.Application.Ventas.Commands.CreateVenta;
+using SOFIA.Application.Ventas.Queries.GetConfiguracionVenta;
 using SOFIA.Application.Ventas.Queries.GetLotesDisponiblesVenta;
 using SOFIA.Application.Ventas.Queries.GetPresentacionesProductoVenta;
 using SOFIA.Application.Ventas.Queries.GetVentaById;
@@ -62,6 +63,15 @@ public class VentasController(ISender sender) : ControllerBase
         return result.ToActionResult();
     }
 
+    [HasPermission("Ventas", "Crear")]
+    [HttpGet("configuracion")]
+    public async Task<IActionResult> GetConfiguracion()
+    {
+        var result = await sender.Send(new GetConfiguracionVentaQuery());
+
+        return result.ToActionResult();
+    }
+
     [HasPermission("Ventas", "Anular")]
     [HttpPut("{id:guid}/anular")]
     public async Task<IActionResult> Anular(Guid id, [FromBody] string motivo)
@@ -75,7 +85,7 @@ public class VentasController(ISender sender) : ControllerBase
     [HttpPut("{id:guid}/completar")]
     public async Task<IActionResult> Completar(Guid id, [FromBody] CompletarVentaBody body)
     {
-        var result = await sender.Send(new CompletarVentaCommand(id, body.Pagos, body.Detalles, body.ClienteId, body.AseguradoraId, body.MontoCubiertoSeguro));
+        var result = await sender.Send(new CompletarVentaCommand(id, body.Pagos, body.Detalles, body.ClienteId, body.AseguradoraId, body.MontoCubiertoSeguro, body.RecetaVerificada));
 
         return result.ToActionResult();
     }
@@ -142,7 +152,8 @@ public record CompletarVentaBody(
     List<CreateVentaDetailDto>? Detalles,
     Guid? ClienteId,
     Guid? AseguradoraId,
-    decimal? MontoCubiertoSeguro);
+    decimal? MontoCubiertoSeguro,
+    bool RecetaVerificada = false);
 
 public record ActualizarVentaPendienteBody(
     List<CreateVentaDetailDto> Detalles,

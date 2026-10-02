@@ -12,6 +12,7 @@ public record RecetaDto(
     string MedicoNombre,
     DateOnly FechaExpedicion,
     int RepeticionesMax,
-    string? IndicacionesUso);
+    string? IndicacionesUso,
+    string? NumeroReceta);
 
 public record GetRecetaByIdQuery(Guid Id) : IRequest<Result<RecetaDto>>;

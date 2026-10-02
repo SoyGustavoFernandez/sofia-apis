@@ -1,3 +1,5 @@
+using SOFIA.Domain.Enums;
+
 namespace SOFIA.Application.Ventas.Queries.GetLotesDisponiblesVenta;
 
 public record LoteDisponibleVentaDto(
@@ -8,4 +10,5 @@ public record LoteDisponibleVentaDto(
     string ProductoNombre,
     DateTimeOffset FechaCaducidad,
     decimal CantidadFisica,
-    decimal? PrecioVentaBase);
+    decimal? PrecioVentaBase,
+    CondicionVenta CondicionVenta);

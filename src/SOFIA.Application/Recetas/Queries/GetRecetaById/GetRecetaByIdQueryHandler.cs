@@ -24,7 +24,8 @@ public class GetRecetaByIdQueryHandler(IApplicationDbContext context) : IRequest
                 m != null ? m.NombrePrescriptor : string.Empty,
                 r.FechaExpedicion,
                 r.RepeticionesMax,
-                r.IndicacionesUso))
+                r.IndicacionesUso,
+                r.NumeroReceta))
             .FirstOrDefaultAsync(cancellationToken);
 
         return dto == null

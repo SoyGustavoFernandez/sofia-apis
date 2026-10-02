@@ -1,4 +1,5 @@
 using FluentValidation;
+using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Recetas.Commands.UpdateReceta;
 
@@ -12,5 +13,6 @@ public class UpdateRecetaCommandValidator : AbstractValidator<UpdateRecetaComman
         _ = RuleFor(x => x.FechaExpedicion).NotEqual(default(DateOnly));
         _ = RuleFor(x => x.RepeticionesMax).GreaterThanOrEqualTo(0);
         _ = RuleFor(x => x.IndicacionesUso).MaximumLength(1000).When(x => x.IndicacionesUso != null);
+        _ = RuleFor(x => x.NumeroReceta).MaximumLength(RecetaMedica.NumeroRecetaMaxLength).When(x => x.NumeroReceta != null);
     }
 }

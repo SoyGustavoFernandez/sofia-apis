@@ -18,6 +18,8 @@ public sealed class Venta : BaseEntity
     public decimal MontoTotalBruto { get; private set; }
     public EstadoVenta Estado { get; private set; }
     public string? MotivoAnulacion { get; private set; }
+    public Guid? EmpleadoVerificaRecetaId { get; private set; }
+    public DateTime? FechaVerificacionReceta { get; private set; }
 
     // Concurrency token: two state transitions started from the same read cannot both be saved
     public byte[] RowVersion { get; private set; } = [];
@@ -27,6 +29,7 @@ public sealed class Venta : BaseEntity
     public Empleado? Empleado { get; }
     public PacienteCliente? Cliente { get; }
     public PosSesionCaja? Sesion { get; }
+    public Empleado? EmpleadoVerificaReceta { get; }
 
     public IReadOnlyCollection<DetalleVenta> Detalles => _detalles.AsReadOnly();
     public IReadOnlyCollection<VentaPago> Pagos => _pagos.AsReadOnly();
@@ -191,6 +194,20 @@ public sealed class Venta : BaseEntity
         }
 
         SesionId = sesionId;
+
+        return Result.Success();
+    }
+
+    // Whoever charges the sale vouches for the paper prescription of the lines sold without a registered one
+    public Result RegistrarVerificacionReceta(Guid empleadoId, DateTime ahoraUtc)
+    {
+        if (empleadoId == Guid.Empty)
+        {
+            return Result.Failure(Error.Validation("Venta.EmpleadoVerificaRecetaId", "The employee who verified the prescription is required."));
+        }
+
+        EmpleadoVerificaRecetaId = empleadoId;
+        FechaVerificacionReceta = ahoraUtc;
 
         return Result.Success();
     }

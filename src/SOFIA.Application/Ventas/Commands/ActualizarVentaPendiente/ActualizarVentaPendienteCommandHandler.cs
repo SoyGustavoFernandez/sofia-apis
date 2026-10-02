@@ -41,7 +41,10 @@ public class ActualizarVentaPendienteCommandHandler(
             return Result.Failure(Error.Validation("Venta.Actualizar", "Only a pending sale can have its items modified."));
         }
 
-        var updateResult = await VentaDetalleUpdater.ReplaceAsync(context, venta, request.Detalles, request.ClienteId, sucursalId, cancellationToken);
+        var exigirRegistroReceta = await VentaDetalleFactory.ExigeRegistroRecetaAsync(context, sucursalId, cancellationToken);
+
+        // Parking needs no prescription confirmation; it is asked for when the sale is charged
+        var updateResult = await VentaDetalleUpdater.ReplaceAsync(context, venta, request.Detalles, request.ClienteId, sucursalId, exigirRegistroReceta, cancellationToken);
         if (!updateResult.IsSuccess)
         {
             return updateResult;

@@ -8,13 +8,14 @@ namespace SOFIA.Application.Ventas.Common;
 
 public static class VentaDetalleUpdater
 {
-    public static async Task<Result> ReplaceAsync(IApplicationDbContext context, Venta venta, List<CreateVentaDetailDto> nuevosDtos, Guid? clienteId, Guid sucursalId, CancellationToken cancellationToken)
+    // The value says whether the new lines need the pharmacist's prescription confirmation before the sale is charged
+    public static async Task<Result<bool>> ReplaceAsync(IApplicationDbContext context, Venta venta, List<CreateVentaDetailDto> nuevosDtos, Guid? clienteId, Guid sucursalId, bool exigirRegistroReceta, CancellationToken cancellationToken)
     {
         // Tenant-filtered lookup: a patient of another company must not be stored as the customer
         if (clienteId is { } nuevoClienteId && nuevoClienteId != venta.ClienteId
             && !await context.Pacientes.AnyAsync(p => p.Id == nuevoClienteId, cancellationToken))
         {
-            return Result.Failure(Error.NotFound("Paciente.NotFound", "The specified patient does not exist."), 404);
+            return Result.Failure<bool>(Error.NotFound("Paciente.NotFound", "The specified patient does not exist."), 404);
         }
 
         var detallesAnteriores = venta.Detalles.ToList();
@@ -27,24 +28,24 @@ public static class VentaDetalleUpdater
             inventario?.UpdateStock(inventario.CantidadFisica + detalle.CantidadVendida);
         }
 
-        var nuevosResult = await VentaDetalleFactory.BuildAsync(context, nuevosDtos, sucursalId, clienteId, venta.Id, cancellationToken);
+        var nuevosResult = await VentaDetalleFactory.BuildAsync(context, nuevosDtos, sucursalId, clienteId, venta.Id, exigirRegistroReceta, cancellationToken);
         if (nuevosResult.IsFailure)
         {
-            return Result.Failure(nuevosResult.Error);
+            return Result.Failure<bool>(nuevosResult.Error);
         }
 
-        var actualizarResult = venta.ActualizarDetalles(nuevosResult.Value!, clienteId);
+        var actualizarResult = venta.ActualizarDetalles(nuevosResult.Value!.Detalles, clienteId);
         if (!actualizarResult.IsSuccess)
         {
-            return actualizarResult;
+            return Result.Failure<bool>(actualizarResult.Error);
         }
 
         context.DetallesVenta.RemoveRange(detallesAnteriores);
-        foreach (var nuevo in nuevosResult.Value!)
+        foreach (var nuevo in nuevosResult.Value!.Detalles)
         {
             _ = context.DetallesVenta.Add(nuevo);
         }
 
-        return Result.Success();
+        return Result.Success(nuevosResult.Value!.RequiereVerificacionReceta);
     }
 }

@@ -20,7 +20,7 @@ public class CreateRecetaCommandHandler(IApplicationDbContext dbContext) : IRequ
             return Result.Failure<Guid>(Error.NotFound("ProfesionalSalud.NotFound", "The specified health professional does not exist."), 404);
         }
 
-        var createResult = Domain.Entities.RecetaMedica.Create(request.ClienteId, request.MedicoId, request.FechaExpedicion, request.RepeticionesMax, request.IndicacionesUso);
+        var createResult = Domain.Entities.RecetaMedica.Create(request.ClienteId, request.MedicoId, request.FechaExpedicion, request.RepeticionesMax, request.IndicacionesUso, request.NumeroReceta);
         if (createResult.IsFailure)
         {
             return Result.Failure<Guid>(createResult.Error);

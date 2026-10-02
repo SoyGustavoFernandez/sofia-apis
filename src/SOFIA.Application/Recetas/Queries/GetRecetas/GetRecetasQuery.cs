@@ -12,7 +12,8 @@ public record RecetaResumenDto(
     string MedicoNombre,
     DateOnly FechaExpedicion,
     int RepeticionesMax,
-    string? IndicacionesUso);
+    string? IndicacionesUso,
+    string? NumeroReceta);
 
 public record GetRecetasQuery(
     Guid? ClienteId,

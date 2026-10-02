@@ -59,4 +59,16 @@ public class UpdateRecetaCommandHandlerTests
         _ = _receta.MedicoId.Should().Be(_medico.Id);
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Theory]
+    [InlineData("  RE-001234 ", "RE-001234")]
+    [InlineData(null, null)]
+    public async Task Handle_ShouldStoreTheTrimmedNumeroReceta(string? numero, string? esperado)
+    {
+        var result = await _handler.Handle(new UpdateRecetaCommand(_receta.Id, _paciente.Id, _medico.Id, Hoy, 0, null, numero), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = _receta.NumeroReceta.Should().Be(esperado);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

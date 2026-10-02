@@ -238,4 +238,8 @@ public class EmpresaTests
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Empresa.Nombre");
     }
+
+    [Fact]
+    public void Create_ShouldNotRequirePrescriptionRegistration_ByDefault() =>
+        _ = Empresa.Create("Farmacia Salud").Value!.ExigirRegistroReceta.Should().BeFalse();
 }

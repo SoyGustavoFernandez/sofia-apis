@@ -47,6 +47,12 @@ public class VentaConfiguration : IEntityTypeConfiguration<Venta>
             .HasColumnName("Motivo_Anulacion")
             .HasMaxLength(255);
 
+        _ = builder.Property(x => x.EmpleadoVerificaRecetaId)
+            .HasColumnName("Empleado_Verifica_Receta_ID");
+
+        _ = builder.Property(x => x.FechaVerificacionReceta)
+            .HasColumnName("Fecha_Verificacion_Receta");
+
         _ = builder.Property(x => x.RowVersion)
             .HasColumnName("RowVersion")
             .IsRowVersion();
@@ -69,6 +75,11 @@ public class VentaConfiguration : IEntityTypeConfiguration<Venta>
         _ = builder.HasOne(x => x.Sesion)
             .WithMany()
             .HasForeignKey(x => x.SesionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.HasOne(x => x.EmpleadoVerificaReceta)
+            .WithMany()
+            .HasForeignKey(x => x.EmpleadoVerificaRecetaId)
             .OnDelete(DeleteBehavior.Restrict);
 
         _ = builder.ToTable(t => t.HasCheckConstraint("CHK_Ventas_Cabecera_Monto_Total_Bruto", "[Monto_Total_Bruto] >= 0"));

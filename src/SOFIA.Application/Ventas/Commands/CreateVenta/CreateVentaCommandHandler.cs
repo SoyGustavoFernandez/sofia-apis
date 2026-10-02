@@ -45,13 +45,15 @@ public class CreateVentaCommandHandler(
             return Result.Failure<VentaCreadaDto>(coberturaResult.Error, coberturaResult.StatusCode);
         }
 
-        var detallesResult = await VentaDetalleFactory.BuildAsync(context, request.Detalles, sucursalId, request.ClienteId, null, cancellationToken);
+        var exigirRegistroReceta = await VentaDetalleFactory.ExigeRegistroRecetaAsync(context, sucursalId, cancellationToken);
+
+        var detallesResult = await VentaDetalleFactory.BuildAsync(context, request.Detalles, sucursalId, request.ClienteId, null, exigirRegistroReceta, cancellationToken);
         if (detallesResult.IsFailure)
         {
             return Result.Failure<VentaCreadaDto>(detallesResult.Error);
         }
 
-        var ventaResult = Venta.Create(sucursalId, empleadoId, request.ClienteId, request.SesionId, detallesResult.Value!, request.Estado);
+        var ventaResult = Venta.Create(sucursalId, empleadoId, request.ClienteId, request.SesionId, detallesResult.Value!.Detalles, request.Estado);
         if (!ventaResult.IsSuccess)
         {
             return Result.Failure<VentaCreadaDto>(ventaResult.Error);
@@ -64,38 +66,56 @@ public class CreateVentaCommandHandler(
         // A Pendiente sale can be parked with no payment yet; it only gets a comprobante and flips to Completada once paid.
         if (request.Pagos.Count > 0)
         {
-            var pagosResult = VentaPagoFactory.Build(request.Pagos);
-            if (pagosResult.IsFailure)
+            var cobroResult = await CobrarAsync(ventaResult.Value, request, coberturaResult.Value, detallesResult.Value.RequiereVerificacionReceta, cancellationToken);
+            if (cobroResult.IsFailure)
             {
-                return Result.Failure<VentaCreadaDto>(pagosResult.Error);
+                return Result.Failure<VentaCreadaDto>(cobroResult.Error);
             }
 
-            var registrarPagosResult = ventaResult.Value.RegistrarPagos(pagosResult.Value!, coberturaResult.Value);
-            if (!registrarPagosResult.IsSuccess)
-            {
-                return Result.Failure<VentaCreadaDto>(registrarPagosResult.Error);
-            }
-
-            var comprobanteResult = await VentaComprobanteGenerator.EmitirBoletaAsync(context, ventaResult.Value, sucursalId, cancellationToken);
-            if (comprobanteResult.IsFailure)
-            {
-                return Result.Failure<VentaCreadaDto>(comprobanteResult.Error);
-            }
-
-            dtoComprobante = comprobanteResult.Value;
-
-            var seguroResult = VentaSeguroProcessor.Process(context, ventaResult.Value, request.AseguradoraId, request.MontoCubiertoSeguro);
-            if (seguroResult.IsFailure)
-            {
-                return Result.Failure<VentaCreadaDto>(seguroResult.Error);
-            }
-
-            ventaResult.Value.AddDomainEvent(new VentaCompletadaEvent(ventaResult.Value.Id, sucursalId));
+            dtoComprobante = cobroResult.Value;
         }
 
         _ = await context.SaveChangesAsync(cancellationToken);
 
         return Result.Success(new VentaCreadaDto(ventaResult.Value.Id, dtoComprobante), 201);
+    }
+
+    // Charging needs the prescription confirmation when a line was sold without a registered prescription; parking does not
+    private async Task<Result<ComprobanteEmitidoDto>> CobrarAsync(Venta venta, CreateVentaCommand request, decimal montoCubiertoSeguro, bool requiereVerificacionReceta, CancellationToken cancellationToken)
+    {
+        var verificacionResult = VentaRecetaVerificacion.Registrar(venta, requiereVerificacionReceta, request.RecetaVerificada, venta.EmpleadoId);
+        if (verificacionResult.IsFailure)
+        {
+            return Result.Failure<ComprobanteEmitidoDto>(verificacionResult.Error);
+        }
+
+        var pagosResult = VentaPagoFactory.Build(request.Pagos);
+        if (pagosResult.IsFailure)
+        {
+            return Result.Failure<ComprobanteEmitidoDto>(pagosResult.Error);
+        }
+
+        var registrarPagosResult = venta.RegistrarPagos(pagosResult.Value!, montoCubiertoSeguro);
+        if (!registrarPagosResult.IsSuccess)
+        {
+            return Result.Failure<ComprobanteEmitidoDto>(registrarPagosResult.Error);
+        }
+
+        var comprobanteResult = await VentaComprobanteGenerator.EmitirBoletaAsync(context, venta, venta.SucursalId, cancellationToken);
+        if (comprobanteResult.IsFailure)
+        {
+            return comprobanteResult;
+        }
+
+        var seguroResult = VentaSeguroProcessor.Process(context, venta, request.AseguradoraId, request.MontoCubiertoSeguro);
+        if (seguroResult.IsFailure)
+        {
+            return Result.Failure<ComprobanteEmitidoDto>(seguroResult.Error);
+        }
+
+        venta.AddDomainEvent(new VentaCompletadaEvent(venta.Id, venta.SucursalId));
+
+        return comprobanteResult;
     }
 
     // Tenant-filtered lookup: a patient of another company must not be stored as the customer

@@ -5,6 +5,8 @@ namespace SOFIA.Domain.Entities;
 
 public sealed class RecetaMedica : BaseEntity
 {
+    public const int NumeroRecetaMaxLength = 30;
+
     private RecetaMedica() { } // Required for EF Core
 
     public Guid ClienteId { get; private set; }
@@ -12,6 +14,9 @@ public sealed class RecetaMedica : BaseEntity
     public DateOnly FechaExpedicion { get; private set; }
     public int RepeticionesMax { get; private set; }
     public string? IndicacionesUso { get; private set; }
+
+    // Optional in the master, but retained and narcotic products can only be sold against a prescription that has it
+    public string? NumeroReceta { get; private set; }
 
     // Navigation Properties
     public PacienteCliente? Cliente { get; }
@@ -22,7 +27,8 @@ public sealed class RecetaMedica : BaseEntity
         Guid medicoId,
         DateOnly fechaExpedicion,
         int repeticionesMax = 0,
-        string? indicacionesUso = null)
+        string? indicacionesUso = null,
+        string? numeroReceta = null)
     {
         if (clienteId == Guid.Empty)
         {
@@ -49,13 +55,20 @@ public sealed class RecetaMedica : BaseEntity
             return Result.Failure<RecetaMedica>(Error.Validation("RecetaMedica.RepeticionesMax", "Repeticiones Máximas must be greater than or equal to 0."));
         }
 
+        var numero = NormalizarNumero(numeroReceta);
+        if (numero?.Length > NumeroRecetaMaxLength)
+        {
+            return Result.Failure<RecetaMedica>(NumeroRecetaDemasiadoLargo);
+        }
+
         return Result.Success(new RecetaMedica
         {
             ClienteId = clienteId,
             MedicoId = medicoId,
             FechaExpedicion = fechaExpedicion,
             RepeticionesMax = repeticionesMax,
-            IndicacionesUso = indicacionesUso
+            IndicacionesUso = indicacionesUso,
+            NumeroReceta = numero
         });
     }
 
@@ -64,7 +77,8 @@ public sealed class RecetaMedica : BaseEntity
         Guid medicoId,
         DateOnly fechaExpedicion,
         int repeticionesMax,
-        string? indicacionesUso)
+        string? indicacionesUso,
+        string? numeroReceta)
     {
         if (clienteId == Guid.Empty)
         {
@@ -91,14 +105,26 @@ public sealed class RecetaMedica : BaseEntity
             return Result.Failure(Error.Validation("RecetaMedica.RepeticionesMax", "Repeticiones Máximas must be greater than or equal to 0."));
         }
 
+        var numero = NormalizarNumero(numeroReceta);
+        if (numero?.Length > NumeroRecetaMaxLength)
+        {
+            return Result.Failure(NumeroRecetaDemasiadoLargo);
+        }
+
         ClienteId = clienteId;
         MedicoId = medicoId;
         FechaExpedicion = fechaExpedicion;
         RepeticionesMax = repeticionesMax;
         IndicacionesUso = indicacionesUso;
+        NumeroReceta = numero;
 
         return Result.Success();
     }
+
+    private static Error NumeroRecetaDemasiadoLargo => Error.Validation("RecetaMedica.NumeroReceta", $"Número de receta must not exceed {NumeroRecetaMaxLength} characters.");
+
+    // A blank number is stored as no number
+    private static string? NormalizarNumero(string? numeroReceta) => string.IsNullOrWhiteSpace(numeroReceta) ? null : numeroReceta.Trim();
 
     // Controlled prescriptions dispense once; a simple one allows the first dispensation plus RepeticionesMax refills
     public Result PuedeDispensar(int dispensacionesPrevias, CondicionVenta condicion)

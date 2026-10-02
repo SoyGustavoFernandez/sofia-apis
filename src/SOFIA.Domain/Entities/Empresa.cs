@@ -21,6 +21,9 @@ public sealed class Empresa : BaseEntity
     public DateTimeOffset FechaInicioTrial { get; private set; }
     public DateTimeOffset FechaVencimiento { get; private set; }
 
+    // Off by default and changed only in the database: when on, simple-prescription products also need a registered prescription
+    public bool ExigirRegistroReceta { get; private set; }
+
     public bool EstaVigente => EstaVigenteEn(DateTimeOffset.UtcNow);
 
     // Single subscription rule shared by the DTOs, login, token refresh and every authenticated request
@@ -58,7 +61,8 @@ public sealed class Empresa : BaseEntity
             RUC = rucVo,
             Estado = EstadoEmpresa.TrialActivo,
             FechaInicioTrial = ahora,
-            FechaVencimiento = ahora.AddDays(DiasTrial)
+            FechaVencimiento = ahora.AddDays(DiasTrial),
+            ExigirRegistroReceta = false
         };
         empresa.TenantId = empresa.Id;
         return Result.Success(empresa);

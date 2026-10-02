@@ -36,6 +36,11 @@ public class RecetaMedicaConfiguration : IEntityTypeConfiguration<RecetaMedica>
             .HasColumnName("Indicaciones_Uso")
             .HasMaxLength(1000);
 
+        _ = builder.Property(x => x.NumeroReceta)
+            .HasColumnName("Numero_Receta")
+            .HasMaxLength(RecetaMedica.NumeroRecetaMaxLength)
+            .IsUnicode(false);
+
         // Audit properties mapping
         _ = builder.Property(x => x.CreatedAt).HasColumnName("CreatedAt");
         _ = builder.Property(x => x.CreatedBy).HasColumnName("CreatedBy");

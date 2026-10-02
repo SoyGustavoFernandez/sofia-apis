@@ -10,4 +10,5 @@ public record CompletarVentaCommand(
     List<CreateVentaDetailDto>? Detalles = null,
     Guid? ClienteId = null,
     Guid? AseguradoraId = null,
-    decimal? MontoCubiertoSeguro = null) : ICommand<VentaCreadaDto>;
+    decimal? MontoCubiertoSeguro = null,
+    bool RecetaVerificada = false) : ICommand<VentaCreadaDto>;

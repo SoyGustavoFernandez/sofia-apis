@@ -54,7 +54,8 @@ public class GetLotesDisponiblesVentaQueryHandler(IApplicationDbContext context,
                 x.Lote.Producto!.NombreComercial,
                 x.Lote.FechaCaducidad,
                 x.CantidadFisica,
-                x.Lote.Producto!.PrecioVentaBase))
+                x.Lote.Producto!.PrecioVentaBase,
+                x.Lote.Producto!.CondicionVenta))
             .ToListAsync(cancellationToken);
 
         return Result.Success(lotes);

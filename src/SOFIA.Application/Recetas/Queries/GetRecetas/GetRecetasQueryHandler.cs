@@ -46,7 +46,8 @@ public class GetRecetasQueryHandler(IApplicationDbContext dbContext) : IRequestH
                 m != null ? m.NombrePrescriptor : string.Empty,
                 r.FechaExpedicion,
                 r.RepeticionesMax,
-                r.IndicacionesUso);
+                r.IndicacionesUso,
+                r.NumeroReceta);
 
         var paginatedList = await PaginatedList<RecetaResumenDto>.CreateAsync(projectedQuery, request.PageNumber, request.PageSize);
 

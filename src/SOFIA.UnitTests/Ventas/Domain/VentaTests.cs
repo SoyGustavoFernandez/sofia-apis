@@ -329,4 +329,41 @@ public class VentaTests
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Venta.Caja");
     }
+
+    [Fact]
+    public void Create_ShouldStartWithoutPrescriptionVerification()
+    {
+        var venta = CrearVenta(EstadoVenta.Pendiente);
+
+        _ = venta.EmpleadoVerificaRecetaId.Should().BeNull();
+        _ = venta.FechaVerificacionReceta.Should().BeNull();
+    }
+
+    [Fact]
+    public void RegistrarVerificacionReceta_ShouldStoreWhoVerifiedAndWhen()
+    {
+        var venta = CrearVenta(EstadoVenta.Pendiente);
+        var verificador = Guid.NewGuid();
+        var ahora = new DateTime(2026, 10, 2, 15, 30, 0, DateTimeKind.Utc);
+
+        var result = venta.RegistrarVerificacionReceta(verificador, ahora);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = venta.EmpleadoVerificaRecetaId.Should().Be(verificador);
+        _ = venta.FechaVerificacionReceta.Should().Be(ahora);
+        _ = venta.EmpleadoId.Should().Be(EmpleadoId);
+    }
+
+    [Fact]
+    public void RegistrarVerificacionReceta_ShouldFailAndStoreNothing_WhenEmployeeIsEmpty()
+    {
+        var venta = CrearVenta(EstadoVenta.Pendiente);
+
+        var result = venta.RegistrarVerificacionReceta(Guid.Empty, DateTime.UtcNow);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.EmpleadoVerificaRecetaId");
+        _ = venta.EmpleadoVerificaRecetaId.Should().BeNull();
+        _ = venta.FechaVerificacionReceta.Should().BeNull();
+    }
 }

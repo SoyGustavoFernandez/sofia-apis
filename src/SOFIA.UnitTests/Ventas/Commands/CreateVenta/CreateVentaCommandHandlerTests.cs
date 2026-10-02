@@ -717,6 +717,92 @@ public class CreateVentaCommandHandlerTests
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    private CreateVentaCommand VentaSinReceta(bool cobrada, bool recetaVerificada) => new(
+        null,
+        _sesionId,
+        [new CreateVentaDetailDto(_loteId, 1)],
+        cobrada ? [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)] : [],
+        cobrada ? EstadoVenta.Completada : EstadoVenta.Pendiente,
+        RecetaVerificada: recetaVerificada);
+
+    [Fact]
+    public async Task Handle_ShouldReturnVerificacionRequeridaAndNotSave_WhenFlexibleSimplePrescriptionSaleIsChargedWithoutConfirmation()
+    {
+        var inventarioItem = InventarioSucursal.Create(_sucursalId, _loteId, 20).Value!;
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: [inventarioItem], condicionVenta: CondicionVenta.RecetaSimple);
+
+        var result = await _handler.Handle(VentaSinReceta(cobrada: true, recetaVerificada: false), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Receta.VerificacionRequerida");
+        _dbContextMock.Verify(c => c.IncrementarCorrelativoSunatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldStoreWhoVerifiedAndWhen_WhenFlexibleSimplePrescriptionSaleIsChargedWithConfirmation()
+    {
+        var inventarioItem = InventarioSucursal.Create(_sucursalId, _loteId, 20).Value!;
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: [inventarioItem], condicionVenta: CondicionVenta.RecetaSimple);
+
+        var result = await _handler.Handle(VentaSinReceta(cobrada: true, recetaVerificada: true), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        var venta = _ventasList.Should().ContainSingle().Subject;
+        _ = venta.Estado.Should().Be(EstadoVenta.Completada);
+        _ = venta.Detalles.Single().RecetaId.Should().BeNull();
+        _ = venta.EmpleadoVerificaRecetaId.Should().Be(_empleadoId);
+        _ = venta.FechaVerificacionReceta.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(30));
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_ShouldParkWithoutStoringAVerification_WhenFlexibleSimplePrescriptionSaleHasNoPayments(bool recetaVerificada)
+    {
+        var inventarioItem = InventarioSucursal.Create(_sucursalId, _loteId, 20).Value!;
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: [inventarioItem], condicionVenta: CondicionVenta.RecetaSimple);
+
+        var result = await _handler.Handle(VentaSinReceta(cobrada: false, recetaVerificada: recetaVerificada), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        var venta = _ventasList.Should().ContainSingle().Subject;
+        _ = venta.Estado.Should().Be(EstadoVenta.Pendiente);
+        _ = venta.EmpleadoVerificaRecetaId.Should().BeNull();
+        _ = venta.FechaVerificacionReceta.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_ShouldReturnRecetaRequerida_WhenStrictCompanySellsSimplePrescriptionWithoutPrescription(bool cobrada)
+    {
+        var inventarioItem = InventarioSucursal.Create(_sucursalId, _loteId, 20).Value!;
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: [inventarioItem], condicionVenta: CondicionVenta.RecetaSimple, exigirRegistroReceta: true);
+
+        var result = await _handler.Handle(VentaSinReceta(cobrada, recetaVerificada: true), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Receta.Requerida");
+        _ = _ventasList.Should().BeEmpty();
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldIgnoreTheConfirmation_WhenNoLineNeedsVerification()
+    {
+        var inventarioItem = InventarioSucursal.Create(_sucursalId, _loteId, 20).Value!;
+        SetupMocks(sesionesCaja: SesionAbierta(), inventario: [inventarioItem]);
+
+        var result = await _handler.Handle(VentaSinReceta(cobrada: true, recetaVerificada: true), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        var venta = _ventasList.Should().ContainSingle().Subject;
+        _ = venta.EmpleadoVerificaRecetaId.Should().BeNull();
+        _ = venta.FechaVerificacionReceta.Should().BeNull();
+    }
+
     private List<PosSesionCaja> SesionAbierta()
     {
         var sesion = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100).Value!;
@@ -733,7 +819,8 @@ public class CreateVentaCommandHandlerTests
         decimal? precioCatalogo = 10,
         List<HistorialPrecioProveedor>? historialPrecios = null,
         List<AseguradoraMedica>? aseguradoras = null,
-        CondicionVenta condicionVenta = CondicionVenta.VentaLibreOTC)
+        CondicionVenta condicionVenta = CondicionVenta.VentaLibreOTC,
+        bool exigirRegistroReceta = false)
     {
         sesionesCaja ??= [];
         cuarentenas ??= [];
@@ -755,7 +842,7 @@ public class CreateVentaCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.DigemidInventarioCuarentena).Returns(cuarentenas.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.LotesEnSucursal).Returns(inventario.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.SUNATSeriesFiscales).Returns(series.BuildMockDbSet().Object);
-        EmisorMocks.Setup(_dbContextMock, _sucursalId);
+        EmisorMocks.Setup(_dbContextMock, _sucursalId, exigirRegistroReceta: exigirRegistroReceta);
         _ = _dbContextMock.Setup(c => c.IncrementarCorrelativoSunatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
         _ = _dbContextMock.Setup(c => c.PresentacionesVenta).Returns(presentaciones.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.Aseguradoras).Returns(aseguradoras.BuildMockDbSet().Object);

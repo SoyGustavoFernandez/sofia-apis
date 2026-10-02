@@ -40,7 +40,7 @@ public class GetPacientesQueryHandler(IApplicationDbContext context) : IRequestH
         }
 
         var paginatedList = await PaginatedList<PacienteDto>.CreateAsync(
-            query.Select(x => new PacienteDto(x.Id, x.TipoDocumento, x.DocIdentidadGub, x.NombreApellidos, x.FechaNacimiento, x.ContactoPrimario)),
+            query.OrderBy(x => x.NombreApellidos).ThenBy(x => x.Id).Select(x => new PacienteDto(x.Id, x.TipoDocumento, x.DocIdentidadGub, x.NombreApellidos, x.FechaNacimiento, x.ContactoPrimario)),
             request.PageNumber,
             request.PageSize);
 

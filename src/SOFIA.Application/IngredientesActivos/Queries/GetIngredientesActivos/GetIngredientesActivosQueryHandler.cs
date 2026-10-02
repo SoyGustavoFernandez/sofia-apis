@@ -25,7 +25,7 @@ public class GetIngredientesActivosQueryHandler(IApplicationDbContext context) :
         }
 
         var paginatedList = await PaginatedList<IngredienteActivoDto>.CreateAsync(
-            query.Select(x => new IngredienteActivoDto(x.Id, x.DenominacionDci, x.CodigoAtc)),
+            query.OrderBy(x => x.DenominacionDci).ThenBy(x => x.Id).Select(x => new IngredienteActivoDto(x.Id, x.DenominacionDci, x.CodigoAtc)),
             request.PageNumber,
             request.PageSize);
 

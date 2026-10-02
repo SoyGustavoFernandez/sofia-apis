@@ -25,7 +25,7 @@ public class GetLaboratoriosQueryHandler(IApplicationDbContext context) : IReque
         }
 
         var paginatedList = await PaginatedList<LaboratorioDto>.CreateAsync(
-            query.Select(x => new LaboratorioDto(x.Id, x.NombreCompania, x.CodigoIdentificador)),
+            query.OrderBy(x => x.NombreCompania).ThenBy(x => x.Id).Select(x => new LaboratorioDto(x.Id, x.NombreCompania, x.CodigoIdentificador)),
             request.PageNumber,
             request.PageSize);
 

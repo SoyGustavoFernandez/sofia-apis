@@ -114,6 +114,10 @@ public sealed class SunatComprobanteEmitidoConfiguration : IEntityTypeConfigurat
             .HasDatabaseName(SerieFiscalIndexes.CorrelativoPorSerie)
             .IsUnique();
 
+        // Receipts are always looked up by sale
+        _ = builder.HasIndex(x => x.TransaccionId)
+            .HasDatabaseName("IX_SUNAT_Comprobantes_Emitidos_Transaccion");
+
         // Soft delete query filter
     }
 }

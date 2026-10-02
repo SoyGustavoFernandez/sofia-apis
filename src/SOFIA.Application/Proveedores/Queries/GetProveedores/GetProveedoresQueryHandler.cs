@@ -35,7 +35,7 @@ public class GetProveedoresQueryHandler(IApplicationDbContext context) : IReques
         }
 
         var paginatedList = await PaginatedList<ProveedorDto>.CreateAsync(
-            query.Select(x => new ProveedorDto(x.Id, x.RazonSocial, x.TaxId, x.TerminosFinancieros, x.CalificacionEsg, x.TasaCumplimiento)),
+            query.OrderBy(x => x.RazonSocial).ThenBy(x => x.Id).Select(x => new ProveedorDto(x.Id, x.RazonSocial, x.TaxId, x.TerminosFinancieros, x.CalificacionEsg, x.TasaCumplimiento)),
             request.PageNumber,
             request.PageSize);
 

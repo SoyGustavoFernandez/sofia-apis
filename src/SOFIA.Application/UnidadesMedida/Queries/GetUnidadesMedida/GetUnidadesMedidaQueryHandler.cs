@@ -25,7 +25,7 @@ public class GetUnidadesMedidaQueryHandler(IApplicationDbContext context) : IReq
         }
 
         var paginatedList = await PaginatedList<UnidadMedidaDto>.CreateAsync(
-            query.Select(x => new UnidadMedidaDto(x.Id, x.Codigo, x.Descripcion)),
+            query.OrderBy(x => x.Descripcion).ThenBy(x => x.Id).Select(x => new UnidadMedidaDto(x.Id, x.Codigo, x.Descripcion)),
             request.PageNumber,
             request.PageSize);
 

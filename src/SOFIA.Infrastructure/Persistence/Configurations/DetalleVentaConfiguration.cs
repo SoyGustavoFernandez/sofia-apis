@@ -58,6 +58,10 @@ public class DetalleVentaConfiguration : IEntityTypeConfiguration<DetalleVenta>
             .HasForeignKey(x => x.PresentacionVentaId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Sale lines are always read by sale
+        _ = builder.HasIndex(x => x.VentaId)
+            .HasDatabaseName("IX_Ventas_Detalle_Transaccion");
+
         _ = builder.ToTable(t =>
         {
             _ = t.HasCheckConstraint("CHK_Ventas_Detalle_Cantidad_Vendida", "[Cantidad_Vendida] > 0");

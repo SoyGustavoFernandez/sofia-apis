@@ -25,7 +25,7 @@ public class GetProfesionalesSaludQueryHandler(IApplicationDbContext context) : 
         }
 
         var paginatedList = await PaginatedList<ProfesionalSaludDto>.CreateAsync(
-            query.Select(x => new ProfesionalSaludDto(x.Id, x.NumeroRegistro, x.NombrePrescriptor, x.DireccionClinica)),
+            query.OrderBy(x => x.NombrePrescriptor).ThenBy(x => x.Id).Select(x => new ProfesionalSaludDto(x.Id, x.NumeroRegistro, x.NombrePrescriptor, x.DireccionClinica)),
             request.PageNumber,
             request.PageSize);
 

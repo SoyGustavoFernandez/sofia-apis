@@ -25,7 +25,7 @@ public class GetDigemidCatalogoQueryHandler(IApplicationDbContext context) : IRe
         }
 
         var paginatedList = await PaginatedList<DigemidProductoDto>.CreateAsync(
-            query.Select(x => new DigemidProductoDto(x.Id, x.CodProd, x.NomProd, x.Concent, x.FormaFarmaceutica, x.RegistroSanitario, x.Titular, x.Estado)),
+            query.OrderBy(x => x.NomProd).ThenBy(x => x.Id).Select(x => new DigemidProductoDto(x.Id, x.CodProd, x.NomProd, x.Concent, x.FormaFarmaceutica, x.RegistroSanitario, x.Titular, x.Estado)),
             request.PageNumber,
             request.PageSize);
 

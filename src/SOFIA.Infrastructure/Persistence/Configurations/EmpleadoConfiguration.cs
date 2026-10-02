@@ -29,7 +29,7 @@ public class EmpleadoConfiguration : IEntityTypeConfiguration<Empleado>
         _ = builder.Property(x => x.Apellido_Materno)
             .HasColumnName("Apellido_Materno")
             .HasMaxLength(75)
-            .IsRequired();
+            .IsRequired(false);
 
         _ = builder.Ignore(x => x.Nombre_Completo);
 

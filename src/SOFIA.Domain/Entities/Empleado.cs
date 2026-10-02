@@ -14,13 +14,17 @@ public partial class Empleado : BaseEntity
 
     public string Nombres { get; private set; } = string.Empty;
     public string Apellido_Paterno { get; private set; } = string.Empty;
-    public string Apellido_Materno { get; private set; } = string.Empty;
+
+    // Optional: a person with a single surname stores null, never a placeholder
+    public string? Apellido_Materno { get; private set; }
+
     public string? Licencia_Prof { get; private set; }
 
     // Destination of password recovery links; accounts without it cannot self-recover
     public string? Email { get; private set; }
 
-    public string Nombre_Completo => $"{Nombres} {Apellido_Paterno} {Apellido_Materno}".Trim();
+    public string Nombre_Completo =>
+        string.Join(" ", new[] { Nombres, Apellido_Paterno, Apellido_Materno }.Where(parte => !string.IsNullOrWhiteSpace(parte)));
 
     // SQL Server BLOB stored as byte[]
     public byte[]? Huella_Biometrica { get; private set; }
@@ -32,7 +36,7 @@ public partial class Empleado : BaseEntity
         Guid sucursalBaseId,
         string nombres,
         string apellidoPaterno,
-        string apellidoMaterno,
+        string? apellidoMaterno,
         string? licenciaProf = null,
         byte[]? huellaBiometrica = null,
         Guid? tenantId = null,
@@ -53,11 +57,6 @@ public partial class Empleado : BaseEntity
             return Result.Failure<Empleado>(Error.Validation("Empleado.ApellidoPaterno", "Apellido Paterno is required."));
         }
 
-        if (string.IsNullOrWhiteSpace(apellidoMaterno))
-        {
-            return Result.Failure<Empleado>(Error.Validation("Empleado.ApellidoMaterno", "Apellido Materno is required."));
-        }
-
         var normalizedEmail = NormalizeEmail(email);
         if (!IsValidEmail(normalizedEmail))
         {
@@ -69,7 +68,7 @@ public partial class Empleado : BaseEntity
             Sucursal_Base_ID = sucursalBaseId,
             Nombres = nombres,
             Apellido_Paterno = apellidoPaterno,
-            Apellido_Materno = apellidoMaterno,
+            Apellido_Materno = NormalizeApellidoMaterno(apellidoMaterno),
             Licencia_Prof = licenciaProf,
             Huella_Biometrica = huellaBiometrica,
             Email = normalizedEmail,
@@ -81,7 +80,7 @@ public partial class Empleado : BaseEntity
         Guid sucursalBaseId,
         string nombres,
         string apellidoPaterno,
-        string apellidoMaterno,
+        string? apellidoMaterno,
         string? licenciaProf,
         byte[]? huellaBiometrica,
         string? email)
@@ -101,11 +100,6 @@ public partial class Empleado : BaseEntity
             return Result.Failure(Error.Validation("Empleado.ApellidoPaterno", "Apellido Paterno is required."));
         }
 
-        if (string.IsNullOrWhiteSpace(apellidoMaterno))
-        {
-            return Result.Failure(Error.Validation("Empleado.ApellidoMaterno", "Apellido Materno is required."));
-        }
-
         var normalizedEmail = NormalizeEmail(email);
         if (!IsValidEmail(normalizedEmail))
         {
@@ -115,13 +109,17 @@ public partial class Empleado : BaseEntity
         Sucursal_Base_ID = sucursalBaseId;
         Nombres = nombres;
         Apellido_Paterno = apellidoPaterno;
-        Apellido_Materno = apellidoMaterno;
+        Apellido_Materno = NormalizeApellidoMaterno(apellidoMaterno);
         Licencia_Prof = licenciaProf;
         Huella_Biometrica = huellaBiometrica;
         Email = normalizedEmail;
 
         return Result.Success();
     }
+
+    // Blank means no second surname; stored trimmed
+    private static string? NormalizeApellidoMaterno(string? apellidoMaterno) =>
+        string.IsNullOrWhiteSpace(apellidoMaterno) ? null : apellidoMaterno.Trim();
 
     // Blank means no email; stored trimmed and lower-cased so the per-company uniqueness is case-insensitive
     public static string? NormalizeEmail(string? email) =>

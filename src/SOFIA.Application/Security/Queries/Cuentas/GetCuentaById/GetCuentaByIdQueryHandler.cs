@@ -26,7 +26,7 @@ public class GetCuentaByIdQueryHandler(IApplicationDbContext context)
         return Result.Success(new CuentaDto(
             cuenta.Id,
             cuenta.EmpleadoId,
-            cuenta.Empleado!.Nombres + " " + cuenta.Empleado.Apellido_Paterno + " " + cuenta.Empleado.Apellido_Materno,
+            cuenta.Empleado!.Nombre_Completo,
             cuenta.NombreUsuario,
             cuenta.CuentaActiva,
             cuenta.RequiereCambioClave,

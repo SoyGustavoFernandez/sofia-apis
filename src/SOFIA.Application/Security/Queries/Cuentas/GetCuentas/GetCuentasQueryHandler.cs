@@ -27,7 +27,7 @@ public class GetCuentasQueryHandler(IApplicationDbContext context)
         if (!string.IsNullOrWhiteSpace(request.NombreEmpleado))
         {
             query = query.Where(c =>
-                (c.Empleado!.Nombres + " " + c.Empleado.Apellido_Paterno + " " + c.Empleado.Apellido_Materno)
+                (c.Empleado!.Nombres + " " + c.Empleado.Apellido_Paterno + " " + (c.Empleado.Apellido_Materno ?? ""))
                     .Contains(request.NombreEmpleado));
         }
 
@@ -47,7 +47,7 @@ public class GetCuentasQueryHandler(IApplicationDbContext context)
             query.OrderBy(c => c.NombreUsuario).Select(c => new CuentaDto(
                 c.Id,
                 c.EmpleadoId,
-                c.Empleado!.Nombres + " " + c.Empleado.Apellido_Paterno + " " + c.Empleado.Apellido_Materno,
+                (c.Empleado!.Nombres + " " + c.Empleado.Apellido_Paterno + " " + (c.Empleado.Apellido_Materno ?? "")).Trim(),
                 c.NombreUsuario,
                 c.CuentaActiva,
                 c.RequiereCambioClave,

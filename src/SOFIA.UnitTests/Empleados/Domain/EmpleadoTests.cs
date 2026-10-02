@@ -59,13 +59,53 @@ public class EmpleadoTests
         _ = result.Error.Code.Should().Be("Empleado.ApellidoPaterno");
     }
 
-    [Fact]
-    public void Create_ShouldFail_WhenApellidoMaternoMissing()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Create_ShouldSucceedAndStoreNoApellidoMaterno_WhenItIsBlank(string? apellidoMaterno)
     {
-        var result = Empleado.Create(SucursalId, "Ana", "Pérez", "");
+        var result = Empleado.Create(SucursalId, "Ana", "Pérez", apellidoMaterno);
 
-        _ = result.IsFailure.Should().BeTrue();
-        _ = result.Error.Code.Should().Be("Empleado.ApellidoMaterno");
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = result.Value!.Apellido_Materno.Should().BeNull();
+        _ = result.Value.Nombre_Completo.Should().Be("Ana Pérez");
+    }
+
+    [Fact]
+    public void Create_ShouldStoreTrimmedApellidoMaterno_WhenItHasSurroundingSpaces()
+    {
+        var result = Empleado.Create(SucursalId, "Ana", "Pérez", "  Gómez  ");
+
+        _ = result.Value!.Apellido_Materno.Should().Be("Gómez");
+        _ = result.Value.Nombre_Completo.Should().Be("Ana Pérez Gómez");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Update_ShouldClearApellidoMaterno_WhenItIsBlank(string? apellidoMaterno)
+    {
+        var empleado = Empleado.Create(SucursalId, "Ana", "Pérez", "Gómez").Value!;
+
+        var result = empleado.Update(SucursalId, "Ana", "Pérez", apellidoMaterno, null, null, null);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = empleado.Apellido_Materno.Should().BeNull();
+        _ = empleado.Nombre_Completo.Should().Be("Ana Pérez");
+    }
+
+    [Fact]
+    public void Update_ShouldStoreTrimmedApellidoMaterno_WhenItHasSurroundingSpaces()
+    {
+        var empleado = Empleado.Create(SucursalId, "Ana", "Pérez", null).Value!;
+
+        var result = empleado.Update(SucursalId, "Ana", "Pérez", " Gómez ", null, null, null);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = empleado.Apellido_Materno.Should().Be("Gómez");
+        _ = empleado.Nombre_Completo.Should().Be("Ana Pérez Gómez");
     }
 
     [Fact]

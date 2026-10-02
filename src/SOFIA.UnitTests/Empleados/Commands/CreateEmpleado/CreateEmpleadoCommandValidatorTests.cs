@@ -73,10 +73,16 @@ public class CreateEmpleadoCommandValidatorTests
         _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateEmpleadoCommand.Apellido_Paterno));
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Validate_ShouldPass_WhenApellidoMaternoIsBlank(string? apellidoMaterno) => _ = _validator.Validate(ValidCommand() with { Apellido_Materno = apellidoMaterno }).IsValid.Should().BeTrue();
+
     [Fact]
-    public void Validate_ShouldFail_WhenApellidoMaternoEmpty()
+    public void Validate_ShouldFail_WhenApellidoMaternoTooLong()
     {
-        var result = _validator.Validate(ValidCommand() with { Apellido_Materno = "" });
+        var result = _validator.Validate(ValidCommand() with { Apellido_Materno = new string('x', 76) });
 
         _ = result.IsValid.Should().BeFalse();
         _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateEmpleadoCommand.Apellido_Materno));

@@ -63,6 +63,12 @@ public class UpdateEmpleadoCommandValidatorTests
         _ = result.Errors.Should().Contain(e => e.PropertyName == nameof(UpdateEmpleadoCommand.Nombres));
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Validate_ShouldPass_WhenApellidoMaternoIsBlank(string? apellidoMaterno) => _ = _validator.Validate(ValidCommand() with { Apellido_Materno = apellidoMaterno }).IsValid.Should().BeTrue();
+
     [Fact]
     public void Validate_ShouldFail_WhenApellidoMaternoTooLong()
     {

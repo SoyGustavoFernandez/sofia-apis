@@ -24,7 +24,7 @@ public class GetEmpleadosWithPaginationQueryHandler(IApplicationDbContext contex
         {
             query = query.Where(x => x.Nombres.Contains(request.SearchTerm) ||
                                    x.Apellido_Paterno.Contains(request.SearchTerm) ||
-                                   x.Apellido_Materno.Contains(request.SearchTerm) ||
+                                   (x.Apellido_Materno != null && x.Apellido_Materno.Contains(request.SearchTerm)) ||
                                    (x.Licencia_Prof != null && x.Licencia_Prof.Contains(request.SearchTerm)));
         }
 
@@ -40,7 +40,7 @@ public class GetEmpleadosWithPaginationQueryHandler(IApplicationDbContext contex
 
         if (!string.IsNullOrWhiteSpace(request.ApellidoMaterno))
         {
-            query = query.Where(x => x.Apellido_Materno.Contains(request.ApellidoMaterno));
+            query = query.Where(x => x.Apellido_Materno != null && x.Apellido_Materno.Contains(request.ApellidoMaterno));
         }
 
         if (!string.IsNullOrWhiteSpace(request.Licencia))
@@ -64,7 +64,7 @@ public class GetEmpleadosWithPaginationQueryHandler(IApplicationDbContext contex
                 Nombres = e.Nombres,
                 Apellido_Paterno = e.Apellido_Paterno,
                 Apellido_Materno = e.Apellido_Materno,
-                Nombre_Completo = e.Nombres + " " + e.Apellido_Paterno + " " + e.Apellido_Materno,
+                Nombre_Completo = (e.Nombres + " " + e.Apellido_Paterno + " " + (e.Apellido_Materno ?? "")).Trim(),
                 Licencia_Prof = e.Licencia_Prof,
                 Email = e.Email,
                 SucursalNombre = e.Sucursal_Base!.Nombre

@@ -25,7 +25,6 @@ public class UpdateEmpleadoCommandValidator : AbstractValidator<UpdateEmpleadoCo
             .MaximumLength(75).WithMessage("Apellido Paterno must not exceed 75 characters.");
 
         _ = RuleFor(v => v.Apellido_Materno)
-            .NotEmpty().WithMessage("Apellido Materno is required.")
             .MaximumLength(75).WithMessage("Apellido Materno must not exceed 75 characters.");
 
         _ = RuleFor(v => v.Licencia_Prof)

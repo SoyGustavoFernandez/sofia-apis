@@ -296,7 +296,7 @@ public class AuthIntegrationTests(SofiaWebAppFactory factory) : BaseIntegrationT
         _ = refresh.IsSuccess.Should().BeTrue();
         var claims = new JwtSecurityTokenHandler().ReadJwtToken(refresh.Value!.AccessToken).Claims.ToList();
         _ = claims.Should().ContainSingle(c => c.Type == "nombreEmpresa").Which.Value.Should().Be($"Farmacia {usuario}");
-        _ = claims.Should().ContainSingle(c => c.Type == "fullName").Which.Value.Should().Be("Admin Prueba -");
+        _ = claims.Should().ContainSingle(c => c.Type == "fullName").Which.Value.Should().Be("Admin Prueba");
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────

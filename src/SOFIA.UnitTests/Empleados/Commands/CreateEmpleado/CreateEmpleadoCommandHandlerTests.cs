@@ -44,6 +44,19 @@ public class CreateEmpleadoCommandHandlerTests
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Handle_ShouldAddEmpleadoWithoutApellidoMaterno_WhenItIsBlank(string? apellidoMaterno)
+    {
+        var result = await _handler.Handle(Command() with { Apellido_Materno = apellidoMaterno }, CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _empleadosMock.Verify(m => m.Add(It.Is<Empleado>(e => e.Apellido_Materno == null && e.Nombre_Completo == "Ana Pérez")), Times.Once);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     [Fact]
     public async Task Handle_ShouldReturnNotFoundAndNotSave_WhenSucursalIsNotInTenant()
     {

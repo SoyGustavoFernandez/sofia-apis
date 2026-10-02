@@ -268,7 +268,7 @@ public class RegistrarEmpresaCommandHandlerTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public async Task Handle_ShouldUseDashAsMaternalSurname_WhenNotProvided(string? apellidoMaterno)
+    public async Task Handle_ShouldStoreNoMaternalSurname_WhenNotProvided(string? apellidoMaterno)
     {
         SetupEmptyContext();
         Empleado? capturedEmpleado = null;
@@ -277,7 +277,8 @@ public class RegistrarEmpresaCommandHandlerTests
         var result = await _handler.Handle(MinimalCommand() with { AdminApellidoMaterno = apellidoMaterno }, CancellationToken.None);
 
         _ = result.IsSuccess.Should().BeTrue();
-        _ = capturedEmpleado!.Apellido_Materno.Should().Be("-");
+        _ = capturedEmpleado!.Apellido_Materno.Should().BeNull();
+        _ = capturedEmpleado.Nombre_Completo.Should().Be("Ana Maria Quispe");
     }
 
     [Fact]

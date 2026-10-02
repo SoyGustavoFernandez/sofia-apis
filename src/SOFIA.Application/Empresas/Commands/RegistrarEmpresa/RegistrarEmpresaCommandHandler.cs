@@ -94,11 +94,8 @@ public class RegistrarEmpresaCommandHandler(
 
         var sucursal = sucursalResult.Value!;
 
-        // The employee entity requires a maternal surname, which is optional at sign-up
-        var adminApMat = string.IsNullOrWhiteSpace(request.AdminApellidoMaterno) ? "-" : request.AdminApellidoMaterno;
-
         var empleadoResult = Empleado.Create(
-            sucursal.Id, request.AdminNombres, request.AdminApellidoPaterno, adminApMat, tenantId: empresa.Id, email: request.AdminEmail);
+            sucursal.Id, request.AdminNombres, request.AdminApellidoPaterno, request.AdminApellidoMaterno, tenantId: empresa.Id, email: request.AdminEmail);
         if (empleadoResult.IsFailure)
         {
             return Result.Failure<(Empresa, Sucursal, Empleado, Cuenta, Rol)>(empleadoResult.Error);

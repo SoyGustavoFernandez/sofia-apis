@@ -73,6 +73,22 @@ public class UpdateEmpleadoCommandHandlerTests
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Handle_ShouldClearApellidoMaternoAndSave_WhenItIsBlank(string? apellidoMaterno)
+    {
+        var empleado = ExistingEmpleado();
+
+        var result = await _handler.Handle(Command(empleado.Id, _sucursalActual.Id) with { Apellido_Materno = apellidoMaterno }, CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = empleado.Apellido_Materno.Should().BeNull();
+        _ = empleado.Nombre_Completo.Should().Be("Nuevo Pereira");
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     [Fact]
     public async Task Handle_ShouldReturnFailureAndNotSave_WhenDomainValidationFails()
     {

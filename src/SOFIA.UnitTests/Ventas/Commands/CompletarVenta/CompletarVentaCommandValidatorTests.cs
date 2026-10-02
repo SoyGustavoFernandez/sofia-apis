@@ -38,6 +38,36 @@ public class CompletarVentaCommandValidatorTests
               .WithErrorMessage("A sale must have at least one payment.");
     }
 
+    [Theory]
+    [InlineData(MetodoPago.Tarjeta, null)]
+    [InlineData(MetodoPago.YapePlin, "")]
+    [InlineData(MetodoPago.Transferencia, "   ")]
+    public void Should_Have_Error_When_NonCash_Payment_Has_No_Reference(MetodoPago metodo, string? referencia)
+    {
+        // Arrange
+        var command = new CompletarVentaCommand(Guid.NewGuid(), [new CreateVentaPagoDto(MetodoPago.Efectivo, 5, null), new CreateVentaPagoDto(metodo, 5, referencia)]);
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        _ = result.ShouldHaveValidationErrorFor("Pagos.ReferenciaRequerida")
+              .WithErrorMessage("An operation reference is required for non-cash payments.");
+    }
+
+    [Fact]
+    public void Should_Not_Have_Error_When_NonCash_Payment_Has_Reference()
+    {
+        // Arrange
+        var command = new CompletarVentaCommand(Guid.NewGuid(), [new CreateVentaPagoDto(MetodoPago.YapePlin, 10, "OP-123456")]);
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
     [Fact]
     public void Should_Have_Error_When_MontoCubiertoSeguro_Is_Negative()
     {

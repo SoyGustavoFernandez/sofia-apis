@@ -46,7 +46,7 @@ public class CerrarCajaCommandHandlerTests
     {
         var detalle = DetalleVenta.Create(Guid.NewGuid(), 1, total, 1).Value!;
         var venta = Venta.Create(_sucursalId, _empleadoId, null, sesionId ?? _sesion.Id, [detalle]).Value!;
-        var ventaPagos = pagos.Select(p => VentaPago.Create(p.Metodo, p.Monto, null, DateTime.UtcNow).Value!).ToList();
+        var ventaPagos = pagos.Select(p => VentaPago.Create(p.Metodo, p.Monto, VentaPago.RequiereReferencia(p.Metodo) ? "OP-1" : null, DateTime.UtcNow).Value!).ToList();
         _ = venta.RegistrarPagos(ventaPagos, montoCubierto);
 
         if (montoCubierto > 0)

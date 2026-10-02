@@ -221,6 +221,24 @@ public class CompletarVentaCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldReturnError_WhenNonCashPaymentHasNoReference()
+    {
+        // Arrange
+        var venta = CrearVentaPendiente();
+        SetupMocks([venta]);
+        var command = new CompletarVentaCommand(venta.Id, [new CreateVentaPagoDto(MetodoPago.Tarjeta, 20, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Pagos.ReferenciaRequerida");
+        _ = venta.Estado.Should().Be(EstadoVenta.Pendiente);
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_ShouldReturnNotFound_WhenAseguradoraDoesNotExist()
     {
         // Arrange

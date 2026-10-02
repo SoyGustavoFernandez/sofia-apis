@@ -469,6 +469,30 @@ public class CreateVentaCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldReturnError_WhenNonCashPaymentHasNoReference()
+    {
+        // Arrange
+        var sesionCajaResult = PosSesionCaja.Create(_sucursalId, _empleadoId, DateTime.UtcNow, 100);
+        var sesiones = new List<PosSesionCaja> { sesionCajaResult.Value! };
+        sesiones[0].SetId(_sesionId);
+
+        var inventarioItemResult = InventarioSucursal.Create(_sucursalId, _loteId, 20);
+        var inventario = new List<InventarioSucursal> { inventarioItemResult.Value! };
+
+        SetupMocks(sesionesCaja: sesiones, inventario: inventario);
+
+        var command = new CreateVentaCommand(_clienteId, _sesionId, [new CreateVentaDetailDto(_loteId, 2)], [new CreateVentaPagoDto(MetodoPago.Tarjeta, 20, null)]);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        _ = result.IsSuccess.Should().BeFalse();
+        _ = result.Error.Code.Should().Be("Venta.Pagos.ReferenciaRequerida");
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_ShouldReturnError_WhenChangeIsGivenWithoutCashPayment()
     {
         // Arrange

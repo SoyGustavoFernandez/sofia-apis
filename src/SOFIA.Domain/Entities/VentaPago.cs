@@ -27,6 +27,11 @@ public sealed class VentaPago : BaseEntity
             return Result.Failure<VentaPago>(Error.Validation("VentaPago.MontoPagado", "Monto Pagado must be greater than 0."));
         }
 
+        if (RequiereReferencia(metodoPago) && string.IsNullOrWhiteSpace(referenciaOperacion))
+        {
+            return Result.Failure<VentaPago>(ReferenciaRequerida);
+        }
+
         if (referenciaOperacion != null && referenciaOperacion.Length > 100)
         {
             return Result.Failure<VentaPago>(Error.Validation("VentaPago.ReferenciaOperacion", "Referencia de Operación must not exceed 100 characters."));
@@ -57,6 +62,11 @@ public sealed class VentaPago : BaseEntity
             return Result.Failure(Error.Validation("VentaPago.MontoPagado", "Monto Pagado must be greater than 0."));
         }
 
+        if (RequiereReferencia(metodoPago) && string.IsNullOrWhiteSpace(referenciaOperacion))
+        {
+            return Result.Failure(ReferenciaRequerida);
+        }
+
         if (referenciaOperacion != null && referenciaOperacion.Length > 100)
         {
             return Result.Failure(Error.Validation("VentaPago.ReferenciaOperacion", "Referencia de Operación must not exceed 100 characters."));
@@ -74,6 +84,11 @@ public sealed class VentaPago : BaseEntity
 
         return Result.Success();
     }
+
+    // Cash is counted in the drawer; every other method must be traceable to its operation number
+    public static bool RequiereReferencia(MetodoPago metodoPago) => metodoPago != MetodoPago.Efectivo;
+
+    private static Error ReferenciaRequerida => Error.Validation("Venta.Pagos.ReferenciaRequerida", "An operation reference is required for non-cash payments.");
 
     internal void SetVentaId(Guid ventaId) => TransaccionId = ventaId;
 }

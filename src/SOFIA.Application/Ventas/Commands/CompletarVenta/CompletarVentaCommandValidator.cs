@@ -1,4 +1,5 @@
 using FluentValidation;
+using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Ventas.Commands.CompletarVenta;
 
@@ -17,6 +18,13 @@ public class CompletarVentaCommandValidator : AbstractValidator<CompletarVentaCo
             _ = pago.RuleFor(p => p.MontoPagado).GreaterThan(0);
             _ = pago.RuleFor(p => p.ReferenciaOperacion).MaximumLength(100);
         });
+
+        // Fixed property name so the error code does not depend on the payment index
+        _ = RuleFor(v => v.Pagos)
+            .Must(pagos => pagos.TrueForAll(p => !VentaPago.RequiereReferencia(p.MetodoPago) || !string.IsNullOrWhiteSpace(p.ReferenciaOperacion)))
+            .WithMessage("An operation reference is required for non-cash payments.")
+            .OverridePropertyName("Pagos.ReferenciaRequerida")
+            .When(v => v.Pagos is not null);
 
         _ = RuleFor(v => v.MontoCubiertoSeguro)
             .GreaterThanOrEqualTo(0).WithMessage("The insurance coverage cannot be negative.")

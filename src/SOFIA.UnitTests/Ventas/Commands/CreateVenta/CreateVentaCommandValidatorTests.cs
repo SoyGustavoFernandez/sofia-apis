@@ -150,6 +150,64 @@ public class CreateVentaCommandValidatorTests
         _ = result.ShouldHaveValidationErrorFor("Pagos[0].MontoPagado");
     }
 
+    [Theory]
+    [InlineData(MetodoPago.Tarjeta, null)]
+    [InlineData(MetodoPago.YapePlin, "")]
+    [InlineData(MetodoPago.Transferencia, "   ")]
+    public void Should_Have_Error_When_NonCash_Payment_Has_No_Reference(MetodoPago metodo, string? referencia)
+    {
+        // Arrange
+        var command = new CreateVentaCommand(
+            ClienteId: Guid.NewGuid(),
+            SesionId: Guid.NewGuid(),
+            Detalles: [new CreateVentaDetailDto(Guid.NewGuid(), 1)],
+            Pagos: [new CreateVentaPagoDto(MetodoPago.Efectivo, 5, null), new CreateVentaPagoDto(metodo, 5, referencia)]
+        );
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        _ = result.ShouldHaveValidationErrorFor("Pagos.ReferenciaRequerida")
+              .WithErrorMessage("An operation reference is required for non-cash payments.");
+    }
+
+    [Fact]
+    public void Should_Not_Have_Error_When_Cash_Payment_Has_No_Reference()
+    {
+        // Arrange
+        var command = new CreateVentaCommand(
+            ClienteId: Guid.NewGuid(),
+            SesionId: Guid.NewGuid(),
+            Detalles: [new CreateVentaDetailDto(Guid.NewGuid(), 1)],
+            Pagos: [new CreateVentaPagoDto(MetodoPago.Efectivo, 10, null)]
+        );
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Fact]
+    public void Should_Not_Have_Error_When_NonCash_Payment_Has_Reference()
+    {
+        // Arrange
+        var command = new CreateVentaCommand(
+            ClienteId: Guid.NewGuid(),
+            SesionId: Guid.NewGuid(),
+            Detalles: [new CreateVentaDetailDto(Guid.NewGuid(), 1)],
+            Pagos: [new CreateVentaPagoDto(MetodoPago.YapePlin, 10, "OP-123456")]
+        );
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
     [Fact]
     public void Should_Have_Error_When_MontoCubiertoSeguro_Is_Negative()
     {

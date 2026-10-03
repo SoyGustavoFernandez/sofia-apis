@@ -57,7 +57,8 @@ public class VentaPagoConfiguration : IEntityTypeConfiguration<VentaPago>
             .OnDelete(DeleteBehavior.Cascade);
 
         // Indexes
-        _ = builder.HasIndex(x => x.TransaccionId);
+        _ = builder.HasIndex(x => x.TransaccionId)
+            .HasDatabaseName("IX_Ventas_Pagos_Transaccion");
 
         // Soft delete query filter
 

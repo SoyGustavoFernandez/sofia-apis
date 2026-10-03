@@ -11,7 +11,15 @@ public static class InventarioVendibleExtensions
         IQueryable<DigemidInventarioCuarentena> cuarentenas,
         Guid sucursalId,
         DateTimeOffset ahora) => source
-            .Where(x => x.SucursalId == sucursalId && x.CantidadFisica > 0)
+            .Where(x => x.SucursalId == sucursalId)
+            .WhereVendible(cuarentenas, ahora);
+
+    // Branch-agnostic part of the sale rules, for callers that scope the branches themselves.
+    public static IQueryable<InventarioSucursal> WhereVendible(
+        this IQueryable<InventarioSucursal> source,
+        IQueryable<DigemidInventarioCuarentena> cuarentenas,
+        DateTimeOffset ahora) => source
+            .Where(x => x.CantidadFisica > 0)
             .WhereLoteNoVencido(ahora)
             .Where(x => !cuarentenas.Any(q => q.LoteId == x.LoteId && q.EstadoResolucion == EstadoResolucionCuarentena.Retenido));
 

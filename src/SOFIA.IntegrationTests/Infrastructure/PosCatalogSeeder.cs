@@ -74,6 +74,71 @@ public sealed class PosCatalogSeeder(ApplicationDbContext dbContext)
         _ = await dbContext.SaveChangesAsync();
     }
 
+    public async Task<Guid> SeedEmpleadoAsync(Guid sucursalId)
+    {
+        var empleado = Empleado.Create(sucursalId, "Luis", "Rojas", "Diaz").Value!;
+        _ = dbContext.Empleados.Add(empleado);
+        _ = await dbContext.SaveChangesAsync();
+        return empleado.Id;
+    }
+
+    public async Task<PosSesionCaja> SeedSesionAbiertaAsync(Guid sucursalId, Guid empleadoId, decimal montoApertura = 100m)
+    {
+        var sesion = PosSesionCaja.Create(sucursalId, empleadoId, DateTime.UtcNow, montoApertura).Value!;
+        _ = dbContext.POSSesionesCaja.Add(sesion);
+        _ = await dbContext.SaveChangesAsync();
+        return sesion;
+    }
+
+    // A collected sale at unit price 10 with the payments the customer handed over, optionally into a cash session.
+    public async Task<Venta> SeedVentaCobradaAsync(Guid sucursalId, Guid empleadoId, Guid loteId, decimal cantidad, (MetodoPago Metodo, decimal Monto)[] pagos, Guid? sesionId = null, DateTime? fechaUtc = null)
+    {
+        var venta = Venta.Create(sucursalId, empleadoId, null, sesionId, [DetalleVenta.Create(loteId, cantidad, 10m, 8m).Value!], EstadoVenta.Pendiente).Value!;
+        var pagosVenta = pagos
+            .Select(p => VentaPago.Create(p.Metodo, p.Monto, VentaPago.RequiereReferencia(p.Metodo) ? "OP-TEST" : null, DateTime.UtcNow).Value!)
+            .ToList();
+        if (venta.RegistrarPagos(pagosVenta).IsFailure)
+        {
+            throw new InvalidOperationException("The seeded payments do not cover the sale.");
+        }
+
+        _ = dbContext.Ventas.Add(venta);
+        if (fechaUtc.HasValue)
+        {
+            dbContext.Entry(venta).Property(v => v.FechaHoraUtc).CurrentValue = fechaUtc.Value;
+        }
+
+        _ = await dbContext.SaveChangesAsync();
+        return venta;
+    }
+
+    // Returns units of the sale's only line through its boleta, like the returns module does, refunding from the given session.
+    public async Task<DevolucionCabecera> SeedDevolucionAsync(Venta venta, decimal cantidad, Guid sesionId, decimal montoReembolsado, MetodoPago metodoReembolso = MetodoPago.Efectivo, DateTime? fechaUtc = null)
+    {
+        var serie = SunatSerieFiscal.Create(venta.SucursalId, TipoComprobante.Boleta, $"B{Guid.NewGuid():N}"[..4].ToUpperInvariant(), 1, SunatSerieFiscal.EstadoInactiva).Value!;
+        _ = dbContext.SUNATSeriesFiscales.Add(serie);
+        var comprobante = SunatComprobanteEmitido.Create(
+            venta.Id, serie.Id, 1, "1", "12345678", "CLIENTE TEST",
+            venta.MontoTotalBruto, 0, 0, venta.MontoTotalBruto,
+            null, EstadoComprobanteSunat.NoEnviado, null, null, null).Value!;
+        _ = dbContext.SUNATComprobantesEmitidos.Add(comprobante);
+
+        var detalleVenta = venta.Detalles.Single();
+        if (venta.RegistrarDevolucion(new Dictionary<Guid, decimal> { [detalleVenta.Id] = cantidad }, new Dictionary<Guid, decimal>()).IsFailure)
+        {
+            throw new InvalidOperationException("The seeded sale cannot be returned.");
+        }
+
+        var devolucion = DevolucionCabecera.Create(
+            comprobante.Id, null, venta.EmpleadoId, "07", "Devolucion de prueba", fechaUtc ?? DateTime.UtcNow,
+            [DevolucionDetalle.Create(detalleVenta.Id, cantidad, DestinoDevolucion.Reingreso_Venta).Value!]).Value!;
+        _ = devolucion.RegistrarReembolso(sesionId, montoReembolsado, metodoReembolso);
+        _ = dbContext.Devoluciones.Add(devolucion);
+
+        _ = await dbContext.SaveChangesAsync();
+        return devolucion;
+    }
+
     public async Task SeedCuarentenaAsync(Guid sucursalId, Guid loteId, Guid empleadoId, string estado)
     {
         _ = dbContext.DigemidInventarioCuarentena.Add(DigemidInventarioCuarentena.Create(sucursalId, loteId, null, 1m, "Alerta sanitaria", estado, empleadoId).Value!);

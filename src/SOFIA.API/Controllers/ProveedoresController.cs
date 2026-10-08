@@ -4,6 +4,7 @@ using SOFIA.Application.Proveedores.Commands.CreateProveedor;
 using SOFIA.Application.Proveedores.Commands.DeleteProveedor;
 using SOFIA.Application.Proveedores.Commands.RegistrarPrecioProveedor;
 using SOFIA.Application.Proveedores.Commands.UpdateProveedor;
+using SOFIA.Application.Proveedores.Queries.GetPreciosProveedor;
 using SOFIA.Application.Proveedores.Queries.GetProveedorById;
 using SOFIA.Application.Proveedores.Queries.GetProveedores;
 using SOFIA.Application.Proveedores.Queries.PreviewImportProveedores;
@@ -45,6 +46,14 @@ public class ProveedoresController(ISender sender, IExcelReaderService excelRead
     public async Task<IActionResult> GetProveedorById(Guid id)
     {
         var result = await sender.Send(new GetProveedorByIdQuery(id));
+        return result.ToActionResult();
+    }
+
+    [HttpGet("{id:guid}/precios")]
+    [HasPermission("Proveedores", "Leer")]
+    public async Task<IActionResult> GetPreciosProveedor(Guid id, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await sender.Send(new GetPreciosProveedorQuery(id, pageNumber, pageSize));
         return result.ToActionResult();
     }
 

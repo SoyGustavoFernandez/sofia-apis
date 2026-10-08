@@ -128,4 +128,16 @@ public sealed class HistorialPrecioProveedor : BaseEntity
 
         return Result.Success();
     }
+
+    public Result CerrarVigencia(DateTime fechaFinVigencia)
+    {
+        if (fechaFinVigencia < FechaInicioVigencia)
+        {
+            return Result.Failure(Error.Validation("HistorialPrecioProveedor.FechaFinVigencia", "Fecha Fin de Vigencia cannot be earlier than Fecha Inicio de Vigencia."));
+        }
+
+        FechaFinVigencia = fechaFinVigencia;
+
+        return Result.Success();
+    }
 }

@@ -14,6 +14,7 @@ public sealed class Venta : BaseEntity
     public Guid EmpleadoId { get; private set; }
     public Guid? ClienteId { get; private set; }
     public Guid? SesionId { get; private set; }
+    public Guid? SesionAnulacionId { get; private set; }
     public DateTime FechaHoraUtc { get; private set; }
     public decimal MontoTotalBruto { get; private set; }
     public EstadoVenta Estado { get; private set; }
@@ -29,6 +30,7 @@ public sealed class Venta : BaseEntity
     public Empleado? Empleado { get; }
     public PacienteCliente? Cliente { get; }
     public PosSesionCaja? Sesion { get; }
+    public PosSesionCaja? SesionAnulacion { get; }
     public Empleado? EmpleadoVerificaReceta { get; }
 
     public IReadOnlyCollection<DetalleVenta> Detalles => _detalles.AsReadOnly();
@@ -83,7 +85,8 @@ public sealed class Venta : BaseEntity
         return Result.Success(venta);
     }
 
-    public Result Anular(string motivo)
+    // The session is the drawer that hands the cash back; a parked sale was never collected, so it keeps none
+    public Result Anular(string motivo, Guid? sesionAnulacionId = null)
     {
         if (Estado == EstadoVenta.Anulada)
         {
@@ -100,6 +103,7 @@ public sealed class Venta : BaseEntity
             return Result.Failure(Error.Validation("Venta.MotivoAnulacion", "A reason for cancellation must be provided."));
         }
 
+        SesionAnulacionId = Estado == EstadoVenta.Pendiente ? null : sesionAnulacionId;
         Estado = EstadoVenta.Anulada;
         MotivoAnulacion = motivo;
 

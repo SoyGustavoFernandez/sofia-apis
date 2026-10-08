@@ -184,4 +184,93 @@ public class CerrarCajaCommandHandlerTests
         _ = _sesion.MontoCierreCalculado.Should().Be(75m);
         _ = _sesion.EstadoSesion.Should().Be(EstadoSesion.Cuadrada);
     }
+
+    private async Task<decimal> CalcularAsync()
+    {
+        var result = await CreateHandler().Handle(new CerrarCajaCommand(_sesion.Id, 0m), CancellationToken.None);
+        _ = result.IsSuccess.Should().BeTrue();
+        return _sesion.MontoCierreCalculado!.Value;
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotCountTheSale_WhenItWasVoidedFromTheSameSessionThatCollectedIt()
+    {
+        var venta = AgregarVenta(7.50m, pagos: (MetodoPago.Efectivo, 10m)); // 10 in, 2.50 change out, 7.50 handed back
+        _ = venta.Anular("Error de digitación", _sesion.Id);
+
+        _ = (await CalcularAsync()).Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotCountTheSale_WhenItIsALegacyVoidWithoutSession()
+    {
+        var propia = AgregarVenta(7.50m, pagos: (MetodoPago.Efectivo, 10m));
+        var ajena = AgregarVenta(7.50m, sesionId: Guid.NewGuid(), pagos: (MetodoPago.Efectivo, 10m));
+        _ = propia.Anular("Error de digitación");
+        _ = ajena.Anular("Error de digitación");
+
+        _ = (await CalcularAsync()).Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSubtractTheNetCash_WhenASaleOfAnotherSessionWasVoidedHere()
+    {
+        var venta = AgregarVenta(7.50m, sesionId: Guid.NewGuid(), pagos: (MetodoPago.Efectivo, 10m)); // collected in another drawer
+        _ = venta.Anular("Cliente devolvió todo", _sesion.Id);
+
+        _ = (await CalcularAsync()).Should().Be(92.50m); // 100 - (10 - 2.50)
+    }
+
+    [Fact]
+    public async Task Handle_ShouldKeepCountingTheSale_WhenItWasCollectedHereAndVoidedFromAnotherSession()
+    {
+        var venta = AgregarVenta(7.50m, pagos: (MetodoPago.Efectivo, 10m));
+        _ = venta.Anular("Cliente devolvió todo", Guid.NewGuid()); // the cash was handed back from another drawer
+
+        _ = (await CalcularAsync()).Should().Be(107.50m);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotMoveAnyCash_WhenTheSaleVoidedAcrossSessionsWasNotPaidInCash()
+    {
+        var cobradaAqui = AgregarVenta(30m, pagos: (MetodoPago.Tarjeta, 30m));
+        var anuladaAqui = AgregarVenta(30m, sesionId: Guid.NewGuid(), pagos: (MetodoPago.YapePlin, 30m));
+        _ = cobradaAqui.Anular("Error", Guid.NewGuid());
+        _ = anuladaAqui.Anular("Error", _sesion.Id);
+
+        _ = (await CalcularAsync()).Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSubtractOnlyTheNetCashPart_WhenTheSaleVoidedHereWasPaidWithYapeAndCash()
+    {
+        var venta = AgregarVenta(20m, sesionId: Guid.NewGuid(), pagos: [(MetodoPago.YapePlin, 15m), (MetodoPago.Efectivo, 10m)]); // 10 in, 5 change out
+        _ = venta.Anular("Error", _sesion.Id);
+
+        _ = (await CalcularAsync()).Should().Be(95m);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSubtractOnlyTheCopayCash_WhenTheSaleVoidedHereHadInsuranceCoverage()
+    {
+        var venta = AgregarVenta(20m, sesionId: Guid.NewGuid(), montoCubierto: 15m, pagos: (MetodoPago.Efectivo, 10m)); // copay 5, change 5
+        _ = venta.Anular("Error", _sesion.Id);
+
+        _ = (await CalcularAsync()).Should().Be(95m);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCombineCollectedSalesVoidsOfOtherSessionsAndRefunds()
+    {
+        _ = AgregarVenta(50m, pagos: (MetodoPago.Efectivo, 50m)); // +50
+        var mismaCaja = AgregarVenta(10m, pagos: (MetodoPago.Efectivo, 10m)); // +0
+        var cobradaAqui = AgregarVenta(20m, pagos: (MetodoPago.Efectivo, 20m)); // +20, handed back elsewhere
+        var anuladaAqui = AgregarVenta(7.50m, sesionId: Guid.NewGuid(), pagos: (MetodoPago.Efectivo, 10m)); // -7.50
+        _ = mismaCaja.Anular("Error", _sesion.Id);
+        _ = cobradaAqui.Anular("Error", Guid.NewGuid());
+        _ = anuladaAqui.Anular("Error", _sesion.Id);
+        AgregarDevolucion(5m, MetodoPago.Efectivo); // -5
+
+        _ = (await CalcularAsync()).Should().Be(157.50m);
+    }
 }

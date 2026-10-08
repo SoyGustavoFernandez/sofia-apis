@@ -206,6 +206,67 @@ public class VentaTests
         _ = venta.Estado.Should().Be(EstadoVenta.Devuelta);
     }
 
+    [Fact]
+    public void Anular_ShouldStoreTheSessionThatHandsTheCashBack_WhenTheSaleWasCharged()
+    {
+        var venta = CrearVenta(EstadoVenta.Pendiente);
+        _ = venta.RegistrarPagos([VentaPago.Create(MetodoPago.Efectivo, 10, null, DateTime.UtcNow).Value!]);
+        var sesionCobro = venta.SesionId;
+        var sesionAnulacion = Guid.NewGuid();
+
+        var result = venta.Anular("Error de digitación", sesionAnulacion);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = venta.Estado.Should().Be(EstadoVenta.Anulada);
+        _ = venta.MotivoAnulacion.Should().Be("Error de digitación");
+        _ = venta.SesionAnulacionId.Should().Be(sesionAnulacion);
+        _ = venta.SesionId.Should().Be(sesionCobro, because: "the sale stays in the drawer that collected it");
+    }
+
+    [Fact]
+    public void Anular_ShouldNeedNoSessionAndStoreNone_WhenTheSaleIsParked()
+    {
+        var sinSesion = CrearVenta(EstadoVenta.Pendiente);
+        var conSesion = CrearVenta(EstadoVenta.Pendiente);
+
+        var resultSinSesion = sinSesion.Anular("Cliente nunca volvió");
+        var resultConSesion = conSesion.Anular("Cliente nunca volvió", Guid.NewGuid());
+
+        _ = resultSinSesion.IsSuccess.Should().BeTrue();
+        _ = sinSesion.Estado.Should().Be(EstadoVenta.Anulada);
+        _ = sinSesion.SesionAnulacionId.Should().BeNull();
+        _ = resultConSesion.IsSuccess.Should().BeTrue();
+        _ = conSesion.SesionAnulacionId.Should().BeNull(because: "a sale that was never collected hands no cash back");
+    }
+
+    [Fact]
+    public void Anular_ShouldFailAndStoreNoSession_WhenVentaIsAlreadyAnulada()
+    {
+        var venta = CrearVenta();
+        var sesionAnulacion = Guid.NewGuid();
+        _ = venta.Anular("Error", sesionAnulacion);
+
+        var result = venta.Anular("Otra vez", Guid.NewGuid());
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.Anular");
+        _ = venta.SesionAnulacionId.Should().Be(sesionAnulacion);
+        _ = venta.MotivoAnulacion.Should().Be("Error");
+    }
+
+    [Fact]
+    public void Anular_ShouldFailAndStoreNoSession_WhenMotivoIsEmpty()
+    {
+        var venta = CrearVenta();
+
+        var result = venta.Anular(" ", Guid.NewGuid());
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Venta.MotivoAnulacion");
+        _ = venta.Estado.Should().Be(EstadoVenta.Completada);
+        _ = venta.SesionAnulacionId.Should().BeNull();
+    }
+
     private static Venta CrearVentaDosLineas(out DetalleVenta linea1, out DetalleVenta linea2)
     {
         linea1 = DetalleVenta.Create(Guid.NewGuid(), 5, 10, 5).Value!;

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Entities;
 using SOFIA.Domain.Enums;
 
 namespace SOFIA.Application.Ventas.Commands.AnularVenta;
@@ -49,8 +50,14 @@ public class AnularVentaCommandHandler(
             return Result.Failure(Error.Validation("Venta.Anular.ConDevoluciones", "A sale with returns cannot be voided."));
         }
 
+        var sesionResult = await ResolveSesionAnulacionAsync(venta, cancellationToken);
+        if (sesionResult.IsFailure)
+        {
+            return Result.Failure(sesionResult.Error);
+        }
+
         // 3. Apply cancellation in the domain
-        var resultAnular = venta.Anular(request.Motivo);
+        var resultAnular = venta.Anular(request.Motivo, sesionResult.Value);
         if (!resultAnular.IsSuccess)
         {
             return Result.Failure(resultAnular.Error);
@@ -86,5 +93,27 @@ public class AnularVentaCommandHandler(
         _ = await context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
+    }
+
+    // A charged sale hands cash back from the caller's own open drawer at this branch; a parked sale was never collected and needs none
+    private async Task<Result<Guid?>> ResolveSesionAnulacionAsync(Venta venta, CancellationToken cancellationToken)
+    {
+        if (venta.Estado != EstadoVenta.Completada)
+        {
+            return Result.Success<Guid?>(null);
+        }
+
+        var empleadoResult = currentUser.GetEmpleadoId();
+        if (empleadoResult.IsFailure)
+        {
+            return Result.Failure<Guid?>(empleadoResult.Error);
+        }
+
+        var sesion = await context.POSSesionesCaja
+            .FirstOrDefaultAsync(s => s.EmpleadoId == empleadoResult.Value && s.SucursalId == venta.SucursalId && s.EstadoSesion == EstadoSesion.Abierta && !s.IsDeleted, cancellationToken);
+
+        return sesion == null
+            ? Result.Failure<Guid?>(Error.Validation("Venta.Anular.SinSesionAbierta", "You need an open cash register session to void a charged sale."))
+            : Result.Success<Guid?>(sesion.Id);
     }
 }

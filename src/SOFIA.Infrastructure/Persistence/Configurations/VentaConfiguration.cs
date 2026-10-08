@@ -29,6 +29,9 @@ public class VentaConfiguration : IEntityTypeConfiguration<Venta>
         _ = builder.Property(x => x.SesionId)
             .HasColumnName("Sesion_ID");
 
+        _ = builder.Property(x => x.SesionAnulacionId)
+            .HasColumnName("Sesion_Anulacion_ID");
+
         _ = builder.Property(x => x.FechaHoraUtc)
             .HasColumnName("Fecha_Hora_UTC")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -75,6 +78,11 @@ public class VentaConfiguration : IEntityTypeConfiguration<Venta>
         _ = builder.HasOne(x => x.Sesion)
             .WithMany()
             .HasForeignKey(x => x.SesionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = builder.HasOne(x => x.SesionAnulacion)
+            .WithMany()
+            .HasForeignKey(x => x.SesionAnulacionId)
             .OnDelete(DeleteBehavior.Restrict);
 
         _ = builder.HasOne(x => x.EmpleadoVerificaReceta)

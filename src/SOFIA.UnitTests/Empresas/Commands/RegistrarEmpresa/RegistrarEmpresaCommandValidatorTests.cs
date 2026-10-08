@@ -15,7 +15,8 @@ public class RegistrarEmpresaCommandValidatorTests
         Password = "Segura123",
         AdminNombres = "Ana Maria",
         AdminApellidoPaterno = "Quispe",
-        AdminEmail = "ana.quispe@farmacia.pe"
+        AdminEmail = "ana.quispe@farmacia.pe",
+        DireccionSede = "Av. Los Olivos 123, Lima"
     };
 
     [Fact]
@@ -119,6 +120,30 @@ public class RegistrarEmpresaCommandValidatorTests
     {
         var result = _validator.TestValidate(ValidCommand() with { AdminEmail = email });
         _ = result.ShouldHaveValidationErrorFor(x => x.AdminEmail);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void Validate_ShouldFail_WhenDireccionSedeIsMissingOrBlank(string? direccion)
+    {
+        var result = _validator.TestValidate(ValidCommand() with { DireccionSede = direccion! });
+        _ = result.ShouldHaveValidationErrorFor(x => x.DireccionSede);
+    }
+
+    [Fact]
+    public void Validate_ShouldFail_WhenDireccionSedeExceeds255Characters()
+    {
+        var result = _validator.TestValidate(ValidCommand() with { DireccionSede = new string('a', 256) });
+        _ = result.ShouldHaveValidationErrorFor(x => x.DireccionSede);
+    }
+
+    [Fact]
+    public void Validate_ShouldPass_WhenDireccionSedeIsAtMaxLength()
+    {
+        var result = _validator.TestValidate(ValidCommand() with { DireccionSede = new string('a', 255) });
+        result.ShouldNotHaveValidationErrorFor(x => x.DireccionSede);
     }
 
     [Fact]

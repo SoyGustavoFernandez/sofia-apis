@@ -16,5 +16,6 @@ public static class RegistroEmpresaBuilder
         AdminNombres = "Admin",
         AdminApellidoPaterno = "Prueba",
         AdminEmail = $"{usuario}@sofia.test",
+        DireccionSede = "Av. Los Olivos 123, Lima",
     };
 }

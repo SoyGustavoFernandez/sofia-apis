@@ -69,7 +69,8 @@ public class RegistrarEmpresaCommandHandlerTests
         Password = "Segura123",
         AdminNombres = "Ana Maria",
         AdminApellidoPaterno = "Quispe",
-        AdminEmail = "Ana.Quispe@Farmacia.pe"
+        AdminEmail = "Ana.Quispe@Farmacia.pe",
+        DireccionSede = "Av. Los Olivos 123, Lima"
     };
 
     [Fact]
@@ -198,8 +199,22 @@ public class RegistrarEmpresaCommandHandlerTests
         _ = await _handler.Handle(MinimalCommand(), CancellationToken.None);
 
         _ = capturedSucursal!.Nombre.Should().Be("Sede Principal");
-        _ = capturedSucursal.Direccion_Fisica.Should().Be("Por definir");
         _ = capturedSucursal.Numero_Licencia.Should().Be("Por definir");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldStoreTrimmedAddressOnMainBranch_WhenSuccessful()
+    {
+        SetupEmptyContext();
+        Sucursal? capturedSucursal = null;
+        _ = _dbContextMock
+            .Setup(c => c.Sucursales.Add(It.IsAny<Sucursal>()))
+            .Callback<Sucursal>(s => capturedSucursal = s);
+
+        var result = await _handler.Handle(MinimalCommand() with { DireccionSede = "  Jr. Cusco 456, Miraflores  " }, CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = capturedSucursal!.Direccion_Fisica.Should().Be("Jr. Cusco 456, Miraflores");
     }
 
     [Fact]

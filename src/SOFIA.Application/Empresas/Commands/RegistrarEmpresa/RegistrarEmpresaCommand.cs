@@ -19,10 +19,10 @@ public record RegistrarEmpresaCommand : ICommand<LoginResult>
     public string AdminNombres { get; init; } = string.Empty;
     public string AdminApellidoPaterno { get; init; } = string.Empty;
     public string AdminEmail { get; init; } = string.Empty;
+    public string DireccionSede { get; init; } = string.Empty;
 
     // Optional â€” completable from the company profile after registration
     public string? AdminApellidoMaterno { get; init; }
     public string? NombreSede { get; init; }
-    public string? DireccionSede { get; init; }
     public string? NumeroLicencia { get; init; }
 }

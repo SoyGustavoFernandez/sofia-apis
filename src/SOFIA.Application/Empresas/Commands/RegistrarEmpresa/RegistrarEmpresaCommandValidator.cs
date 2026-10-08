@@ -45,5 +45,9 @@ public class RegistrarEmpresaCommandValidator : AbstractValidator<RegistrarEmpre
             .NotEmpty().WithMessage("Admin email is required.")
             .MaximumLength(Empleado.EmailMaxLength).WithMessage("Admin email must not exceed 254 characters.")
             .EmailAddress().WithMessage("Admin email is not a valid address.");
+
+        _ = RuleFor(x => x.DireccionSede)
+            .NotEmpty().WithMessage("Main branch address is required.")
+            .MaximumLength(255).WithMessage("Main branch address must not exceed 255 characters.");
     }
 }

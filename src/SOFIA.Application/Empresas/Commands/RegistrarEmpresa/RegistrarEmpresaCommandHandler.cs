@@ -83,7 +83,7 @@ public class RegistrarEmpresaCommandHandler(
         var empresa = empresaResult.Value!;
 
         var nombreSede = string.IsNullOrWhiteSpace(request.NombreSede) ? "Sede Principal" : request.NombreSede;
-        var direccionSede = string.IsNullOrWhiteSpace(request.DireccionSede) ? "Por definir" : request.DireccionSede;
+        var direccionSede = request.DireccionSede.Trim();
         var numeroLicencia = string.IsNullOrWhiteSpace(request.NumeroLicencia) ? "Por definir" : request.NumeroLicencia;
 
         var sucursalResult = Sucursal.Create(nombreSede, direccionSede, numeroLicencia, empresaId: empresa.Id);

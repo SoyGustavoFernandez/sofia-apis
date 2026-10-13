@@ -199,7 +199,39 @@ public class RegistrarEmpresaCommandHandlerTests
         _ = await _handler.Handle(MinimalCommand(), CancellationToken.None);
 
         _ = capturedSucursal!.Nombre.Should().Be("Sede Principal");
-        _ = capturedSucursal.Numero_Licencia.Should().Be("Por definir");
+        _ = capturedSucursal.Numero_Licencia.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Handle_ShouldLeaveLicenceEmpty_WhenNumeroLicenciaIsMissingOrBlank(string? numeroLicencia)
+    {
+        SetupEmptyContext();
+        Sucursal? capturedSucursal = null;
+        _ = _dbContextMock
+            .Setup(c => c.Sucursales.Add(It.IsAny<Sucursal>()))
+            .Callback<Sucursal>(s => capturedSucursal = s);
+
+        var result = await _handler.Handle(MinimalCommand() with { NumeroLicencia = numeroLicencia }, CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = capturedSucursal!.Numero_Licencia.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldStoreTrimmedLicence_WhenNumeroLicenciaIsProvided()
+    {
+        SetupEmptyContext();
+        Sucursal? capturedSucursal = null;
+        _ = _dbContextMock
+            .Setup(c => c.Sucursales.Add(It.IsAny<Sucursal>()))
+            .Callback<Sucursal>(s => capturedSucursal = s);
+
+        _ = await _handler.Handle(MinimalCommand() with { NumeroLicencia = "  LIC-0001  " }, CancellationToken.None);
+
+        _ = capturedSucursal!.Numero_Licencia.Should().Be("LIC-0001");
     }
 
     [Fact]

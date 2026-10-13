@@ -53,6 +53,28 @@ public class Sucursal : BaseEntity
         });
     }
 
+    // The first branch of a new company is born without a licence number; it becomes mandatory the first time the branch is edited
+    public static Result<Sucursal> CreateSedePrincipal(string nombre, string direccionFisica, Guid empresaId)
+    {
+        if (string.IsNullOrWhiteSpace(nombre))
+        {
+            return Result.Failure<Sucursal>(Error.Validation("Sucursal.Nombre", "Nombre is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(direccionFisica))
+        {
+            return Result.Failure<Sucursal>(Error.Validation("Sucursal.Direccion", "Direccion is required."));
+        }
+
+        return Result.Success(new Sucursal
+        {
+            Nombre = nombre,
+            Direccion_Fisica = direccionFisica,
+            EmpresaId = empresaId,
+            TenantId = empresaId
+        });
+    }
+
     public Result Update(
         string nombre,
         string direccionFisica,

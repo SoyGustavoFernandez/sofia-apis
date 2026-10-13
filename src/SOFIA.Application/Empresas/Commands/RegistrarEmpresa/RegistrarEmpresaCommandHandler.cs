@@ -84,9 +84,11 @@ public class RegistrarEmpresaCommandHandler(
 
         var nombreSede = string.IsNullOrWhiteSpace(request.NombreSede) ? "Sede Principal" : request.NombreSede;
         var direccionSede = request.DireccionSede.Trim();
-        var numeroLicencia = string.IsNullOrWhiteSpace(request.NumeroLicencia) ? "Por definir" : request.NumeroLicencia;
 
-        var sucursalResult = Sucursal.Create(nombreSede, direccionSede, numeroLicencia, empresaId: empresa.Id);
+        // Without a licence number the main branch is created with it empty, to be completed later in Sucursales
+        var sucursalResult = string.IsNullOrWhiteSpace(request.NumeroLicencia)
+            ? Sucursal.CreateSedePrincipal(nombreSede, direccionSede, empresa.Id)
+            : Sucursal.Create(nombreSede, direccionSede, request.NumeroLicencia.Trim(), empresaId: empresa.Id);
         if (sucursalResult.IsFailure)
         {
             return Result.Failure<(Empresa, Sucursal, Empleado, Cuenta, Rol)>(sucursalResult.Error);

@@ -21,6 +21,15 @@ public class DeleteProveedorCommandHandler(IApplicationDbContext context) : IReq
             return Result.Failure<Guid>(Error.NotFound("NotFound", "Record not found."), 404);
         }
 
+        var referenciadoPorPrecios = await context.HistorialPreciosProveedor
+            .AnyAsync(h => h.ProveedorId == request.Id && !h.IsDeleted, cancellationToken);
+        if (referenciadoPorPrecios)
+        {
+            return Result.Failure<Guid>(
+                Error.Conflict("Proveedor.InUse", "Cannot delete a supplier referenced by purchase prices."),
+                409);
+        }
+
         _ = context.Proveedores.Remove(entity);
 
         _ = await context.SaveChangesAsync(cancellationToken);

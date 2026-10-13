@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
 
@@ -14,6 +15,15 @@ public class DeleteIngredienteActivoCommandHandler(IApplicationDbContext context
         if (entity == null)
         {
             return Result.Failure(Error.NotFound("IngredienteActivo.NotFound", $"Ingrediente Activo with ID {request.Id} was not found."), 404);
+        }
+
+        var referenciadoPorFormulaciones = await context.FormulacionesClinicas
+            .AnyAsync(f => f.IngredienteId == request.Id && !f.IsDeleted, cancellationToken);
+        if (referenciadoPorFormulaciones)
+        {
+            return Result.Failure(
+                Error.Conflict("IngredienteActivo.InUse", "Cannot delete an active ingredient referenced by clinical formulations."),
+                409);
         }
 
         _ = context.IngredientesActivos.Remove(entity);

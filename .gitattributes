@@ -1,0 +1,4 @@
+# Match .editorconfig (end_of_line = crlf) so IDE0055 passes on Linux checkouts such as GitHub Actions
+* text=auto eol=crlf
+*.sh text eol=lf
+Dockerfile text eol=lf

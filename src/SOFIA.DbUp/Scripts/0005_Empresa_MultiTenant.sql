@@ -28,29 +28,34 @@ CREATE UNIQUE INDEX IX_Empresas_RUC
     WHERE RUC IS NOT NULL;
 
 
+GO
 -- 2. Sucursales: add Empresa_ID FK and TenantId
 -- ------------------------------------------------------------------------------
 ALTER TABLE Sucursales
     ADD Empresa_ID  UNIQUEIDENTIFIER    NULL,
         TenantId    UNIQUEIDENTIFIER    NULL;
 
+GO
 ALTER TABLE Sucursales
     ADD CONSTRAINT FK_Sucursales_Empresa
         FOREIGN KEY (Empresa_ID) REFERENCES Empresas(Empresa_ID);
 
 
+GO
 -- 3. Empleados: add TenantId
 -- ------------------------------------------------------------------------------
 ALTER TABLE Empleados
     ADD TenantId UNIQUEIDENTIFIER NULL;
 
 
+GO
 -- 4. Seguridad_Cuentas: add TenantId
 -- ------------------------------------------------------------------------------
 ALTER TABLE Seguridad_Cuentas
     ADD TenantId UNIQUEIDENTIFIER NULL;
 
 
+GO
 -- 5. TenantId en todas las tablas de entidades restantes (detección por IsDeleted)
 -- ------------------------------------------------------------------------------
 DECLARE @sql NVARCHAR(MAX) = N'';
@@ -70,6 +75,7 @@ IF LEN(@sql) > 0
     EXEC sp_executesql @sql;
 
 
+GO
 -- 6. Sucursales: índice único compuesto por empresa (en lugar de global)
 -- ------------------------------------------------------------------------------
 IF NOT EXISTS (
@@ -82,3 +88,5 @@ BEGIN
         ON Sucursales (Empresa_ID, Numero_Licencia)
         WHERE IsDeleted = 0 AND Empresa_ID IS NOT NULL;
 END
+
+GO

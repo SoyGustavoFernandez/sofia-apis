@@ -4,11 +4,14 @@ CREATE TABLE [DIGEMID_Catalogo_Productos] (
     [Nom_Prod] NVARCHAR(255) NOT NULL,
     [Concent] NVARCHAR(255) NULL,
     [Forma_Farmaceutica] NVARCHAR(150) NULL,
+    [Forma_Farmaceutica_Simplificada] NVARCHAR(150) NULL,
+    [Presentacion] NVARCHAR(255) NULL,
     [Fraccion] NVARCHAR(100) NULL,
     [Registro_Sanitario] NVARCHAR(50) NULL,
+    [Fecha_Vencimiento_Registro] NVARCHAR(50) NULL,
     [Titular] NVARCHAR(255) NULL,
     [Estado] NVARCHAR(50) NOT NULL,
-    
+
     -- Campos Auditables
     [CreatedBy] NVARCHAR(100) NOT NULL,
     [CreatedAt] DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),

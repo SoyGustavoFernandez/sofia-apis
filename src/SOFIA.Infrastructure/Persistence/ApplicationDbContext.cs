@@ -106,6 +106,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         var tenantsMatch = Expression.Equal(tenantId, empresaIdExpr);
         var tenantCheck = Expression.AndAlso(empresaIsKnown, tenantsMatch);
 
+        // Shared reference data (NULL TenantId) stays readable by every company
+        if (typeof(Domain.Common.IGlobalReadEntity).IsAssignableFrom(clrType))
+        {
+            tenantCheck = Expression.OrElse(Expression.Equal(tenantId, nullGuid), tenantCheck);
+        }
+
         _ = modelBuilder.Entity(clrType).HasQueryFilter(QueryFilters.Tenant, Expression.Lambda(tenantCheck, parameter));
     }
 

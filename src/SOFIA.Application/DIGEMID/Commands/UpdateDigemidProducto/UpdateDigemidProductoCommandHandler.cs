@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.DIGEMID.Commands.UpdateDigemidProducto;
 
@@ -15,6 +16,11 @@ public class UpdateDigemidProductoCommandHandler(IApplicationDbContext context) 
         if (entity == null || entity.IsDeleted)
         {
             return Result.Failure(Error.NotFound("DigemidCatalogo.NotFound", $"DigemidCatalogoProducto with ID {request.Id} was not found."), 404);
+        }
+
+        if (entity.IsGlobal)
+        {
+            return Result.Failure(DigemidCatalogoProducto.GlobalReadOnlyError, 403);
         }
 
         var duplicado = await context.DigemidCatalogoProductos

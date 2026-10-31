@@ -77,6 +77,37 @@ public class TenantIsolationIntegrationTests(SofiaWebAppFactory factory) : BaseI
     }
 
     [Fact]
+    public async Task Query_ShouldShareCatalogRowsWithoutTenant_WithEveryCompanyAndKeepOwnRowsPrivate()
+    {
+        // Arrange: a seeded catalog row (no tenant) and a row owned by company A
+        var codigoGlobal = $"G{Guid.NewGuid():N}"[..12];
+        var codigoPropio = $"P{Guid.NewGuid():N}"[..12];
+        CurrentUser.Empresa = null;
+        var global = DigemidCatalogoProducto.Create(codigoGlobal, "Producto global", null, null, null, null, null, "Activo").Value!;
+        _ = DbContext.DigemidCatalogoProductos.Add(global);
+        _ = await DbContext.SaveChangesAsync();
+
+        CurrentUser.Empresa = EmpresaA;
+        var propio = DigemidCatalogoProducto.Create(codigoPropio, "Producto propio", null, null, null, null, null, "Activo").Value!;
+        _ = DbContext.DigemidCatalogoProductos.Add(propio);
+        _ = await DbContext.SaveChangesAsync();
+
+        // Act
+        var globalFromA = await DbContext.DigemidCatalogoProductos.AsNoTracking().AnyAsync(x => x.Id == global.Id);
+        var propioFromA = await DbContext.DigemidCatalogoProductos.AsNoTracking().AnyAsync(x => x.Id == propio.Id);
+
+        CurrentUser.Empresa = EmpresaB;
+        var globalFromB = await DbContext.DigemidCatalogoProductos.AsNoTracking().AnyAsync(x => x.Id == global.Id);
+        var propioFromB = await DbContext.DigemidCatalogoProductos.AsNoTracking().AnyAsync(x => x.Id == propio.Id);
+
+        // Assert
+        _ = globalFromA.Should().BeTrue();
+        _ = globalFromB.Should().BeTrue(because: "the national catalog is shared by every company");
+        _ = propioFromA.Should().BeTrue();
+        _ = propioFromB.Should().BeFalse(because: "rows a company added stay private to it");
+    }
+
+    [Fact]
     public async Task UniqueIndex_ShouldAllowSameDocument_WhenPatientsBelongToDifferentTenants()
     {
         // Arrange

@@ -1,6 +1,7 @@
 using MediatR;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Domain.Common;
+using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.DIGEMID.Commands.DeleteDigemidProducto;
 
@@ -14,6 +15,11 @@ public class DeleteDigemidProductoCommandHandler(IApplicationDbContext context) 
         if (entity == null)
         {
             return Result.Failure(Error.NotFound("DigemidCatalogo.NotFound", $"DigemidCatalogoProducto with ID {request.Id} was not found."), 404);
+        }
+
+        if (entity.IsGlobal)
+        {
+            return Result.Failure(DigemidCatalogoProducto.GlobalReadOnlyError, 403);
         }
 
         _ = context.DigemidCatalogoProductos.Remove(entity);

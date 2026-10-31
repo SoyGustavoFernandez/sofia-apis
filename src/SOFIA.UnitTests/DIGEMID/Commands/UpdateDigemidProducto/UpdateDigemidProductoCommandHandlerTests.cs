@@ -10,7 +10,7 @@ namespace SOFIA.UnitTests.DIGEMID.Commands.UpdateDigemidProducto;
 public class UpdateDigemidProductoCommandHandlerTests
 {
     private readonly Mock<IApplicationDbContext> _dbContextMock = new();
-    private readonly DigemidCatalogoProducto _entity = DigemidCatalogoProducto.Create("K-001", "Paracetamol", null, null, null, null, null, "Activo").Value!;
+    private readonly DigemidCatalogoProducto _entity = DigemidCatalogoProducto.Create("K-001", "Paracetamol", null, null, null, null, null, "Activo", Guid.NewGuid()).Value!;
     private readonly List<DigemidCatalogoProducto> _existentes;
     private readonly UpdateDigemidProductoCommandHandler _handler;
 
@@ -22,6 +22,21 @@ public class UpdateDigemidProductoCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.DigemidCatalogoProductos).Returns(setMock.Object);
         _ = _dbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         _handler = new UpdateDigemidProductoCommandHandler(_dbContextMock.Object);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnForbiddenAndNotChange_WhenRowBelongsToTheSharedCatalog()
+    {
+        var global = DigemidCatalogoProducto.Create("G-001", "Ibuprofeno", null, null, null, null, null, "Activo").Value!;
+        _existentes.Add(global);
+        _ = _dbContextMock.Setup(c => c.DigemidCatalogoProductos.FindAsync(It.IsAny<object[]>(), It.IsAny<CancellationToken>())).Returns(ValueTask.FromResult<DigemidCatalogoProducto?>(global));
+
+        var result = await _handler.Handle(new UpdateDigemidProductoCommand(global.Id, "G-001", "Otro nombre", null, null, null, null, null, "Activo"), CancellationToken.None);
+
+        _ = result.Error.Code.Should().Be("DigemidCatalogo.Global.SoloLectura");
+        _ = result.StatusCode.Should().Be(403);
+        _ = global.NomProd.Should().Be("Ibuprofeno");
+        _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

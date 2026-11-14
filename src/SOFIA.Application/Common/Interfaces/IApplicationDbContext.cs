@@ -57,6 +57,7 @@ public interface IApplicationDbContext
     DbSet<RecetaDigitalizadaIA> RecetasDigitalizadasIA { get; }
     DbSet<SistemaNotificacionInterna> SistemaNotificacionesInternas { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<PlataformaConfiguracionPago> PlataformaConfiguracionesPago { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 

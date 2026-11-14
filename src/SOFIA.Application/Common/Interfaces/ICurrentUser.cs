@@ -8,6 +8,7 @@ public interface ICurrentUser
     string? SucursalId { get; }
     string? EmpresaId { get; }
     bool IsAuthenticated { get; }
+    bool EsAdminPlataforma { get; }
     string? ClientIpAddress { get; }
     bool IsInRole(string roleName);
 }

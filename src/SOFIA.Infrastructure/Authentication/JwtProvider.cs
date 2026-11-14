@@ -40,6 +40,11 @@ public class JwtProvider(IOptions<JwtOptions> options) : IJwtProvider
             claims.Add(new(PasswordChangePolicy.ClaimType, "true"));
         }
 
+        if (cuenta.EsAdminPlataforma)
+        {
+            claims.Add(new(PlataformaAdminPolicy.ClaimType, "true"));
+        }
+
         // Add roles as claims
         foreach (var rol in cuenta.Roles)
         {

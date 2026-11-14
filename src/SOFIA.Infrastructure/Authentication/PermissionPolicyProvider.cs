@@ -12,6 +12,9 @@ public sealed class PermissionPolicyProvider(IOptions<AuthorizationOptions> opti
 {
     private const string PolicyPrefix = "PERMISSION";
 
+    // Starts with PolicyPrefix on purpose, so both kinds of policy take the same path below
+    public const string PlatformPolicyPrefix = "PERMISSION_OR_PLATFORM";
+
     public override async Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
     {
         // If the policy name doesn't start with our prefix, use the default behavior.
@@ -32,7 +35,8 @@ public sealed class PermissionPolicyProvider(IOptions<AuthorizationOptions> opti
 
         var policy = new AuthorizationPolicyBuilder();
         _ = policy.RequireAuthenticatedUser();
-        _ = policy.AddRequirements(new PermissionRequirement(module, action));
+        var allowPlatformOperator = parts[0].Equals(PlatformPolicyPrefix, StringComparison.OrdinalIgnoreCase);
+        _ = policy.AddRequirements(new PermissionRequirement(module, action, allowPlatformOperator));
 
         return policy.Build();
     }

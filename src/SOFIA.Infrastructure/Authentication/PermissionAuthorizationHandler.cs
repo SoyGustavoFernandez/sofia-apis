@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Security;
 
 namespace SOFIA.Infrastructure.Authentication;
 
@@ -18,6 +19,13 @@ public sealed class PermissionAuthorizationHandler(
         AuthorizationHandlerContext context,
         PermissionRequirement requirement)
     {
+        // Checked before roles: the operator may hold no role at all inside its own company
+        if (requirement.AllowPlatformOperator && context.User.HasClaim(PlataformaAdminPolicy.ClaimType, "true"))
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
         var roles = context.User.Claims
             .Where(c => c.Type == ClaimTypes.Role)
             .Select(c => c.Value)

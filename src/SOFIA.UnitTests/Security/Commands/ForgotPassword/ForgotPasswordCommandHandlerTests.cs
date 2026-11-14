@@ -128,6 +128,19 @@ public class ForgotPasswordCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldIssueAToken_WhenThePlatformOperatorsCompanyIsNotVigente()
+    {
+        _ = _dbContextMock.Setup(c => c.Empresas).Returns(new List<Empresa>().BuildMockDbSet().Object);
+        _ = _cuenta.AsPlatformOperator();
+
+        var result = await _handler.Handle(new ForgotPasswordCommand("usuario"), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = _cuenta.RecoveryToken.Should().NotBeNull(because: "an operator locked out by a forgotten password has no one to ask");
+        _ = _sent.Should().ContainSingle();
+    }
+
+    [Fact]
     public async Task Handle_ShouldStillReturnGenericSuccess_WhenTheEmailCannotBeSent()
     {
         _ = _emailSenderMock.Setup(s => s.SendAsync(It.IsAny<EmailMessage>(), It.IsAny<CancellationToken>()))

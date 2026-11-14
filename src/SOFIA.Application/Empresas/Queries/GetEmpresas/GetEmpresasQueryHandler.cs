@@ -2,17 +2,18 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
 using SOFIA.Application.Common.Models;
+using SOFIA.Application.Empresas.Common;
 using SOFIA.Domain.Common;
 using SOFIA.Domain.Entities;
 
 namespace SOFIA.Application.Empresas.Queries.GetEmpresas;
 
-public class GetEmpresasQueryHandler(IApplicationDbContext context)
+public class GetEmpresasQueryHandler(IApplicationDbContext context, ICurrentUser currentUser)
     : IRequestHandler<GetEmpresasQuery, Result<PaginatedList<EmpresaDto>>>
 {
     public async Task<Result<PaginatedList<EmpresaDto>>> Handle(GetEmpresasQuery request, CancellationToken cancellationToken)
     {
-        var query = context.Empresas
+        var query = context.EmpresasVisibles(currentUser)
             .AsNoTracking()
             .Include(e => e.Sucursales)
             .Where(e => !e.IsDeleted);

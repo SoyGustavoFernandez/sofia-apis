@@ -23,6 +23,9 @@ public sealed class Cuenta : BaseEntity
     public string? RecoveryToken { get; private set; }
     public DateTimeOffset? RecoveryTokenExpiry { get; private set; }
 
+    // Platform operator flag, changed only in the database: no command may grant it
+    public bool EsAdminPlataforma { get; private set; }
+
     // Navigation Properties
     public Empleado? Empleado { get; }
     public ICollection<Rol> Roles { get; private set; } = [];
@@ -61,6 +64,7 @@ public sealed class Cuenta : BaseEntity
             RequiereCambioClave = requiereCambioClave,
             IntentosFallidos = 0,
             CuentaActiva = true,
+            EsAdminPlataforma = false,
             TenantId = tenantId
         });
     }

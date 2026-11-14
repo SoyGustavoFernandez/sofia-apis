@@ -1,16 +1,17 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Empresas.Common;
 using SOFIA.Domain.Common;
 
 namespace SOFIA.Application.Empresas.Queries.GetEmpresaById;
 
-public class GetEmpresaByIdQueryHandler(IApplicationDbContext context)
+public class GetEmpresaByIdQueryHandler(IApplicationDbContext context, ICurrentUser currentUser)
     : IRequestHandler<GetEmpresaByIdQuery, Result<EmpresaDto>>
 {
     public async Task<Result<EmpresaDto>> Handle(GetEmpresaByIdQuery request, CancellationToken cancellationToken)
     {
-        var empresa = await context.Empresas
+        var empresa = await context.EmpresasVisibles(currentUser)
             .AsNoTracking()
             .Include(e => e.Sucursales)
             .FirstOrDefaultAsync(e => e.Id == request.Id && !e.IsDeleted, cancellationToken);

@@ -55,6 +55,10 @@ public class CuentaConfiguration : IEntityTypeConfiguration<Cuenta>
         _ = builder.Property(x => x.RecoveryTokenExpiry)
             .HasColumnName("Recovery_Token_Expiry");
 
+        _ = builder.Property(x => x.EsAdminPlataforma)
+            .HasColumnName("Es_Admin_Plataforma")
+            .HasDefaultValue(false);
+
         _ = builder.HasOne(x => x.Empleado)
             .WithOne()
             .HasForeignKey<Cuenta>(x => x.EmpleadoId)

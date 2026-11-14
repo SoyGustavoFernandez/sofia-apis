@@ -29,12 +29,15 @@ public sealed class Empresa : BaseEntity
     // Single subscription rule shared by the DTOs, login, token refresh and every authenticated request
     public bool EstaVigenteEn(DateTimeOffset ahora) =>
         !IsDeleted &&
-        (Estado == EstadoEmpresa.Activo ||
-         (Estado == EstadoEmpresa.TrialActivo && FechaVencimiento > ahora));
+        (Estado == EstadoEmpresa.Activo || Estado == EstadoEmpresa.TrialActivo) &&
+        FechaVencimiento > ahora;
 
     public ICollection<Sucursal> Sucursales { get; private set; } = [];
 
     private const int DiasTrial = 30;
+
+    private static readonly Error FechaVencimientoPasadaError =
+        Error.Validation("Empresa.Suscripcion.FechaVencimiento", "The expiry date must be in the future.");
 
     public static Result<Empresa> Create(string nombre, string? ruc = null)
     {
@@ -91,21 +94,36 @@ public sealed class Empresa : BaseEntity
         return Result.Success();
     }
 
-    public void ActivarSuscripcion(int diasVigencia = 365)
+    // A paid subscription is granted up to a date and expires on its own, exactly like the trial
+    public Result ActivarSuscripcion(DateTimeOffset fechaVencimiento)
     {
+        if (fechaVencimiento <= DateTimeOffset.UtcNow)
+        {
+            return Result.Failure(FechaVencimientoPasadaError);
+        }
+
         Estado = EstadoEmpresa.Activo;
-        FechaVencimiento = DateTimeOffset.UtcNow.AddDays(diasVigencia);
+        FechaVencimiento = fechaVencimiento;
+        return Result.Success();
+    }
+
+    public Result ExtenderTrial(DateTimeOffset fechaVencimiento)
+    {
+        if (Estado != EstadoEmpresa.TrialActivo)
+        {
+            return Result.Failure(Error.Conflict("Empresa.Suscripcion.NoEstaEnPrueba", "Only a company on trial can have its trial extended."));
+        }
+
+        if (fechaVencimiento <= DateTimeOffset.UtcNow)
+        {
+            return Result.Failure(FechaVencimientoPasadaError);
+        }
+
+        FechaVencimiento = fechaVencimiento;
+        return Result.Success();
     }
 
     public void Suspender() => Estado = EstadoEmpresa.Suspendido;
 
     public void Cancelar() => Estado = EstadoEmpresa.Cancelado;
-
-    public void ExtenderTrial(int diasExtra)
-    {
-        if (Estado == EstadoEmpresa.TrialActivo)
-        {
-            FechaVencimiento = FechaVencimiento.AddDays(diasExtra);
-        }
-    }
 }

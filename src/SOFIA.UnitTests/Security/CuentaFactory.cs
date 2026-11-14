@@ -18,4 +18,11 @@ internal static class CuentaFactory
         typeof(Cuenta).GetField("<Empleado>k__BackingField", PrivateInstance)!.SetValue(cuenta, empleado);
         return cuenta;
     }
+
+    // The flag has no setter on purpose (it is only changed in the database), so tests write the backing field
+    public static Cuenta AsPlatformOperator(this Cuenta cuenta)
+    {
+        typeof(Cuenta).GetField("<EsAdminPlataforma>k__BackingField", PrivateInstance)!.SetValue(cuenta, true);
+        return cuenta;
+    }
 }

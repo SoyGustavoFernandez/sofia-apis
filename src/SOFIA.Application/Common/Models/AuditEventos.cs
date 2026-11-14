@@ -27,4 +27,9 @@ public static class AuditEventos
     public const string SerieActualizar = "SERIE_ACTUALIZAR";
     public const string SerieEliminar = "SERIE_ELIMINAR";
     public const string EmpresaActualizar = "EMPRESA_ACTUALIZAR";
+    public const string EmpresaActivar = "EMPRESA_ACTIVAR";
+    public const string EmpresaExtenderPrueba = "EMPRESA_EXT_PRUEBA";
+    public const string EmpresaSuspender = "EMPRESA_SUSPENDER";
+    public const string EmpresaCancelar = "EMPRESA_CANCELAR";
+    public const string PagoConfigGuardar = "PAGO_CONFIG_GUARDAR";
 }

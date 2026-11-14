@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Security;
 
 namespace SOFIA.API.Services;
 
@@ -22,6 +23,9 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUse
     public string? EmpresaId => httpContextAccessor.HttpContext?.User?.FindFirstValue("empresaId");
 
     public bool IsAuthenticated => httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
+
+    // The claim is re-synced with the database on every request, so the token alone never grants it
+    public bool EsAdminPlataforma => httpContextAccessor.HttpContext?.User?.HasClaim(PlataformaAdminPolicy.ClaimType, "true") ?? false;
 
     // UseForwardedHeaders already rewrote this from X-Forwarded-For, but only for trusted proxies
     public string? ClientIpAddress => httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();

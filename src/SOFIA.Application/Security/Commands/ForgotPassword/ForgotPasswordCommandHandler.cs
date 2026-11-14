@@ -22,7 +22,7 @@ public class ForgotPasswordCommandHandler(
 
         // Inactive accounts, employees without email and companies without an active subscription get no token, but the same response
         if (cuenta is { CuentaActiva: true, Empleado: { IsDeleted: false, Email: { } email } }
-            && await context.EmpresaEstaVigenteAsync(cuenta.TenantId, cancellationToken))
+            && await context.PuedeOperarAsync(cuenta, cancellationToken))
         {
             var (rawToken, tokenHash) = TokenHasher.GenerateRecoveryToken();
             cuenta.GenerateRecoveryToken(tokenHash);

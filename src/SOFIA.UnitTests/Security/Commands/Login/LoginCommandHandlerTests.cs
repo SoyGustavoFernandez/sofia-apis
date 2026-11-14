@@ -107,6 +107,43 @@ public class LoginCommandHandlerTests
         _dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_PlatformOperatorOfACompanyNotVigente_StillLogsIn(bool suspendida)
+    {
+        if (suspendida)
+        {
+            _empresa.Suspender();
+        }
+        else
+        {
+            _empresa.Cancelar();
+        }
+
+        _ = _cuenta.AsPlatformOperator();
+        _ = _passwordHasherMock.Setup(p => p.Verify("Clave123", "real_hash")).Returns(true);
+
+        var result = await _handler.Handle(new LoginCommand("usuario", "Clave123"), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue(because: "nobody else could reactivate the operator's own company");
+        _ = result.Value!.AccessToken.Should().Be("fake.jwt.token");
+    }
+
+    [Fact]
+    public async Task Handle_PlatformOperatorWithWrongPassword_ReturnsInvalidCredentials()
+    {
+        _empresa.Suspender();
+        _ = _cuenta.AsPlatformOperator();
+        _ = _passwordHasherMock.Setup(p => p.Verify("Incorrecta1", "real_hash")).Returns(false);
+
+        var result = await _handler.Handle(new LoginCommand("usuario", "Incorrecta1"), CancellationToken.None);
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.StatusCode.Should().Be(401);
+        _jwtProviderMock.Verify(j => j.Generate(It.IsAny<Cuenta>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
+    }
+
     [Fact]
     public async Task Handle_CompanyNotVigenteAndWrongPassword_ReturnsGenericInvalidCredentials()
     {

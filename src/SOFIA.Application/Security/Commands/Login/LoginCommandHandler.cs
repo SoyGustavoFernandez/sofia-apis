@@ -66,7 +66,7 @@ public class LoginCommandHandler(
         }
 
         // Only checked after a valid password, so the specific code never reveals anything to a guesser
-        if (!await context.EmpresaEstaVigenteAsync(cuenta.TenantId, cancellationToken))
+        if (!await context.PuedeOperarAsync(cuenta, cancellationToken))
         {
             logger.LogWarning("Rejected login for username {Username} from IP {IpAddress}: company {EmpresaId} has no active subscription.", request.NombreUsuario, ip, cuenta.TenantId);
             return Result.Failure<LoginResult>(EmpresaVigencia.NoVigenteError, 403);

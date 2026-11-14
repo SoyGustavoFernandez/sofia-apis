@@ -93,26 +93,33 @@ public static class DependencyInjection
                         }
 
                         // HttpContext.User is not populated yet at this point, so the tenant filter cannot apply
-                        var requiereCambioClave = await dbContext.Cuentas
+                        var cuenta = await dbContext.Cuentas
                             .IgnoreQueryFilters([QueryFilters.Tenant])
                             .Where(c => c.Id == userId &&
                                         c.SecurityStamp == securityStamp &&
                                         c.CuentaActiva &&
                                         !c.IsDeleted)
-                            .Select(c => (bool?)c.RequiereCambioClave)
+                            .Select(c => new { c.RequiereCambioClave, c.EsAdminPlataforma })
                             .FirstOrDefaultAsync();
 
-                        if (requiereCambioClave is null)
+                        if (cuenta is null)
                         {
                             context.Fail("Unauthorized: Security stamp is invalid or account is inactive.");
                             return;
                         }
 
-                        SyncPasswordChangeClaim(context.Principal, requiereCambioClave.Value);
+                        SyncFlagClaim(context.Principal, PasswordChangePolicy.ClaimType, cuenta.RequiereCambioClave);
+                        SyncFlagClaim(context.Principal, PlataformaAdminPolicy.ClaimType, cuenta.EsAdminPlataforma);
 
                         if (!Guid.TryParse(context.Principal?.FindFirstValue("empresaId"), out var empresaId))
                         {
                             context.Fail("Unauthorized: Missing or invalid company claim.");
+                            return;
+                        }
+
+                        // Same exemption as login: the platform operator keeps working whatever the state of its own company
+                        if (cuenta.EsAdminPlataforma)
+                        {
                             return;
                         }
 
@@ -146,9 +153,17 @@ public static class DependencyInjection
         AddEmail(services, configuration, environment);
 
         // Deny by default: endpoints without auth metadata require an authenticated user
-        _ = services.AddAuthorization(options => options.FallbackPolicy = new AuthorizationPolicyBuilder()
-            .RequireAuthenticatedUser()
-            .Build());
+        _ = services.AddAuthorization(options =>
+        {
+            options.FallbackPolicy = new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .Build();
+
+            // A claim, not a permission: the Admin role bypass of PermissionAuthorizationHandler must not reach it
+            options.AddPolicy(PlataformaAdminPolicy.Name, policy => policy
+                .RequireAuthenticatedUser()
+                .RequireClaim(PlataformaAdminPolicy.ClaimType, "true"));
+        });
 
         return services;
     }
@@ -198,22 +213,22 @@ public static class DependencyInjection
         }
     }
 
-    // The database flag wins over the token, so a change forced by an admin also applies to live access tokens
-    private static void SyncPasswordChangeClaim(ClaimsPrincipal? principal, bool requiereCambioClave)
+    // The database flag wins over the token, so a change made in the database also applies to live access tokens
+    private static void SyncFlagClaim(ClaimsPrincipal? principal, string claimType, bool enabled)
     {
         if (principal?.Identity is not ClaimsIdentity identity)
         {
             return;
         }
 
-        foreach (var claim in identity.FindAll(PasswordChangePolicy.ClaimType).ToList())
+        foreach (var claim in identity.FindAll(claimType).ToList())
         {
             identity.RemoveClaim(claim);
         }
 
-        if (requiereCambioClave)
+        if (enabled)
         {
-            identity.AddClaim(new Claim(PasswordChangePolicy.ClaimType, "true"));
+            identity.AddClaim(new Claim(claimType, "true"));
         }
     }
 }

@@ -93,7 +93,7 @@ public class EmpresaTests
     public void EstaVigente_ShouldBeTrue_WhenActivo()
     {
         var empresa = Empresa.Create("Farmacia").Value!;
-        empresa.ActivarSuscripcion();
+        _ = empresa.ActivarSuscripcion(DateTimeOffset.UtcNow.AddDays(30));
 
         _ = empresa.EstaVigente.Should().BeTrue();
     }
@@ -102,7 +102,7 @@ public class EmpresaTests
     public void EstaVigente_ShouldBeFalse_WhenSuspendido()
     {
         var empresa = Empresa.Create("Farmacia").Value!;
-        empresa.ActivarSuscripcion();
+        _ = empresa.ActivarSuscripcion(DateTimeOffset.UtcNow.AddDays(30));
         empresa.Suspender();
 
         _ = empresa.EstaVigente.Should().BeFalse();
@@ -131,7 +131,7 @@ public class EmpresaTests
     public void EstaVigenteEn_ShouldBeFalse_WhenSuspendidoOrCanceladoWithinPeriod()
     {
         var suspendida = Empresa.Create("Farmacia").Value!;
-        suspendida.ActivarSuscripcion();
+        _ = suspendida.ActivarSuscripcion(DateTimeOffset.UtcNow.AddDays(30));
         suspendida.Suspender();
         var cancelada = Empresa.Create("Farmacia").Value!;
         cancelada.Cancelar();
@@ -148,7 +148,7 @@ public class EmpresaTests
         var empresa = Empresa.Create("Farmacia").Value!;
         if (activa)
         {
-            empresa.ActivarSuscripcion();
+            _ = empresa.ActivarSuscripcion(DateTimeOffset.UtcNow.AddDays(30));
         }
 
         empresa.IsDeleted = true;
@@ -163,7 +163,7 @@ public class EmpresaTests
     public void ActivarSuscripcion_ShouldChangeEstadoToActivo()
     {
         var empresa = Empresa.Create("Farmacia").Value!;
-        empresa.ActivarSuscripcion();
+        _ = empresa.ActivarSuscripcion(DateTimeOffset.UtcNow.AddDays(30));
 
         _ = empresa.Estado.Should().Be(EstadoEmpresa.Activo);
     }
@@ -172,34 +172,99 @@ public class EmpresaTests
     public void ActivarSuscripcion_ShouldSetFechaVencimiento()
     {
         var empresa = Empresa.Create("Farmacia").Value!;
-        var antes = DateTimeOffset.UtcNow;
-        empresa.ActivarSuscripcion(365);
+        var vence = DateTimeOffset.UtcNow.AddDays(365);
 
-        _ = empresa.FechaVencimiento.Should().BeAfter(antes.AddDays(364));
+        var result = empresa.ActivarSuscripcion(vence);
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = empresa.FechaVencimiento.Should().Be(vence);
+    }
+
+    [Fact]
+    public void ActivarSuscripcion_ShouldFail_WhenFechaIsNotInTheFuture()
+    {
+        var empresa = Empresa.Create("Farmacia").Value!;
+        var fechaAntes = empresa.FechaVencimiento;
+
+        var result = empresa.ActivarSuscripcion(DateTimeOffset.UtcNow.AddMinutes(-1));
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Empresa.Suscripcion.FechaVencimiento");
+        _ = empresa.Estado.Should().Be(EstadoEmpresa.TrialActivo);
+        _ = empresa.FechaVencimiento.Should().Be(fechaAntes);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ActivarSuscripcion_ShouldReactivate_WhenSuspendidoOrCancelado(bool suspendida)
+    {
+        var empresa = Empresa.Create("Farmacia").Value!;
+        if (suspendida)
+        {
+            empresa.Suspender();
+        }
+        else
+        {
+            empresa.Cancelar();
+        }
+
+        var result = empresa.ActivarSuscripcion(DateTimeOffset.UtcNow.AddDays(30));
+
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = empresa.EstaVigente.Should().BeTrue();
+    }
+
+    [Fact]
+    public void EstaVigenteEn_ShouldBeFalse_WhenActivoExpired()
+    {
+        var empresa = Empresa.Create("Farmacia").Value!;
+        _ = empresa.ActivarSuscripcion(DateTimeOffset.UtcNow.AddDays(30));
+
+        _ = empresa.EstaVigenteEn(empresa.FechaVencimiento.AddSeconds(-1)).Should().BeTrue();
+        _ = empresa.EstaVigenteEn(empresa.FechaVencimiento).Should().BeFalse();
+        _ = empresa.EstaVigenteEn(empresa.FechaVencimiento.AddDays(1)).Should().BeFalse();
     }
 
     // ── ExtenderTrial ────────────────────────────────────────────────────────
 
     [Fact]
-    public void ExtenderTrial_ShouldExtendFechaVencimiento_WhenTrialActivo()
+    public void ExtenderTrial_ShouldSetFechaVencimiento_WhenTrialActivo()
     {
         var empresa = Empresa.Create("Farmacia").Value!;
-        var fechaOriginal = empresa.FechaVencimiento;
+        var vence = empresa.FechaVencimiento.AddDays(15);
 
-        empresa.ExtenderTrial(15);
+        var result = empresa.ExtenderTrial(vence);
 
-        _ = empresa.FechaVencimiento.Should().BeCloseTo(fechaOriginal.AddDays(15), TimeSpan.FromSeconds(1));
+        _ = result.IsSuccess.Should().BeTrue();
+        _ = empresa.Estado.Should().Be(EstadoEmpresa.TrialActivo);
+        _ = empresa.FechaVencimiento.Should().Be(vence);
     }
 
     [Fact]
-    public void ExtenderTrial_ShouldNotExtend_WhenNotTrialActivo()
+    public void ExtenderTrial_ShouldFail_WhenNotTrialActivo()
     {
         var empresa = Empresa.Create("Farmacia").Value!;
-        empresa.ActivarSuscripcion();
+        _ = empresa.ActivarSuscripcion(DateTimeOffset.UtcNow.AddDays(30));
         var fechaAntes = empresa.FechaVencimiento;
 
-        empresa.ExtenderTrial(15);
+        var result = empresa.ExtenderTrial(DateTimeOffset.UtcNow.AddDays(60));
 
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Empresa.Suscripcion.NoEstaEnPrueba");
+        _ = empresa.FechaVencimiento.Should().Be(fechaAntes);
+    }
+
+    [Fact]
+    public void ExtenderTrial_ShouldFail_WhenFechaIsNotInTheFuture()
+    {
+        var empresa = Empresa.Create("Farmacia").Value!;
+        var fechaAntes = empresa.FechaVencimiento;
+
+        var result = empresa.ExtenderTrial(DateTimeOffset.UtcNow.AddMinutes(-1));
+
+        _ = result.IsFailure.Should().BeTrue();
+        _ = result.Error.Code.Should().Be("Empresa.Suscripcion.FechaVencimiento");
         _ = empresa.FechaVencimiento.Should().Be(fechaAntes);
     }
 

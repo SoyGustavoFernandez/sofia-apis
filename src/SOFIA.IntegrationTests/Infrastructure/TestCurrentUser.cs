@@ -23,6 +23,7 @@ public sealed class TestCurrentUser : ICurrentUser
     public string? SucursalId => Sucursal?.ToString();
     public string? EmpresaId => Empresa?.ToString();
     public bool IsAuthenticated => Empresa is not null;
+    public bool EsAdminPlataforma { get; set; }
     public string? ClientIpAddress => "127.0.0.1";
     public bool IsInRole(string roleName) => Admin && roleName == "Admin";
 }

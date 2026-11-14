@@ -97,6 +97,20 @@ public class RefreshTokenCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldRotateTheToken_WhenThePlatformOperatorsCompanyIsNotVigente()
+    {
+        _empresa.Suspender();
+        _ = _cuenta.AsPlatformOperator();
+        var stored = AddToken(RawToken);
+        SetupContext();
+
+        var result = await _handler.Handle(new RefreshTokenCommand(RawToken), CancellationToken.None);
+
+        _ = result.IsSuccess.Should().BeTrue(because: "the operator must keep its session to reactivate companies, its own included");
+        _ = stored.IsRevoked.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Handle_ShouldReturnUnauthorizedWithoutRevokingAndIssueNoToken_WhenCompanyIsNotVigente()
     {
         _empresa.Suspender();

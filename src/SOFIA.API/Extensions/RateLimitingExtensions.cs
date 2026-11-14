@@ -8,6 +8,7 @@ public static class RateLimitingExtensions
     public const string AuthPolicy = "auth";
     public const string SignUpPolicy = "signup";
     public const string AiPolicy = "ai-endpoints";
+    public const string PublicInfoPolicy = "public-info";
 
     public static IServiceCollection AddSofiaRateLimiting(this IServiceCollection services) => services.AddRateLimiter(options =>
     {
@@ -36,6 +37,14 @@ public static class RateLimitingExtensions
         {
             PermitLimit = 5,
             Window = TimeSpan.FromHours(1),
+            QueueLimit = 0
+        }));
+
+        // Anonymous read-only data (payment details with an embedded image): 30 req/min per IP
+        _ = options.AddPolicy(PublicInfoPolicy, ctx => RateLimitPartition.GetFixedWindowLimiter(ClientIpPartition(ctx), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 30,
+            Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0
         }));
 

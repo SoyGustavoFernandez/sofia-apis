@@ -1,8 +1,13 @@
 using Microsoft.AspNetCore.RateLimiting;
+using SOFIA.Application.Empresas.Commands.ActivarSuscripcionEmpresa;
+using SOFIA.Application.Empresas.Commands.CancelarEmpresa;
+using SOFIA.Application.Empresas.Commands.ExtenderPruebaEmpresa;
 using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
+using SOFIA.Application.Empresas.Commands.SuspenderEmpresa;
 using SOFIA.Application.Empresas.Commands.UpdateEmpresa;
 using SOFIA.Application.Empresas.Queries.GetEmpresaById;
 using SOFIA.Application.Empresas.Queries.GetEmpresas;
+using SOFIA.Application.Security;
 using SOFIA.Domain.Entities;
 using SOFIA.Infrastructure.Excel;
 
@@ -31,7 +36,7 @@ public class EmpresasController(ISender sender) : ControllerBase
         return StatusCode(201, new { token = result.Value.AccessToken });
     }
 
-    [HasPermission("Empresas", "Leer")]
+    [HasPermissionOrPlataforma("Empresas", "Leer")]
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? nombre,
@@ -53,7 +58,7 @@ public class EmpresasController(ISender sender) : ControllerBase
         return result.ToActionResult();
     }
 
-    [HasPermission("Empresas", "Leer")]
+    [HasPermissionOrPlataforma("Empresas", "Leer")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -70,7 +75,39 @@ public class EmpresasController(ISender sender) : ControllerBase
         return result.ToActionResult();
     }
 
-    [HasPermission("Empresas", "Leer")]
+    [Authorize(Policy = PlataformaAdminPolicy.Name)]
+    [HttpPut("{id:guid}/suscripcion/activar")]
+    public async Task<IActionResult> ActivarSuscripcion(Guid id, [FromBody] SuscripcionFechaRequest request)
+    {
+        var result = await sender.Send(new ActivarSuscripcionEmpresaCommand { Id = id, FechaVencimiento = request.FechaVencimiento });
+        return result.ToActionResult();
+    }
+
+    [Authorize(Policy = PlataformaAdminPolicy.Name)]
+    [HttpPut("{id:guid}/suscripcion/extender-prueba")]
+    public async Task<IActionResult> ExtenderPrueba(Guid id, [FromBody] SuscripcionFechaRequest request)
+    {
+        var result = await sender.Send(new ExtenderPruebaEmpresaCommand { Id = id, FechaVencimiento = request.FechaVencimiento });
+        return result.ToActionResult();
+    }
+
+    [Authorize(Policy = PlataformaAdminPolicy.Name)]
+    [HttpPut("{id:guid}/suscripcion/suspender")]
+    public async Task<IActionResult> Suspender(Guid id)
+    {
+        var result = await sender.Send(new SuspenderEmpresaCommand(id));
+        return result.ToActionResult();
+    }
+
+    [Authorize(Policy = PlataformaAdminPolicy.Name)]
+    [HttpPut("{id:guid}/suscripcion/cancelar")]
+    public async Task<IActionResult> Cancelar(Guid id)
+    {
+        var result = await sender.Send(new CancelarEmpresaCommand(id));
+        return result.ToActionResult();
+    }
+
+    [HasPermissionOrPlataforma("Empresas", "Leer")]
     [HttpPost("exportar")]
     public async Task<IActionResult> Exportar([FromBody] EmpresaExportRequest request, CancellationToken cancellationToken)
     {
@@ -106,6 +143,8 @@ public class EmpresasController(ISender sender) : ControllerBase
         var bytes = ExcelTemplateGenerator.GenerateReport(request.Headers, rows);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "empresas.xlsx");
     }
+
+    public record SuscripcionFechaRequest(DateTimeOffset FechaVencimiento);
 
     public record EmpresaExportRequest([ExportHeaders] string[] Headers, [ExportLabel] string YesLabel, [ExportLabel] string NoLabel, string? Nombre, EstadoEmpresa? Estado, DateTimeOffset? FechaVencimientoDesde, DateTimeOffset? FechaVencimientoHasta);
 }

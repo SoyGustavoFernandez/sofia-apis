@@ -12,4 +12,5 @@ public static class AuditTablas
     public const string Cuentas = "Seguridad_Cuentas";
     public const string SeriesFiscales = "SUNAT_Series_Fiscales";
     public const string Empresas = "Empresas";
+    public const string PlataformaConfiguracionPago = "Plataforma_Configuracion_Pago";
 }

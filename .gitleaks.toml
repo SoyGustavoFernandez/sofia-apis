@@ -1,0 +1,13 @@
+title = "SOFIA gitleaks config"
+
+[extend]
+useDefault = true
+
+# Fake fixtures in security unit tests, matched by file, rule and assignment so a real secret in these files is still reported
+[[allowlists]]
+description = "Test-only constants in security tests"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''src/SOFIA\.(UnitTests|IntegrationTests)/Security/.*Tests\.cs''']
+regexTarget = "line"
+regexes = ['''(?i)\b(TokenHash|secretKey)\b\s*=\s*"[^"]+"''']

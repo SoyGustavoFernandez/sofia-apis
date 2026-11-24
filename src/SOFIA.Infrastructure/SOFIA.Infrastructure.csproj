@@ -18,6 +18,8 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.8" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.18.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
+    <!-- Direct reference lifts the transitive Pkcs version flagged by CVE-2026-84008 and CVE-2026-70162 -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -1,8 +1,8 @@
 name: Security Scan
 
 on:
-  push:
-    branches: [master, main]
+  # Pushes to main run it through docker-publish.yml so each push shows a single run
+  workflow_call:
   pull_request:
     branches: [master, main]
   schedule:

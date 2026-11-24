@@ -90,6 +90,12 @@ jobs:
         with:
           dotnet-version: '10.x'
 
+      # The runner IP changes on every run and is not always inside Azure, so it gets a temporary SQL firewall rule
+      - name: Allow this runner through the SQL firewall
+        run: |
+          runner_ip=$(curl --silent --show-error --fail https://api.ipify.org)
+          az sql server firewall-rule create --resource-group "$RESOURCE_GROUP" --server sql-sofia-uat-gfs --name "github-run-${{ github.run_id }}-${{ github.run_attempt }}" --start-ip-address "$runner_ip" --end-ip-address "$runner_ip" --output none
+
       # Migrations run before the new API starts, so every script must stay compatible with the API version still running
       - name: Apply database migrations
         shell: bash
@@ -103,15 +109,20 @@ jobs:
           # Later keywords win, so this gives the free tier time to resume from its pause
           connection="${UAT_SQL_CONNECTION%;};Connect Timeout=120"
 
-          for attempt in 1 2 3; do
-            echo "Applying migrations (attempt $attempt of 3)"
+          # A new firewall rule can take a few minutes to apply, so the attempts spread over about five minutes
+          for attempt in 1 2 3 4 5 6; do
+            echo "Applying migrations (attempt $attempt of 6)"
             if dotnet run --project src/SOFIA.DbUp --configuration Release -- "$connection" 2>&1 | grep --line-buffered -viE "connectionstring|password|pwd="; then
               exit 0
             fi
-            sleep 20
+            sleep 30
           done
-          echo "Migrations failed after 3 attempts"
+          echo "Migrations failed after 6 attempts"
           exit 1
+
+      - name: Remove the temporary SQL firewall rule
+        if: always()
+        run: az sql server firewall-rule delete --resource-group "$RESOURCE_GROUP" --server sql-sofia-uat-gfs --name "github-run-${{ github.run_id }}-${{ github.run_attempt }}" --yes || true
 
       - name: Deploy sofia-api
         run: az containerapp update --resource-group "$RESOURCE_GROUP" --name ca-sofia-api --image "ghcr.io/soygustavofernandez/sofia-api:${{ github.sha }}" --output none

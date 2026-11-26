@@ -56,6 +56,10 @@ public class RegistrarEmpresaCommandHandlerTests
         _ = refreshTokensDbSet.Setup(d => d.Add(It.IsAny<RefreshToken>()));
         _ = _dbContextMock.Setup(c => c.RefreshTokens).Returns(refreshTokensDbSet.Object);
 
+        var unidadesDbSet = new List<UnidadMedida>().BuildMockDbSet();
+        _ = unidadesDbSet.Setup(d => d.Add(It.IsAny<UnidadMedida>()));
+        _ = _dbContextMock.Setup(c => c.UnidadesMedida).Returns(unidadesDbSet.Object);
+
         _ = _dbContextMock
             .Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
@@ -326,6 +330,21 @@ public class RegistrarEmpresaCommandHandlerTests
         _ = result.IsSuccess.Should().BeTrue();
         _ = capturedEmpleado!.Apellido_Materno.Should().BeNull();
         _ = capturedEmpleado.Nombre_Completo.Should().Be("Ana Maria Quispe");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreateTheBasicUnitsForTheNewCompany_WhenSuccessful()
+    {
+        SetupEmptyContext();
+        Empresa? capturedEmpresa = null;
+        List<UnidadMedida> unidades = [];
+        _ = _dbContextMock.Setup(c => c.Empresas.Add(It.IsAny<Empresa>())).Callback<Empresa>(e => capturedEmpresa = e);
+        _ = _dbContextMock.Setup(c => c.UnidadesMedida.Add(It.IsAny<UnidadMedida>())).Callback<UnidadMedida>(unidades.Add);
+
+        _ = await _handler.Handle(MinimalCommand(), CancellationToken.None);
+
+        _ = unidades.Select(u => u.Codigo).Should().Equal("UND", "CJA", "BLS", "FRC");
+        _ = unidades.Should().OnlyContain(u => u.TenantId == capturedEmpresa!.Id);
     }
 
     [Fact]

@@ -61,6 +61,12 @@ public class RegistrarEmpresaCommandHandler(
         _ = context.Empleados.Add(empleado);
         _ = context.Cuentas.Add(cuenta);
 
+        // Anonymous sign-up has no tenant in context, so the starting units name their company explicitly
+        foreach (var (codigo, descripcion) in UnidadMedida.Basicas)
+        {
+            _ = context.UnidadesMedida.Add(UnidadMedida.Create(codigo, descripcion, empresa.Id).Value!);
+        }
+
         // Same session pair as login, so the new admin can silently refresh instead of re-logging in
         var (rawToken, tokenHash) = TokenHasher.GenerateRefreshToken();
         var expiry = DateTimeOffset.UtcNow.Add(RefreshTokenLifetime);

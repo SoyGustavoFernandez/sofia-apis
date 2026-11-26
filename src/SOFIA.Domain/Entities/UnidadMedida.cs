@@ -6,10 +6,14 @@ public sealed class UnidadMedida : BaseEntity
 {
     private UnidadMedida() { } // Required for EF Core
 
+    // Units every pharmacy starts with, so the first product can be registered right away
+    public static readonly IReadOnlyList<(string Codigo, string Descripcion)> Basicas =
+        [("UND", "Unidad"), ("CJA", "Caja"), ("BLS", "Blíster"), ("FRC", "Frasco")];
+
     public string Codigo { get; private set; } = string.Empty;
     public string Descripcion { get; private set; } = string.Empty;
 
-    public static Result<UnidadMedida> Create(string codigo, string descripcion)
+    public static Result<UnidadMedida> Create(string codigo, string descripcion, Guid? tenantId = null)
     {
         if (string.IsNullOrWhiteSpace(codigo))
         {
@@ -34,7 +38,8 @@ public sealed class UnidadMedida : BaseEntity
         return Result.Success(new UnidadMedida
         {
             Codigo = codigo,
-            Descripcion = descripcion
+            Descripcion = descripcion,
+            TenantId = tenantId
         });
     }
 

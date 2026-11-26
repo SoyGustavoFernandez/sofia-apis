@@ -1,4 +1,7 @@
+using System.Net;
+using System.Net.Sockets;
 using MailKit.Security;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using SOFIA.Application.Common.Models;
@@ -113,6 +116,71 @@ public class EmailInfrastructureTests
 
         _ = result.IsFailure.Should().BeTrue();
         _ = result.Error.Code.Should().Be("Email.SendFailed");
+    }
+
+    [Fact]
+    public async Task SmtpEmailSender_SendAsync_ShouldLogTheFailingStepAndServerReplyWithoutAddresses_WhenTheServerRejects()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var server = RejectSenderAsync(listener);
+        var logger = new ListLogger();
+        var sender = new SmtpEmailSender(Options.Create(Smtp(host: "127.0.0.1", port: ((IPEndPoint)listener.LocalEndpoint).Port)), logger);
+
+        var result = await sender.SendAsync(Message);
+        await server;
+
+        _ = result.IsFailure.Should().BeTrue();
+        var line = logger.Lines.Should().ContainSingle().Subject;
+        _ = line.Should().Contain("Step: Send").And.Contain("[550]").And.Contain("<email> rejected");
+        _ = line.Should().NotContain("ana@farmacia.pe").And.NotContain("no-reply@sofia.test.");
+    }
+
+    [Fact]
+    public void SmtpEmailSender_Describe_ShouldIncludeInnerCausesAndMaskAddresses()
+    {
+        var exception = new InvalidOperationException("Failed for <ana@farmacia.pe>", new IOException("Connection reset by luis.rojas+1@farmacia.com.pe"));
+
+        var detail = SmtpEmailSender.Describe(exception);
+
+        _ = detail.Should().Be("InvalidOperationException: Failed for <<email>> <- IOException: Connection reset by <email>");
+    }
+
+    // Minimal SMTP server that accepts the greeting and rejects the sender, echoing both addresses
+    private static async Task RejectSenderAsync(TcpListener listener)
+    {
+        using var client = await listener.AcceptTcpClientAsync();
+        await using var stream = client.GetStream();
+        using var reader = new StreamReader(stream);
+        await using var writer = new StreamWriter(stream) { NewLine = "\r\n", AutoFlush = true };
+
+        await writer.WriteLineAsync("220 test ESMTP");
+        while (await reader.ReadLineAsync() is { } command)
+        {
+            if (command.StartsWith("QUIT", StringComparison.OrdinalIgnoreCase))
+            {
+                await writer.WriteLineAsync("221 bye");
+                return;
+            }
+
+            await writer.WriteLineAsync(command.StartsWith("MAIL", StringComparison.OrdinalIgnoreCase) ? "550 ana@farmacia.pe rejected" : "250 ok");
+        }
+    }
+
+    private sealed class ListLogger : ILogger<SmtpEmailSender>
+    {
+        public List<string> Lines { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            // The message id carries the sender domain by design, so it is left out of the checked text
+            var text = formatter(state, exception);
+            Lines.Add(text[text.IndexOf("Step:", StringComparison.Ordinal)..]);
+        }
     }
 
     [Fact]

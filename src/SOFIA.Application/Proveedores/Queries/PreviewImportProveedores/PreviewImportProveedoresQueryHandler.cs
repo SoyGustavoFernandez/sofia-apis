@@ -47,7 +47,7 @@ public class PreviewImportProveedoresQueryHandler(IApplicationDbContext context)
                 }
                 else
                 {
-                    if (taxId.Length > 50) { errors.Add(new ValidationError("max-length", "taxId", new() { ["max"] = 50 })); } if (existingSet.Contains(taxId.ToLower())) { errors.Add(new ValidationError("duplicate", "taxId", new() { ["value"] = taxId })); } if (seenTaxIds.TryGetValue(taxId, out var rowsWithSame) && rowsWithSame.Count > 1) { errors.Add(new ValidationError("duplicate-in-file", "taxId", new() { ["value"] = taxId })); } }
+                    if (Domain.ValueObjects.Ruc.Create(taxId).IsFailure) { errors.Add(new ValidationError("invalid-digits", "taxId", new() { ["digits"] = 11 })); } if (existingSet.Contains(taxId.ToLower())) { errors.Add(new ValidationError("duplicate", "taxId", new() { ["value"] = taxId })); } if (seenTaxIds.TryGetValue(taxId, out var rowsWithSame) && rowsWithSame.Count > 1) { errors.Add(new ValidationError("duplicate-in-file", "taxId", new() { ["value"] = taxId })); } }
 
                 if (!string.IsNullOrEmpty(terminos) && terminos.Length > 100) { errors.Add(new ValidationError("max-length", "terminosFinancieros", new() { ["max"] = 100 })); } if (!string.IsNullOrEmpty(esgStr))
                 {

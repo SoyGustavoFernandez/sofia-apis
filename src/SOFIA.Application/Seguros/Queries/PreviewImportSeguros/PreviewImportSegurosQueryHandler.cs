@@ -38,7 +38,7 @@ public class PreviewImportSegurosQueryHandler(IApplicationDbContext context)
                 var nombre = row.Values.GetValueOrDefault("NombreComercial");
                 var codigo = row.Values.GetValueOrDefault("CodigoIdentificadorNacional");
 
-                if (string.IsNullOrWhiteSpace(nombre)) { errors.Add(new ValidationError("required", "nombreComercial")); } else if (nombre.Length > 150) { errors.Add(new ValidationError("max-length", "nombreComercial", new() { ["max"] = 200 })); } if (string.IsNullOrWhiteSpace(codigo))
+                if (string.IsNullOrWhiteSpace(nombre)) { errors.Add(new ValidationError("required", "nombreComercial")); } else if (nombre.Length > 150) { errors.Add(new ValidationError("max-length", "nombreComercial", new() { ["max"] = 150 })); } if (string.IsNullOrWhiteSpace(codigo))
                 {
                     errors.Add(new ValidationError("required", "codigoIdentificadorNacional"));
                 }

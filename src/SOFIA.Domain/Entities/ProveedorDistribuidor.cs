@@ -1,4 +1,5 @@
 using SOFIA.Domain.Common;
+using SOFIA.Domain.ValueObjects;
 
 namespace SOFIA.Domain.Entities;
 
@@ -34,9 +35,10 @@ public sealed class ProveedorDistribuidor : BaseEntity
             return Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.TaxId", "Tax ID is required."));
         }
 
-        if (taxId.Length > 50)
+        // Only local suppliers for now, so the tax id is always a RUC
+        if (Ruc.Create(taxId).IsFailure)
         {
-            return Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.TaxId", "Tax ID must not exceed 50 characters."));
+            return Result.Failure<ProveedorDistribuidor>(Error.Validation("ProveedorDistribuidor.TaxId", "Tax ID must be an 11-digit RUC."));
         }
 
         if (terminosFinancieros != null && terminosFinancieros.Length > 100)
@@ -86,9 +88,9 @@ public sealed class ProveedorDistribuidor : BaseEntity
             return Result.Failure(Error.Validation("ProveedorDistribuidor.TaxId", "Tax ID is required."));
         }
 
-        if (taxId.Length > 50)
+        if (Ruc.Create(taxId).IsFailure)
         {
-            return Result.Failure(Error.Validation("ProveedorDistribuidor.TaxId", "Tax ID must not exceed 50 characters."));
+            return Result.Failure(Error.Validation("ProveedorDistribuidor.TaxId", "Tax ID must be an 11-digit RUC."));
         }
 
         if (terminosFinancieros != null && terminosFinancieros.Length > 100)

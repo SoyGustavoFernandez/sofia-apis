@@ -58,6 +58,7 @@ public interface IApplicationDbContext
     DbSet<SistemaNotificacionInterna> SistemaNotificacionesInternas { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<PlataformaConfiguracionPago> PlataformaConfiguracionesPago { get; }
+    DbSet<AvisoEnviado> AvisosEnviados { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 

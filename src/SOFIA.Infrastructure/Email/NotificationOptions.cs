@@ -4,6 +4,9 @@ public class NotificationOptions
 {
     public const string SectionName = "Notifications";
 
-    // Who is told about every new company; empty turns the notice off
-    public string NewCompanyRecipient { get; init; } = string.Empty;
+    // The platform owner's address for new companies and expiry summaries; empty turns those off
+    public string OwnerRecipient { get; init; } = string.Empty;
+
+    // Shared secret the daily scheduled task sends; empty keeps the task endpoint closed
+    public string TasksKey { get; init; } = string.Empty;
 }

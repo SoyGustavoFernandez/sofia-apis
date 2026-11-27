@@ -186,6 +186,7 @@ public static class DependencyInjection
         _ = services.AddSingleton<IFrontendLinks, FrontendLinks>();
         _ = services.Configure<NotificationOptions>(configuration.GetSection(NotificationOptions.SectionName));
         _ = services.AddSingleton<INuevaEmpresaNotifier, NuevaEmpresaNotifier>();
+        _ = services.AddSingleton<IPlatformNotificationSettings, PlatformNotificationSettings>();
 
         if (emailOptions.IsDisabled)
         {

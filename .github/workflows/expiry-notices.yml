@@ -1,0 +1,30 @@
+name: Subscription Expiry Notices
+
+on:
+  schedule:
+    # 08:00 in Peru (UTC-5)
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: expiry-notices
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    name: Send expiry notices
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # The app and its database sleep when idle, so the call is retried while they wake up
+      - name: Ask the API to send the notices
+        env:
+          TASKS_KEY: ${{ secrets.TASKS_KEY }}
+          API_URL: https://ca-sofia-api.greendesert-379eeaa0.brazilsouth.azurecontainerapps.io
+        run: |
+          result=$(curl --silent --show-error --fail --max-time 180 --retry 5 --retry-delay 30 --retry-all-errors \
+            --request POST --header "X-Tareas-Key: $TASKS_KEY" "$API_URL/api/v1/tareas/avisos-vencimiento")
+          echo "$result"
+          echo "$result" | jq --exit-status '.fallidos == 0' > /dev/null

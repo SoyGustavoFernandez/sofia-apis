@@ -17,7 +17,7 @@ public class NuevaEmpresaNotifier(
 
     public async Task NotificarAsync(NuevaEmpresaAviso aviso)
     {
-        var destinatario = options.Value.NewCompanyRecipient;
+        var destinatario = options.Value.OwnerRecipient;
         if (string.IsNullOrWhiteSpace(destinatario))
         {
             return;

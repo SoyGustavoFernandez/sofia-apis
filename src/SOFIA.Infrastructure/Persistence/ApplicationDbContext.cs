@@ -63,6 +63,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<SistemaNotificacionInterna> SistemaNotificacionesInternas => Set<SistemaNotificacionInterna>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PlataformaConfiguracionPago> PlataformaConfiguracionesPago => Set<PlataformaConfiguracionPago>();
+    public DbSet<AvisoEnviado> AvisosEnviados => Set<AvisoEnviado>();
 
     private Guid? CurrentEmpresaId =>
         Guid.TryParse(currentUser.EmpresaId, out var id) ? id : null;

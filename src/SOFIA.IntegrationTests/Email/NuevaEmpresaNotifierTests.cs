@@ -24,7 +24,7 @@ public class NuevaEmpresaNotifierTests(SofiaWebAppFactory factory) : IClassFixtu
     }
 
     private static NuevaEmpresaNotifier Notifier(IEmailSender sender, string destinatario, TimeSpan? timeout = null) => new(
-        sender, Options.Create(new NotificationOptions { NewCompanyRecipient = destinatario }), NullLogger<NuevaEmpresaNotifier>.Instance, timeout);
+        sender, Options.Create(new NotificationOptions { OwnerRecipient = destinatario }), NullLogger<NuevaEmpresaNotifier>.Instance, timeout);
 
     [Fact]
     public async Task Notificar_ShouldMailTheOwnerWithTheDataEncodedAndTheSubjectOnOneLine()

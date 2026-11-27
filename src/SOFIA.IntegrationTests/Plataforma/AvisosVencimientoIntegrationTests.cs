@@ -34,7 +34,7 @@ public class AvisosVencimientoIntegrationTests(SofiaWebAppFactory factory) : Bas
             NombreEmpresa = $"Botica {sufijo}",
             RUC = ruc,
             Usuario = $"admin.{sufijo}",
-            Password = "Segura123#",
+            Password = $"Aa1!{Guid.NewGuid():N}"[..16],
             AdminNombres = "Ana",
             AdminApellidoPaterno = "Quispe",
             AdminEmail = correo,

@@ -72,7 +72,7 @@ public class GetVentasQueryHandler(
                 v.Id,
                 EmpleadoNombre = v.Empleado != null ? v.Empleado.Nombres + " " + v.Empleado.Apellido_Paterno : null,
                 ClienteNombre = v.Cliente != null ? v.Cliente.NombreApellidos : null,
-                ItemsCount = v.Detalles.Count,
+                ItemsCount = v.Detalles.Count + v.Servicios.Count,
             })
             .ToDictionaryAsync(x => x.Id, cancellationToken);
 

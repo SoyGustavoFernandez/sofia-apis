@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SOFIA.Application.Common.Extensions;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using SOFIA.Application.Devoluciones.Common;
 using SOFIA.Application.Ventas.Common;
 using SOFIA.Domain.Common;
@@ -28,6 +29,7 @@ public class GetVentaByIdQueryHandler(
             .Include(v => v.EmpleadoVerificaReceta)
             .Include(v => v.Cliente)
             .Include(v => v.Pagos)
+            .Include(v => v.Servicios)
             .Include(v => v.Detalles)
                 .ThenInclude(d => d.Lote)
                     .ThenInclude(l => l!.Producto)
@@ -55,6 +57,12 @@ public class GetVentaByIdQueryHandler(
         var cantidadesDevueltas = await context.GetCantidadesDevueltasAsync([.. venta.Detalles.Select(d => d.Id)], cancellationToken);
         var devoluciones = comprobante != null ? await GetDevolucionesAsync(comprobante.Id, cancellationToken) : [];
         var emisor = comprobante != null ? await VentaComprobanteGenerator.GetEmisorAsync(context, venta.SucursalId, cancellationToken) : null;
+
+        // A service deleted from the catalog keeps its name on past sales
+        var servicioIds = venta.Servicios.Select(s => s.ServicioId).ToList();
+        var nombresServicio = await context.ServiciosCatalogo.IgnoreQueryFilters([QueryFilters.SoftDelete]).AsNoTracking()
+            .Where(s => servicioIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => s.Nombre, cancellationToken);
 
         var codigoVenta = comprobante != null
             ? $"{comprobante.Serie?.PrefijoSerie}-{comprobante.NumeroCorrelativo:D8}"
@@ -110,7 +118,8 @@ public class GetVentaByIdQueryHandler(
             devoluciones,
             venta.Cliente?.TipoDocumento,
             venta.EmpleadoVerificaReceta != null ? $"{venta.EmpleadoVerificaReceta.Nombres} {venta.EmpleadoVerificaReceta.Apellido_Paterno}" : null,
-            venta.FechaVerificacionReceta
+            venta.FechaVerificacionReceta,
+            [.. venta.Servicios.Select(s => new VentaServicioDto(s.Id, nombresServicio.GetValueOrDefault(s.ServicioId) ?? "-", s.Precio))]
         );
 
         return Result.Success(dto);

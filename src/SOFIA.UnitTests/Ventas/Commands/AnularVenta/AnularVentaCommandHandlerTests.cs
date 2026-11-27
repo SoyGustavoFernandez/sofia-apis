@@ -24,6 +24,7 @@ public class AnularVentaCommandHandlerTests
     private readonly DetalleVenta _detalle;
     private readonly PosSesionCaja _sesionPropia;
     private Venta _venta;
+    private readonly List<CitaServicio> _citas = [];
 
     public AnularVentaCommandHandlerTests()
     {
@@ -47,6 +48,8 @@ public class AnularVentaCommandHandlerTests
         _ = _dbContextMock.Setup(c => c.SUNATComprobantesEmitidos).Returns(_comprobantes.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.SUNATSeriesFiscales).Returns(_series.BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.DetallesDevolucion).Returns(_devoluciones.SelectMany(d => d.Detalles).ToList().BuildMockDbSet().Object);
+
+        _ = _dbContextMock.Setup(c => c.CitasServicio).Returns(_citas.BuildMockDbSet().Object);
 
         return new AnularVentaCommandHandler(_dbContextMock.Object, _currentUserMock.Object);
     }

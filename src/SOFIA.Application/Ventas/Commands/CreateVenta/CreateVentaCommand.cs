@@ -18,7 +18,19 @@ public record CreateVentaCommand(
     EstadoVenta Estado = EstadoVenta.Completada,
     Guid? AseguradoraId = null,
     decimal? MontoCubiertoSeguro = null,
-    bool RecetaVerificada = false) : ICommand<VentaCreadaDto>;
+    bool RecetaVerificada = false,
+    CreateVentaAtencionDto? Atencion = null) : ICommand<VentaCreadaDto>;
+
+// The service performed and charged in this sale; its price comes from the catalog
+public record CreateVentaAtencionDto(
+    Guid ServicioId,
+    Guid? CitaId = null,
+    OrigenMedicamento? Origen = null,
+    Guid? LoteId = null,
+    string? MedicamentoTraido = null,
+    string? Dosis = null,
+    string? Resultado = null,
+    Guid? VentaPreviaId = null);
 
 public record CreateVentaPagoDto(MetodoPago MetodoPago, decimal MontoPagado, string? ReferenciaOperacion);
 

@@ -64,6 +64,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PlataformaConfiguracionPago> PlataformaConfiguracionesPago => Set<PlataformaConfiguracionPago>();
     public DbSet<AvisoEnviado> AvisosEnviados => Set<AvisoEnviado>();
+    public DbSet<ServicioCatalogo> ServiciosCatalogo => Set<ServicioCatalogo>();
+    public DbSet<CitaServicio> CitasServicio => Set<CitaServicio>();
+    public DbSet<VentaServicio> VentasServicios => Set<VentaServicio>();
 
     private Guid? CurrentEmpresaId =>
         Guid.TryParse(currentUser.EmpresaId, out var id) ? id : null;

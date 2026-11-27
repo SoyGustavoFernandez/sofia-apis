@@ -59,6 +59,9 @@ public interface IApplicationDbContext
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<PlataformaConfiguracionPago> PlataformaConfiguracionesPago { get; }
     DbSet<AvisoEnviado> AvisosEnviados { get; }
+    DbSet<ServicioCatalogo> ServiciosCatalogo { get; }
+    DbSet<CitaServicio> CitasServicio { get; }
+    DbSet<VentaServicio> VentasServicios { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 

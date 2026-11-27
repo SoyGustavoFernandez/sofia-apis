@@ -53,10 +53,28 @@ public class CreateVentaCommandHandler(
             return Result.Failure<VentaCreadaDto>(detallesResult.Error);
         }
 
-        var ventaResult = Venta.Create(sucursalId, empleadoId, request.ClienteId, request.SesionId, detallesResult.Value!.Detalles, request.Estado);
+        AtencionPreparada? atencion = null;
+        if (request.Atencion is not null)
+        {
+            var atencionResult = await VentaAtencionProcessor.PrepararAsync(context, request, sucursalId, cancellationToken);
+            if (atencionResult.IsFailure)
+            {
+                return Result.Failure<VentaCreadaDto>(atencionResult.Error);
+            }
+
+            atencion = atencionResult.Value;
+        }
+
+        var ventaResult = Venta.Create(sucursalId, empleadoId, request.ClienteId, request.SesionId, detallesResult.Value!.Detalles, request.Estado, atencion is null ? null : [atencion.Linea]);
         if (!ventaResult.IsSuccess)
         {
             return Result.Failure<VentaCreadaDto>(ventaResult.Error);
+        }
+
+        var atendida = atencion?.Cita.Atender(atencion.Servicio, atencion.Datos, ventaResult.Value.Id, DateTimeOffset.UtcNow);
+        if (atendida is { IsFailure: true })
+        {
+            return Result.Failure<VentaCreadaDto>(atendida.Error);
         }
 
         _ = context.Ventas.Add(ventaResult.Value);

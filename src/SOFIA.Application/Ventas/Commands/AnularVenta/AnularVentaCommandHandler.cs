@@ -89,6 +89,9 @@ public class AnularVentaCommandHandler(
             inventario?.UpdateStock(inventario.CantidadFisica + detalle.CantidadVendida);
         }
 
+        var citas = await context.CitasServicio.Where(c => c.VentaId == venta.Id).ToListAsync(cancellationToken);
+        citas.ForEach(c => c.AnularCobro());
+
         // 5. Guardar cambios
         _ = await context.SaveChangesAsync(cancellationToken);
 

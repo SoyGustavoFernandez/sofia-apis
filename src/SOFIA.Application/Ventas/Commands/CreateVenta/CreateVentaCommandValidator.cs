@@ -14,7 +14,21 @@ public class CreateVentaCommandValidator : AbstractValidator<CreateVentaCommand>
     public CreateVentaCommandValidator()
     {
         _ = RuleFor(v => v.Detalles)
-            .NotEmpty().WithMessage("A sale must have at least one detail.");
+            .NotEmpty().WithMessage("A sale must have at least one detail.")
+            .When(v => v.Atencion is null);
+
+        _ = When(v => v.Atencion is not null, () =>
+        {
+            _ = RuleFor(v => v.Atencion!.ServicioId).NotEmpty().OverridePropertyName("Atencion.ServicioId");
+            _ = RuleFor(v => v.Atencion!.Origen).IsInEnum().OverridePropertyName("Atencion.Origen");
+            _ = RuleFor(v => v.Atencion!.MedicamentoTraido).MaximumLength(200).OverridePropertyName("Atencion.MedicamentoTraido");
+            _ = RuleFor(v => v.Atencion!.Dosis).MaximumLength(200).OverridePropertyName("Atencion.Dosis");
+            _ = RuleFor(v => v.Atencion!.Resultado).MaximumLength(200).OverridePropertyName("Atencion.Resultado");
+
+            // A parked sale would leave the service neither charged nor pending, and a claim needs a product line
+            _ = RuleFor(v => v.Estado).NotEqual(EstadoVenta.Pendiente).OverridePropertyName("Atencion.NoPendiente");
+            _ = RuleFor(v => v.AseguradoraId).Null().OverridePropertyName("Atencion.SinSeguro");
+        });
 
         _ = RuleForEach(v => v.Detalles).ChildRules(detail =>
         {

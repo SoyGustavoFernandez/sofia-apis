@@ -25,7 +25,10 @@ public record VentaConDetalleDto(
     List<VentaDevolucionDto> Devoluciones,
     string? ClienteTipoDocumento,
     string? RecetaVerificadaPor,
-    DateTime? RecetaVerificadaEn);
+    DateTime? RecetaVerificadaEn,
+    List<VentaServicioDto> Servicios);
+
+public record VentaServicioDto(Guid Id, string ServicioNombre, decimal Precio);
 
 public record ComprobanteDto(
     string Tipo,

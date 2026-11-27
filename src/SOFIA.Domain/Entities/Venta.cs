@@ -7,6 +7,7 @@ public sealed class Venta : BaseEntity
 {
     private readonly List<DetalleVenta> _detalles = [];
     private readonly List<VentaPago> _pagos = [];
+    private readonly List<VentaServicio> _servicios = [];
 
     private Venta() { }
 
@@ -35,6 +36,7 @@ public sealed class Venta : BaseEntity
 
     public IReadOnlyCollection<DetalleVenta> Detalles => _detalles.AsReadOnly();
     public IReadOnlyCollection<VentaPago> Pagos => _pagos.AsReadOnly();
+    public IReadOnlyCollection<VentaServicio> Servicios => _servicios.AsReadOnly();
 
     public static Result<Venta> Create(
         Guid sucursalId,
@@ -42,7 +44,8 @@ public sealed class Venta : BaseEntity
         Guid? clienteId,
         Guid? sesionId,
         List<DetalleVenta> detalles,
-        EstadoVenta estado = EstadoVenta.Completada)
+        EstadoVenta estado = EstadoVenta.Completada,
+        List<VentaServicio>? servicios = null)
     {
         if (sucursalId == Guid.Empty)
         {
@@ -54,15 +57,15 @@ public sealed class Venta : BaseEntity
             return Result.Failure<Venta>(Error.Validation("Venta.EmpleadoId", "Empleado ID is required."));
         }
 
-        if (detalles == null || detalles.Count == 0)
+        if (detalles == null || (detalles.Count == 0 && servicios is not { Count: > 0 }))
         {
             return Result.Failure<Venta>(Error.Validation("Venta.Detalles", "A sale must have at least one detail."));
         }
 
-        return SuccessVenta(sucursalId, empleadoId, clienteId, sesionId, detalles, estado);
+        return SuccessVenta(sucursalId, empleadoId, clienteId, sesionId, detalles, estado, servicios ?? []);
     }
 
-    private static Result<Venta> SuccessVenta(Guid sucursalId, Guid empleadoId, Guid? clienteId, Guid? sesionId, List<DetalleVenta> detalles, EstadoVenta estado)
+    private static Result<Venta> SuccessVenta(Guid sucursalId, Guid empleadoId, Guid? clienteId, Guid? sesionId, List<DetalleVenta> detalles, EstadoVenta estado, List<VentaServicio> servicios)
     {
         var venta = new Venta
         {
@@ -78,6 +81,12 @@ public sealed class Venta : BaseEntity
         {
             detalle.SetVentaId(venta.Id);
             venta._detalles.Add(detalle);
+        }
+
+        foreach (var servicio in servicios)
+        {
+            servicio.SetVentaId(venta.Id);
+            venta._servicios.Add(servicio);
         }
 
         venta.CalcularTotales();
@@ -146,7 +155,8 @@ public sealed class Venta : BaseEntity
         }
 
         // Partial returns keep the sale Completada (CHK_Venta_Estado has no partial state); what remains is derived from the return lines
-        if (_detalles.TrueForAll(d => cantidadesYaDevueltas.GetValueOrDefault(d.Id) + cantidadesADevolver.GetValueOrDefault(d.Id) >= d.CantidadVendida))
+        // A charged service is never returned, so such a sale never counts as fully returned
+        if (_servicios.Count == 0 && _detalles.TrueForAll(d => cantidadesYaDevueltas.GetValueOrDefault(d.Id) + cantidadesADevolver.GetValueOrDefault(d.Id) >= d.CantidadVendida))
         {
             Estado = EstadoVenta.Devuelta;
         }
@@ -157,7 +167,7 @@ public sealed class Venta : BaseEntity
         return Result.Success(Math.Round(montoDevuelto, 2));
     }
 
-    private void CalcularTotales() => MontoTotalBruto = _detalles.Sum(d => d.PrecioFijadoUnidad * d.CantidadVendida);
+    private void CalcularTotales() => MontoTotalBruto = _detalles.Sum(d => d.PrecioFijadoUnidad * d.CantidadVendida) + _servicios.Sum(s => s.Precio);
 
     public Result ActualizarDetalles(List<DetalleVenta> nuevosDetalles, Guid? clienteId)
     {

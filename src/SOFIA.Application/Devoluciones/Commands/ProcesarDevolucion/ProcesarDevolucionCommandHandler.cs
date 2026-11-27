@@ -29,6 +29,7 @@ public class ProcesarDevolucionCommandHandler(IApplicationDbContext dbContext, I
 
         var venta = await dbContext.Ventas
             .Include(v => v.Detalles)
+            .Include(v => v.Servicios)
             .FirstOrDefaultAsync(v => v.Id == request.ComprobanteOrigenId, cancellationToken);
 
         if (venta == null)

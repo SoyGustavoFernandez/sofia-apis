@@ -37,6 +37,7 @@ public class DeletePacienteCommandHandler(IApplicationDbContext context) : IRequ
     private async Task<bool> IsReferencedAsync(Guid id, CancellationToken cancellationToken) =>
         await context.Recetas.AnyAsync(r => r.ClienteId == id && !r.IsDeleted, cancellationToken)
         || await context.Ventas.AnyAsync(v => v.ClienteId == id && !v.IsDeleted, cancellationToken)
+        || await context.CitasServicio.AnyAsync(c => c.PacienteId == id, cancellationToken)
         || await context.ServiciosAgenda.AnyAsync(s => s.ClienteId == id && !s.IsDeleted, cancellationToken)
         || await context.ServiciosClinicosInmunizacion.AnyAsync(s => s.ClienteId == id && !s.IsDeleted, cancellationToken);
 }

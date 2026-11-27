@@ -34,8 +34,10 @@ public class DeletePacienteCommandHandlerTests
         RecetaMedica? receta = null,
         Venta? venta = null,
         ServicioAgenda? cita = null,
-        ServicioClinicoInmunizacion? inmunizacion = null)
+        ServicioClinicoInmunizacion? inmunizacion = null,
+        CitaServicio? citaServicio = null)
     {
+        _ = _dbContextMock.Setup(c => c.CitasServicio).Returns(Of(citaServicio).BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.Recetas).Returns(Of(receta).BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.Ventas).Returns(Of(venta).BuildMockDbSet().Object);
         _ = _dbContextMock.Setup(c => c.ServiciosAgenda).Returns(Of(cita).BuildMockDbSet().Object);
@@ -95,6 +97,14 @@ public class DeletePacienteCommandHandlerTests
     public async Task Handle_ShouldReturnConflict_WhenReferencedByCita()
     {
         SetupDependents(cita: NewCita());
+
+        await AssertConflictAsync();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnConflict_WhenReferencedByAServiceAppointment()
+    {
+        SetupDependents(citaServicio: CitaServicio.CrearSinCita(_paciente.Id, Guid.NewGuid(), Guid.NewGuid(), DateTimeOffset.UtcNow).Value);
 
         await AssertConflictAsync();
     }

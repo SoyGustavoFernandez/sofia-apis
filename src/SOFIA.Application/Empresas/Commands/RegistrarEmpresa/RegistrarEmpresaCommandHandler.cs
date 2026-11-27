@@ -15,7 +15,8 @@ namespace SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 public class RegistrarEmpresaCommandHandler(
     IApplicationDbContext context,
     IPasswordHasher passwordHasher,
-    IJwtProvider jwtProvider) : IRequestHandler<RegistrarEmpresaCommand, Result<LoginResult>>
+    IJwtProvider jwtProvider,
+    INuevaEmpresaNotifier notifier) : IRequestHandler<RegistrarEmpresaCommand, Result<LoginResult>>
 {
     private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);
 
@@ -73,6 +74,10 @@ public class RegistrarEmpresaCommandHandler(
         _ = context.RefreshTokens.Add(DomainRefreshToken.Create(cuenta.Id, tokenHash, expiry));
 
         _ = await context.SaveChangesAsync(cancellationToken);
+
+        // Told only once the company exists; the notifier never throws
+        await notifier.NotificarAsync(new NuevaEmpresaAviso(
+            empresa.Nombre, rucVo.Value, empleado.Nombre_Completo, empleado.Email ?? request.AdminEmail, DateTimeOffset.UtcNow));
 
         var accessToken = jwtProvider.Generate(cuenta, empresa.Id, sucursal.Id);
         return Result.Success(new LoginResult(accessToken, rawToken, expiry), 201);

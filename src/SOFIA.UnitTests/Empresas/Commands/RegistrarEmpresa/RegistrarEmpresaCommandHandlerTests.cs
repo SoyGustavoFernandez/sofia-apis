@@ -2,6 +2,7 @@ using FluentAssertions;
 using MockQueryable.Moq;
 using Moq;
 using SOFIA.Application.Common.Interfaces;
+using SOFIA.Application.Common.Models;
 using SOFIA.Application.Empresas.Commands.RegistrarEmpresa;
 using SOFIA.Domain.Entities;
 
@@ -12,6 +13,7 @@ public class RegistrarEmpresaCommandHandlerTests
     private readonly Mock<IApplicationDbContext> _dbContextMock = new();
     private readonly Mock<IPasswordHasher> _passwordHasherMock = new();
     private readonly Mock<IJwtProvider> _jwtProviderMock = new();
+    private readonly Mock<INuevaEmpresaNotifier> _notifierMock = new();
     private readonly RegistrarEmpresaCommandHandler _handler;
 
     private const string FakeToken = "fake.jwt.token";
@@ -27,7 +29,8 @@ public class RegistrarEmpresaCommandHandlerTests
         _handler = new RegistrarEmpresaCommandHandler(
             _dbContextMock.Object,
             _passwordHasherMock.Object,
-            _jwtProviderMock.Object);
+            _jwtProviderMock.Object,
+            _notifierMock.Object);
     }
 
     private void SetupEmptyContext()
@@ -345,6 +348,32 @@ public class RegistrarEmpresaCommandHandlerTests
 
         _ = unidades.Select(u => u.Codigo).Should().Equal("UND", "CJA", "BLS", "FRC");
         _ = unidades.Should().OnlyContain(u => u.TenantId == capturedEmpresa!.Id);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotifyTheNewCompanyOnce_WhenSuccessful()
+    {
+        SetupEmptyContext();
+        List<NuevaEmpresaAviso> avisos = [];
+        _ = _notifierMock.Setup(n => n.NotificarAsync(It.IsAny<NuevaEmpresaAviso>())).Callback<NuevaEmpresaAviso>(avisos.Add).Returns(Task.CompletedTask);
+
+        _ = await _handler.Handle(MinimalCommand(), CancellationToken.None);
+
+        var aviso = avisos.Should().ContainSingle().Subject;
+        _ = aviso.NombreEmpresa.Should().Be("Farmacia Salud");
+        _ = aviso.Ruc.Should().Be("20123456789");
+        _ = aviso.AdminNombre.Should().Be("Ana Maria Quispe");
+        _ = aviso.AdminEmail.Should().Be("ana.quispe@farmacia.pe");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotNotify_WhenTheRegistrationFails()
+    {
+        SetupEmptyContext();
+
+        _ = await _handler.Handle(MinimalCommand() with { RUC = "" }, CancellationToken.None);
+
+        _notifierMock.Verify(n => n.NotificarAsync(It.IsAny<NuevaEmpresaAviso>()), Times.Never);
     }
 
     [Fact]
